@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <atomic>
 #include <cassert>
 #include <condition_variable>
@@ -6,6 +6,7 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <random>
 #include <thread>
 #include <vector>
 
@@ -27,11 +28,11 @@ struct tagged_ptr {
   }
 };
 
-// Lock-free queue based on Michael & Scott algorithm with ABA protection
+// Lock-free queue based on Michael-Scott algorithm with ABA protection
 template <typename T>
 class lockfree_queue {
   struct node {
-	std::atomic<tagged_ptr<node>> next;
+	alignas(64) std::atomic<tagged_ptr<node>> next;
 	T data;
 
 	template <typename... Args>
@@ -52,12 +53,15 @@ class lockfree_queue {
   }
 
   ~lockfree_queue() {
-	while (dequeue()) {
+	tagged_ptr<node> curr_head = head.load(std::memory_order_acquire);
+	node* curr = curr_head.ptr;
+	while (curr) {
+	  node* next = curr->next.load(std::memory_order_acquire).ptr;
+	  delete curr;
+	  curr = next;
 	}
-	delete head.load().ptr;
   }
 
-  // No copying or moving
   lockfree_queue(const lockfree_queue&) = delete;
   lockfree_queue& operator=(const lockfree_queue&) = delete;
 
@@ -91,31 +95,26 @@ class lockfree_queue {
   }
 
   std::optional<T> dequeue() {
-	tagged_ptr<node> curr_head;
-	tagged_ptr<node> curr_tail;
-	tagged_ptr<node> next;
-
 	while (true) {
-	  curr_head = head.load(std::memory_order_acquire);
-	  curr_tail = tail.load(std::memory_order_acquire);
-	  next = curr_head.ptr->next.load(std::memory_order_acquire);
+	  tagged_ptr<node> curr_head = head.load(std::memory_order_acquire);
+	  tagged_ptr<node> curr_tail = tail.load(std::memory_order_acquire);
+	  tagged_ptr<node> next =
+		  curr_head.ptr->next.load(std::memory_order_acquire);
 
-	  if (curr_head == head.load(std::memory_order_relaxed)) {
-		if (curr_head.ptr == curr_tail.ptr) {
-		  if (next.ptr == nullptr) {
-			return std::nullopt;
-		  }
-		  tagged_ptr<node> new_tail(next.ptr, curr_tail.tag + 1);
-		  tail.compare_exchange_strong(curr_tail, new_tail,
-									   std::memory_order_release);
-		} else {
-		  T val = std::move(next.ptr->data);
-		  tagged_ptr<node> new_head(next.ptr, curr_head.tag + 1);
-		  if (head.compare_exchange_strong(curr_head, new_head,
-										   std::memory_order_release)) {
-			delete curr_head.ptr;
-			return val;
-		  }
+	  if (curr_head.ptr == curr_tail.ptr) {
+		if (next.ptr == nullptr) {
+		  return std::nullopt;
+		}
+		tagged_ptr<node> new_tail(next.ptr, curr_tail.tag + 1);
+		tail.compare_exchange_strong(curr_tail, new_tail,
+									 std::memory_order_release);
+	  } else {
+		T val = std::move(next.ptr->data);
+		tagged_ptr<node> new_head(next.ptr, curr_head.tag + 1);
+		if (head.compare_exchange_strong(curr_head, new_head,
+										 std::memory_order_release)) {
+		  delete curr_head.ptr;
+		  return val;
 		}
 	  }
 	}
@@ -125,12 +124,10 @@ class lockfree_queue {
 	tagged_ptr<node> curr_head = head.load(std::memory_order_acquire);
 	tagged_ptr<node> curr_tail = tail.load(std::memory_order_acquire);
 	tagged_ptr<node> next = curr_head.ptr->next.load(std::memory_order_acquire);
-
 	return curr_head.ptr == curr_tail.ptr && next.ptr == nullptr;
   }
 };
 
-// Constants for task state
 constexpr auto k_cancelled = 1;
 constexpr auto k_invoked = 1 << 1;
 
@@ -144,7 +141,6 @@ class task {
 			typename = std::enable_if_t<std::is_invocable_r_v<void, TaskType>>>
   explicit task(TaskType&& func) : func_(std::forward<TaskType>(func)) {}
 
-  // Copy/move operations
   task(const task& other)
 	  : total_predecessors_(other.total_predecessors_),
 		func_(other.func_),
@@ -183,45 +179,47 @@ class task {
 	return *this;
   }
 
-  void succeed(task* other_task) {
-	other_task->next_.push_back(this);
-	++total_predecessors_;
-	remaining_predecessors_.fetch_add(1, std::memory_order_relaxed);
+  template <typename... TasksType>
+  constexpr void succeed(TasksType*... tasks) {
+	if constexpr (sizeof...(tasks) > 0) {
+	  (succeed_one(tasks), ...);
+	}
   }
 
   template <typename... TasksType>
-  void succeed(task* other_task, const TasksType&... tasks) {
-	succeed(other_task);
-	succeed(tasks...);
-  }
-
-  void precede(task* other_task) {
-	next_.push_back(other_task);
-	++other_task->total_predecessors_;
-	other_task->remaining_predecessors_.fetch_add(1, std::memory_order_relaxed);
-  }
-
-  template <typename... TasksType>
-  void precede(task* other_task, const TasksType&... tasks) {
-	precede(other_task);
-	precede(tasks...);
+  constexpr void precede(TasksType*... tasks) {
+	if constexpr (sizeof...(tasks) > 0) {
+	  (precede_one(tasks), ...);
+	}
   }
 
   bool cancel() {
 	return (cancellation_flags_.fetch_or(internal::k_cancelled,
-										 std::memory_order_relaxed) &
+										 std::memory_order_release) &
 			internal::k_invoked) == 0;
   }
 
   void reset() { cancellation_flags_.store(0, std::memory_order_relaxed); }
 
  private:
+  void succeed_one(task* other_task) {
+	other_task->next_.push_back(this);
+	++total_predecessors_;
+	remaining_predecessors_.fetch_add(1, std::memory_order_relaxed);
+  }
+
+  void precede_one(task* other_task) {
+	next_.push_back(other_task);
+	++other_task->total_predecessors_;
+	other_task->remaining_predecessors_.fetch_add(1, std::memory_order_relaxed);
+  }
+
   friend class thread_pool;
   bool delete_{false};
   bool is_root_{false};
   int total_predecessors_{0};
-  std::atomic<int> remaining_predecessors_{0};
-  std::atomic<int> cancellation_flags_{0};
+  alignas(64) std::atomic<int> remaining_predecessors_{0};
+  alignas(64) std::atomic<int> cancellation_flags_{0};
   std::function<void()> func_;
   std::vector<task*> next_;
 };
@@ -230,9 +228,9 @@ class thread_pool {
  public:
   explicit thread_pool(
 	  unsigned threads_count = std::thread::hardware_concurrency())
-	  : queues_(threads_count), stop_(false) {
-	threads_.reserve(threads_count);
-	for (unsigned i = 0; i < threads_count; ++i) {
+	  : queues_(threads_count > 0 ? threads_count : 1), stop_(false) {
+	threads_.reserve(queues_.size());
+	for (unsigned i = 0; i < queues_.size(); ++i) {
 	  threads_.emplace_back([this, i] { worker_loop(i); });
 	}
   }
@@ -249,7 +247,6 @@ class thread_pool {
 	}
   }
 
-  // No copying or moving
   thread_pool(const thread_pool&) = delete;
   thread_pool& operator=(const thread_pool&) = delete;
 
@@ -293,9 +290,7 @@ class thread_pool {
  private:
   struct queue {
 	internal::lockfree_queue<task*> tasks;
-	std::atomic<bool> has_tasks{false};
-	std::condition_variable cv;
-	std::mutex cv_mutex;
+	alignas(64) std::atomic_flag has_tasks = ATOMIC_FLAG_INIT;
 
 	void enqueue(task* t) {
 	  tasks.enqueue(t);
@@ -305,28 +300,20 @@ class thread_pool {
 	std::optional<task*> dequeue() {
 	  auto task = tasks.dequeue();
 	  if (!task && !tasks.empty()) {
-		// Try again if queue isn't empty but we got nothing
 		return tasks.dequeue();
 	  }
 	  return task;
 	}
 
-	void notify() {
-	  {
-		std::lock_guard<std::mutex> lock(cv_mutex);
-		has_tasks.store(true, std::memory_order_release);
-	  }
-	  cv.notify_one();
-	}
+	void notify() { has_tasks.test_and_set(std::memory_order_release); }
 
 	bool wait_for_task(std::atomic<bool>& stop) {
-	  std::unique_lock<std::mutex> lock(cv_mutex);
-	  cv.wait(lock, [this, &stop] {
-		return has_tasks.load(std::memory_order_acquire) ||
-			   stop.load(std::memory_order_acquire);
-	  });
-	  bool has_work = has_tasks.load(std::memory_order_acquire);
-	  has_tasks.store(false, std::memory_order_relaxed);
+	  while (!has_tasks.test(std::memory_order_acquire) &&
+			 !stop.load(std::memory_order_acquire)) {
+		std::this_thread::yield();
+	  }
+	  bool has_work = has_tasks.test_and_set(std::memory_order_acquire);
+	  has_tasks.clear(std::memory_order_relaxed);
 	  return has_work;
 	}
 
@@ -334,6 +321,8 @@ class thread_pool {
   };
 
   void worker_loop(unsigned thread_idx) {
+	thread_local std::random_device rd;
+	thread_local std::mt19937 gen(rd());
 	while (!stop_.load(std::memory_order_acquire)) {
 	  if (auto t = queues_[thread_idx].dequeue()) {
 		execute(*t);
@@ -346,9 +335,13 @@ class thread_pool {
   }
 
   task* try_steal_task() {
+	thread_local std::random_device rd;
+	thread_local std::mt19937 gen(rd());
 	const unsigned num_queues = queues_.size();
-	for (unsigned i = 1; i < num_queues; ++i) {
-	  unsigned idx = (next_queue_ + i) % num_queues;
+	std::uniform_int_distribution<unsigned> dist(0, num_queues - 1);
+	unsigned start_idx = dist(gen);
+	for (unsigned i = 0; i < num_queues; ++i) {
+	  unsigned idx = (start_idx + i) % num_queues;
 	  if (auto t = queues_[idx].dequeue()) {
 		return *t;
 	  }
@@ -359,28 +352,23 @@ class thread_pool {
   void execute(task* t) {
 	while (t) {
 	  task* next = nullptr;
-
-	  // Reset predecessors count for this execution
 	  t->remaining_predecessors_.store(t->total_predecessors_,
 									   std::memory_order_relaxed);
 
-	  // Check if task was cancelled
 	  if (t->cancellation_flags_.fetch_or(internal::k_invoked,
-										  std::memory_order_relaxed) &
+										  std::memory_order_release) &
 		  internal::k_cancelled) {
 		break;
 	  }
 
-	  // Execute the task
 	  if (t->func_) {
 		t->func_();
 	  }
 
-	  // Schedule successors
 	  auto it = t->next_.begin();
 	  for (; it != t->next_.end(); ++it) {
 		if ((*it)->remaining_predecessors_.fetch_sub(
-				1, std::memory_order_relaxed) == 1) {
+				1, std::memory_order_release) == 1) {
 		  next = *it++;
 		  break;
 		}
@@ -388,7 +376,7 @@ class thread_pool {
 
 	  for (; it != t->next_.end(); ++it) {
 		if ((*it)->remaining_predecessors_.fetch_sub(
-				1, std::memory_order_relaxed) == 1) {
+				1, std::memory_order_release) == 1) {
 		  submit(*it);
 		}
 	  }
@@ -412,8 +400,8 @@ class thread_pool {
 
   std::vector<std::thread> threads_;
   std::vector<queue> queues_;
-  std::atomic<bool> stop_{false};
-  std::atomic<unsigned> next_queue_{0};
+  alignas(64) std::atomic<bool> stop_{false};
+  alignas(64) std::atomic<unsigned> next_queue_{0};
 };
 
 }  // namespace thread_pool
