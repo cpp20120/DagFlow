@@ -12,39 +12,55 @@
 #include <vector>
 
 namespace tp::detail {
-
+/**
+ * @brief Hazard pointer domain for safe memory reclamation
+ *
+ * Implements both hazard pointer and QSBR (Quiescent State Based Reclamation)
+ * techniques for managing object lifetimes in concurrent environments.
+ */
 class hazard_domain {
  public:
-  static constexpr size_t kHPPerThread = 2;
-  static constexpr size_t kReclaimThreshold = 128;
-
+  static constexpr size_t kHPPerThread = 2;			///< HPs per thread
+  static constexpr size_t kReclaimThreshold = 128;	///< Retire batch size
+  /**
+   * @brief Per-thread slot block for hazard pointers
+   */
   struct slot_block {
-	std::array<std::atomic<void*>, kHPPerThread> slots;
+	std::array<std::atomic<void*>, kHPPerThread> slots;	 ///< HP slots
 	slot_block() {
 	  for (auto& s : slots) s.store(nullptr, std::memory_order_relaxed);
 	}
   };
-
+  /**
+   * @brief Record for retired objects
+   */
   struct retire_record {
-	void* p{};
-	void (*deleter)(void*){};
-	uint64_t epoch{};
+	void* p;				 ///< Pointer to retired object
+	void (*deleter)(void*);	 ///< Deleter function
+	uint64_t epoch;			 ///< Epoch of retirement
   };
-
+  /**
+   * @brief Per-thread state record
+   */
   struct thread_rec {
-	slot_block* block{};
-	std::vector<retire_record> retired_hp{};
-	std::vector<retire_record> retired_qsbr{};
-	std::atomic<uint64_t> local_epoch{0};
+	slot_block* block;						  ///< Associated HP block
+	std::vector<retire_record> retired_hp;	  ///< HP-retired objects
+	std::vector<retire_record> retired_qsbr;  ///< QSBR-retired objects
+	std::atomic<uint64_t> local_epoch{0};	  ///< Thread's epoch
 
 	~thread_rec() { hazard_domain::instance().deregister(block); }
   };
-
+  /**
+   * @brief Returns singleton instance
+   */
   static hazard_domain& instance() {
 	static hazard_domain dom;
 	return dom;
   }
-
+  /** @brief Acquires a thread-local record for the calling thread.
+   *
+   * @return Pointer to the thread's thread_rec.
+   */
   thread_rec* acquire_thread_rec() {
 	thread_local thread_rec* tr = nullptr;
 	if (tr) return tr;
@@ -61,15 +77,29 @@ class hazard_domain {
 						  std::memory_order_relaxed);
 	return tr;
   }
-
+  /**
+   * @brief Protects a pointer with hazard pointer
+   * @param tr Thread record
+   * @param i HP slot index
+   * @param p Pointer to protect
+   * @return The protected pointer
+   */
   static void* protect(thread_rec* tr, size_t i, void* p) {
 	tr->block->slots[i].store(p, std::memory_order_release);
 	return p;
   }
+  /**
+   * @brief Clears a hazard pointer slot
+   * @param tr Thread record
+   * @param i HP slot index
+   */
   static void clear(thread_rec* tr, size_t i) {
 	tr->block->slots[i].store(nullptr, std::memory_order_release);
   }
-
+  /**
+   * @brief Marks quiescent state for QSBR
+   * @param tr Thread record
+   */
   void quiescent(thread_rec* tr) {
 	auto g = global_epoch_.load(std::memory_order_acquire);
 	tr->local_epoch.store(g, std::memory_order_release);
@@ -81,37 +111,52 @@ class hazard_domain {
 	}
 	try_advance_and_reclaim_qsbr(tr);
   }
-
+  /**
+   * @brief Advances global epoch
+   */
   void advance_epoch() {
 	global_epoch_.fetch_add(1, std::memory_order_acq_rel);
   }
-
+  /**
+   * @brief Retires an object using HP
+   */
   void retire_hp(thread_rec* tr, void* p, void (*deleter)(void*)) {
 	tr->retired_hp.push_back({p, deleter, 0});
 	if (tr->retired_hp.size() >= kReclaimThreshold) scan_and_reclaim_hp(tr);
   }
-
+  /**
+   * @brief Retires an object using QSBR
+   */
   void retire_qsbr(thread_rec* tr, void* p, void (*deleter)(void*)) {
 	auto e = global_epoch_.load(std::memory_order_acquire);
 	tr->retired_qsbr.push_back({p, deleter, e});
 	if (tr->retired_qsbr.size() >= kReclaimThreshold)
 	  try_advance_and_reclaim_qsbr(tr);
   }
-
+  /**
+   * @brief RAII guard for hazard pointer
+   */
   struct hp_guard {
-	hazard_domain::thread_rec* tr{};
-	size_t idx{};
+	hazard_domain::thread_rec* tr{};  ///< Thread record
+	size_t idx{};					  ///< HP slot index
 	hp_guard(hazard_domain::thread_rec* r, size_t i) : tr(r), idx(i) {}
-	void* set(void* p) const { return hazard_domain::instance().protect(tr, idx, p); }
+	void* set(void* p) const {
+	  return hazard_domain::instance().protect(tr, idx, p);
+	}  ///< Sets HP value
 	~hp_guard() { hazard_domain::instance().clear(tr, idx); }
   };
-
+  /** \struct qsbr_section
+   * \brief RAII guard for a quiescent state section.
+   */
   struct qsbr_section {
 	hazard_domain::thread_rec* tr{};
 	explicit qsbr_section(hazard_domain::thread_rec* r) : tr(r) {}
 	~qsbr_section() { hazard_domain::instance().quiescent(tr); }
   };
-
+  /** \brief Scans and reclaims retired objects for hazard pointers.
+   *
+   * \param tr The thread record for the calling thread.
+   */
   void scan_and_reclaim_hp(thread_rec* tr) {
 	std::vector<void*> hazards;
 	{
@@ -141,7 +186,10 @@ class hazard_domain {
 
  private:
   hazard_domain() = default;
-
+  /** \brief Deregisters a slot block from the registry.
+   *
+   * \param blk The slot block to deregister.
+   */
   void deregister(slot_block* blk) {
 	if (!blk) return;
 	std::lock_guard lk(reg_mu_);
@@ -154,7 +202,7 @@ class hazard_domain {
 	registry_erase_pending_.push_back(blk);
 	compact_if_needed();
   }
-
+  /** \brief Compacts the registry if needed. */
   void compact_if_needed() {
 	if (registry_erase_pending_.size() < 8) return;
 
@@ -177,7 +225,10 @@ class hazard_domain {
 	for (size_t i = 0; i < registry_.size(); ++i) index_of_[registry_[i]] = i;
 	registry_erase_pending_.clear();
   }
-
+  /** \brief Attempts to advance the epoch and reclaim QSBR-retired objects.
+   *
+   * \param tr The thread record for the calling thread.
+   */
   void try_advance_and_reclaim_qsbr(thread_rec* tr) {
 	uint64_t g = global_epoch_.load(std::memory_order_acquire);
 	uint64_t min_epoch = g;
@@ -200,13 +251,14 @@ class hazard_domain {
 	tr->retired_qsbr.swap(keep);
   }
 
-  std::mutex reg_mu_;
-  std::vector<slot_block*> registry_;
-  std::vector<uint64_t> epochs_;
-  std::vector<slot_block*> registry_erase_pending_;
-  std::unordered_map<slot_block*, size_t> index_of_;
-
-  std::atomic<uint64_t> global_epoch_{1};
+  std::mutex reg_mu_;				  /**< \brief Mutex for registry access. */
+  std::vector<slot_block*> registry_; /**< \brief Registered slot blocks. */
+  std::vector<uint64_t> epochs_;	  /**< \brief Epochs for QSBR. */
+  std::vector<slot_block*>
+	  registry_erase_pending_; /**< \brief Slot blocks pending erasure. */
+  std::unordered_map<slot_block*, size_t>
+	  index_of_; /**< \brief Index mapping for slot blocks. */
+  std::atomic<uint64_t> global_epoch_{1}; /**< \brief Global epoch for QSBR. */
 };
 
 using hp_guard = hazard_domain::hp_guard;

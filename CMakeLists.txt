@@ -5,6 +5,11 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+option(BUILD_DOCS "Build documentation" ON)
+if(BUILD_DOCS)
+  add_subdirectory(docs)
+endif()
+
 add_executable(ThreadPool
     src/main.cpp
  src/thread_pool.cpp)

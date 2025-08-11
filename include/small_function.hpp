@@ -1,3 +1,9 @@
+/** \file small_function.hpp
+ * \brief A small, fixed-size function wrapper for move-only callables.
+ *
+ * This file defines a small_function class that stores a callable object in a
+ * fixed-size buffer
+ */
 #pragma once
 #include <cstddef>
 #include <new>
@@ -6,21 +12,47 @@
 
 namespace tp {
 
+/** \class small_function
+ * \brief A move-only function wrapper with small buffer optimization.
+ *
+ * This class stores a callable object in a fixed-size buffer, avoiding dynamic
+ * allocation for small callables. It supports move operations.
+ *
+ * \tparam Sig The function signature (e.g., void()).
+ * \tparam StorageSize The size of the internal storage buffer (default: 64
+ * bytes).
+ */
 template <typename Sig, std::size_t StorageSize = 64>
 class small_function;  // primary
 
+/** \class small_function<void(), StorageSize>
+ * \brief Specialization for void() function signature.
+ *
+ * \tparam StorageSize The size of the internal storage buffer.
+ */
 template <std::size_t StorageSize>
 class small_function<void(), StorageSize> {
  public:
+  /** \brief Default constructor, initializes an empty function. */
   small_function() noexcept = default;
+  /** \brief Constructs an empty function from nullptr. */
   small_function(std::nullptr_t) noexcept {}
-
+  /** \brief Deleted copy constructor to prevent copying. */
   small_function(const small_function&) = delete;
+  /** \brief Deleted copy assignment operator to prevent copying. */
   small_function& operator=(const small_function&) = delete;
-
+  /** \brief Move constructor.
+   *
+   * \param other The function to move from.
+   */
   small_function(small_function&& other) noexcept {
 	move_from(std::move(other));
   }
+  /** \brief Move assignment operator.
+   *
+   * \param other The function to move from.
+   * \return Reference to this function.
+   */
   small_function& operator=(small_function&& other) noexcept {
 	if (this != &other) {
 	  reset();
@@ -28,18 +60,26 @@ class small_function<void(), StorageSize> {
 	}
 	return *this;
   }
-
+  /** \brief Constructs a function from a callable.
+   *
+   * \tparam F The type of the callable.
+   * \param f The callable to store.
+   */
   template <typename F, typename = std::enable_if_t<
 							!std::is_same_v<std::decay_t<F>, small_function>>>
   small_function(F&& f) {
 	emplace(std::forward<F>(f));
   }
-
+  /** \brief Destroys the function, cleaning up the stored callable. */
   ~small_function() { reset(); }
-
+  /** \brief Checks if the function is valid (non-empty).
+   *
+   * \return True if a callable is stored, false otherwise.
+   */
   explicit operator bool() const noexcept { return call_ != nullptr; }
+  /** \brief Invokes the stored callable. */
   void operator()() { call_(storage_); }
-
+  /** \brief Resets the function, destroying the stored callable. */
   void reset() noexcept {
 	if (destroy_) {
 	  destroy_(storage_, nullptr);
@@ -48,7 +88,11 @@ class small_function<void(), StorageSize> {
 	  move_ = nullptr;
 	}
   }
-
+  /** \brief Emplaces a new callable into the function.
+   *
+   * \tparam F The type of the callable.
+   * \param f The callable to store.
+   */
   template <typename F>
   void emplace(F&& f) {
 	reset();
@@ -69,9 +113,13 @@ class small_function<void(), StorageSize> {
   }
 
  private:
-  using CallFn = void (*)(void*);
-  using OpFn = void (*)(void*, void*);
-
+  using CallFn = void (*)(void*); /**< \brief Function pointer for calling. */
+  using OpFn =
+	  void (*)(void*, void*); /**< \brief Function pointer for move/destroy. */
+  /** \brief Moves a function from another instance.
+   *
+   * \param other The function to move from.
+   */
   void move_from(small_function&& other) noexcept {
 	if (other.call_) {
 	  move_ = other.move_;
@@ -84,10 +132,12 @@ class small_function<void(), StorageSize> {
 	}
   }
 
-  alignas(std::max_align_t) unsigned char storage_[StorageSize];
-  CallFn call_ = nullptr;
-  OpFn move_ = nullptr;
-  OpFn destroy_ = nullptr;
+  alignas(
+	  std::max_align_t) unsigned char storage_[StorageSize]; /**< \brief Storage
+																buffer. */
+  CallFn call_ = nullptr;  /**< \brief Callable function pointer. */
+  OpFn move_ = nullptr;	   /**< \brief Move function pointer. */
+  OpFn destroy_ = nullptr; /**< \brief Destroy function pointer. */
 };
 
 }  // namespace tp

@@ -100,8 +100,9 @@ void Pool::dispatch(Task* t, std::optional<uint32_t> affinity) {
 	return;
   }
   const auto m = static_cast<uint32_t>(centrals_.size());
-  const uint32_t shard = affinity ? (*affinity % m)
-							: (rr_.fetch_add(1, std::memory_order_relaxed) % m);
+  const uint32_t shard =
+	  affinity ? (*affinity % m)
+			   : (rr_.fetch_add(1, std::memory_order_relaxed) % m);
   if (t->prio == Priority::High)
 	centrals_[shard]->hi.push(t);
   else

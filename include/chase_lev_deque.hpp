@@ -5,18 +5,36 @@
 #include <memory>
 #include <utility>
 
+/**
+ * @file chase_lev_deque.hpp
+ * @brief Implementation of Chase-Lev work-stealing deque
+ */
 namespace tp::detail {
-
+/**
+ * @brief Chase-Lev work-stealing deque implementation
+ * @tparam T Type of elements stored in the deque
+ *
+ * This is a lock-free deque supporting efficient work stealing from other
+ * threads. The implementation follows the algorithm described in: "Dynamic
+ * Circular Work-Stealing Deque" by David Chase and Yossi Lev
+ */
 template <typename T>
 class chase_lev_deque {
  public:
+  /**
+   * @brief Constructs an empty deque with initial capacity
+   */
   chase_lev_deque()
 	  : bottom_(0), top_(0), cap_(initial_capacity_), buf_(new T[cap_]) {}
 
   ~chase_lev_deque() = default;
+  // Non-copyable
   chase_lev_deque(const chase_lev_deque&) = delete;
   chase_lev_deque& operator=(const chase_lev_deque&) = delete;
-
+  /**
+   * @brief Pushes an element to the bottom of the deque (owner thread only)
+   * @param v Value to push
+   */
   void push_bottom(T v) {
 	auto b = bottom_.load(std::memory_order_relaxed);
 	auto t = top_.load(std::memory_order_acquire);
@@ -25,7 +43,11 @@ class chase_lev_deque {
 	std::atomic_thread_fence(std::memory_order_release);
 	bottom_.store(b + 1, std::memory_order_relaxed);
   }
-
+  /**
+   * @brief Pops an element from the bottom of the deque (owner thread only)
+   * @param[out] out Reference to store popped value
+   * @return True if element was popped, false if deque was empty
+   */
   bool pop_bottom(T& out) {
 	auto b = bottom_.load(std::memory_order_relaxed) - 1;
 	bottom_.store(b, std::memory_order_relaxed);
@@ -46,7 +68,11 @@ class chase_lev_deque {
 	}
 	return true;
   }
-
+  /**
+   * @brief Steals an element from the top of the deque (other threads)
+   * @param[out] out Reference to store stolen value
+   * @return True if element was stolen, false if deque was empty
+   */
   bool steal(T& out) {
 	auto t = top_.load(std::memory_order_acquire);
 	std::atomic_thread_fence(std::memory_order_seq_cst);
@@ -56,7 +82,10 @@ class chase_lev_deque {
 	return top_.compare_exchange_strong(t, t + 1, std::memory_order_seq_cst,
 										std::memory_order_relaxed);
   }
-
+  /**
+   * @brief Checks if deque is empty
+   * @return True if deque is empty
+   */
   bool empty() const {
 	auto t = top_.load(std::memory_order_acquire);
 	auto b = bottom_.load(std::memory_order_acquire);
@@ -64,6 +93,11 @@ class chase_lev_deque {
   }
 
  private:
+  /**
+   * @brief Grows the deque capacity when full
+   * @param b Current bottom index
+   * @param t Current top index
+   */
   void grow(ptrdiff_t b, ptrdiff_t t) {
 	size_t new_cap = cap_ * 2;
 	std::unique_ptr<T[]> nb(new T[new_cap]);
@@ -74,12 +108,12 @@ class chase_lev_deque {
 	cap_ = new_cap;
   }
 
-  static constexpr size_t initial_capacity_ = 1024;
-
-  alignas(64) std::atomic<ptrdiff_t> bottom_;
-  alignas(64) std::atomic<ptrdiff_t> top_;
-  size_t cap_;
-  std::unique_ptr<T[]> buf_;
+  static constexpr size_t initial_capacity_ = 1024;	 ///< Initial deque capacity
+  // Align to cache lines to prevent false sharing
+  alignas(64) std::atomic<ptrdiff_t> bottom_;  ///< Bottom index (owner thread)
+  alignas(64) std::atomic<ptrdiff_t> top_;	   ///< Top index (for stealing)
+  size_t cap_;								   ///< Current capacity
+  std::unique_ptr<T[]> buf_;				   ///< Underlying buffer
 };
 
 }  // namespace tp::detail

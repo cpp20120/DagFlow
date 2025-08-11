@@ -34,6 +34,10 @@
 #Build
 out
 build
+cmake-build-*
+
+#docs
+doxygen_output
 
 # ide
 .vs
