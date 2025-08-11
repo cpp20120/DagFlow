@@ -34,3 +34,4 @@ For "heavy" stages, set concurrency > 1 in ScheduleOptions/NodeOptions.
 Configure Config for CPU/NUMA; pin_threads=true is useful for cache stability.
 
 In large pipelines, turn on back-pressure (capacity, Overflow) at the bottleneck stages.
+
