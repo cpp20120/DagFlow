@@ -18,7 +18,7 @@ Mini-runtime for parallel tasks in C++20:
 
 * High-level API in the spirit of TBB: submit/then/when_all/parallel_for via TaskScope.
 
-### Design 
+### [Design](https://github.com/cpp20120/ThreadPool/blob/main/docs/how_it_works.md) 
 * Scheduler: local decks (Chase–Lev) + "central" MPMC queues for external submissions; worker-first, then an attempt to steal from neighbors.
 
 * MPMC: Michael–Scott + hazard pointers; there is a QSBR path (quiet state based reclamation) for queue tails in the pool.
