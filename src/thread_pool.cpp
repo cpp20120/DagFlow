@@ -337,6 +337,8 @@ void Pool::worker_loop(uint32_t id) {
 	  continue;
 	}
 
+	tp::detail::hazard_domain::instance().maybe_advance();
+
 	{
 	  std::unique_lock lk(me.mu);
 	  me.cv.wait_for(lk, std::chrono::microseconds(me.backoff_us), [&] {

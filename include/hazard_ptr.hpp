@@ -73,8 +73,12 @@ class hazard_domain {
 	}
 	tr = new thread_rec{};
 	tr->block = blk;
-	tr->local_epoch.store(global_epoch_.load(std::memory_order_relaxed),
-						  std::memory_order_relaxed);
+	auto g = global_epoch_.load(std::memory_order_relaxed);
+	tr->local_epoch.store(g, std::memory_order_relaxed);
+	{
+	  std::lock_guard lk(reg_mu_);
+	  epochs_[index_of_[blk]] = g;
+	}
 	return tr;
   }
   /**
@@ -101,7 +105,7 @@ class hazard_domain {
    * @param tr Thread record
    */
   void quiescent(thread_rec* tr) {
-	auto g = global_epoch_.load(std::memory_order_acquire);
+	const uint64_t g = global_epoch_.load(std::memory_order_acquire);
 	tr->local_epoch.store(g, std::memory_order_release);
 	size_t idx;
 	{
@@ -109,6 +113,7 @@ class hazard_domain {
 	  idx = index_of_[tr->block];
 	  if (idx < epochs_.size()) epochs_[idx] = g;
 	}
+	try_advance_global_epoch(g);
 	try_advance_and_reclaim_qsbr(tr);
   }
   /**
@@ -117,6 +122,12 @@ class hazard_domain {
   void advance_epoch() {
 	global_epoch_.fetch_add(1, std::memory_order_acq_rel);
   }
+
+   void maybe_advance() {
+	const uint64_t g = global_epoch_.load(std::memory_order_acquire);
+	try_advance_global_epoch(g);
+  }
+
   /**
    * @brief Retires an object using HP
    */
@@ -131,7 +142,8 @@ class hazard_domain {
 	auto e = global_epoch_.load(std::memory_order_acquire);
 	tr->retired_qsbr.push_back({p, deleter, e});
 	if (tr->retired_qsbr.size() >= kReclaimThreshold)
-	  try_advance_and_reclaim_qsbr(tr);
+	  try_advance_global_epoch(e);
+	try_advance_and_reclaim_qsbr(tr);
   }
   /**
    * @brief RAII guard for hazard pointer
@@ -249,6 +261,30 @@ class hazard_domain {
 	  }
 	}
 	tr->retired_qsbr.swap(keep);
+  }
+  /**
+   * @brief Advances the global QSBR epoch if all threads have observed it.
+   *
+   * Checks whether every registered thread's local epoch is at least
+   * @p g_snapshot. If so, increments the global epoch to mark a new
+   * grace period for QSBR reclamation.
+   *
+   * @param g_snapshot Current global epoch value to validate against.
+   *
+   * @see try_advance_and_reclaim_qsbr
+   */
+  void try_advance_global_epoch(uint64_t g_snapshot) {
+	uint64_t min_epoch = g_snapshot;
+	{
+	  std::lock_guard lk(reg_mu_);
+	  for (auto e : epochs_) min_epoch = std::min(min_epoch, e);
+	}
+	if (min_epoch >= g_snapshot) {
+	  // все потоки дошли до g_snapshot => продвинем на g+1
+	  global_epoch_.compare_exchange_strong(g_snapshot, g_snapshot + 1,
+											std::memory_order_acq_rel,
+											std::memory_order_relaxed);
+	}
   }
 
   std::mutex reg_mu_;				  /**< \brief Mutex for registry access. */
