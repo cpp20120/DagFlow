@@ -202,6 +202,12 @@ class TaskScope {
 
   /**
    * @brief Convenience overload of when_all() taking an initializer list.
+   *
+   * @tparam F Callable type, invoked as `void()`.
+   * @param deps Initializer list of dependency handles.
+   * @param f    Continuation task body.
+   * @param opt  Scheduling options for the created node.
+   * @return     JobHandle of the new node.
    */
   template <class F>
   JobHandle when_all(std::initializer_list<JobHandle> deps, F&& f,
