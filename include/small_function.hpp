@@ -1,58 +1,55 @@
-/** \file small_function.hpp
- * \brief A small, fixed-size function wrapper for move-only callables.
- *
- * This file defines a small_function class that stores a callable object in a
- * fixed-size buffer
- */
 #pragma once
+/**
+ * @file small_function.hpp
+ * @brief Small, move-only function wrapper with small-buffer optimization for
+ * signature `void()`.
+ *
+ * @details
+ * This is a compact function wrapper specialized for `void()` callables.
+ * It is move-only by design, which allows a light-weight implementation with:
+ *  - inline storage (Small Buffer Optimization) of size `StorageSize`;
+ *  - three function pointers for call / move / destroy;
+ *  - no dynamic allocation when the callable fits into the inline buffer.
+ *
+ * Limitations:
+ *  - Only the exact signature `void()` is supported by this specialization.
+ *  - The stored callable type must be invocable as `void(FnT&)`.
+ *  - The size of the callable must be <= StorageSize, otherwise a static_assert
+ * fires.
+ */
+
 #include <cstddef>
 #include <new>
 #include <type_traits>
 #include <utility>
 
 namespace tp {
-
-/** \class small_function
- * \brief A move-only function wrapper with small buffer optimization.
- *
- * This class stores a callable object in a fixed-size buffer, avoiding dynamic
- * allocation for small callables. It supports move operations.
- *
- * \tparam Sig The function signature (e.g., void()).
- * \tparam StorageSize The size of the internal storage buffer (default: 64
- * bytes).
+/**
+ * @brief Primary template declaration (unspecialized).
  */
 template <typename Sig, std::size_t StorageSize = 64>
 class small_function;  // primary
-
-/** \class small_function<void(), StorageSize>
- * \brief Specialization for void() function signature.
+/**
+ * @brief Small, move-only function wrapper with small-buffer optimization
+ * @brief Specialization for signature `void()`.
  *
- * \tparam StorageSize The size of the internal storage buffer.
+ * @tparam StorageSize Size of the inline storage in bytes.
  */
 template <std::size_t StorageSize>
 class small_function<void(), StorageSize> {
  public:
-  /** \brief Default constructor, initializes an empty function. */
+  /// Default-construct an empty function.
   small_function() noexcept = default;
-  /** \brief Constructs an empty function from nullptr. */
+  /// Construct an empty function from nullptr for symmetry.
   small_function(std::nullptr_t) noexcept {}
-  /** \brief Deleted copy constructor to prevent copying. */
   small_function(const small_function&) = delete;
-  /** \brief Deleted copy assignment operator to prevent copying. */
   small_function& operator=(const small_function&) = delete;
-  /** \brief Move constructor.
-   *
-   * \param other The function to move from.
-   */
+  /// Move-construct from another small_function, stealing its callable.
   small_function(small_function&& other) noexcept {
 	move_from(std::move(other));
   }
-  /** \brief Move assignment operator.
-   *
-   * \param other The function to move from.
-   * \return Reference to this function.
-   */
+  /// Move-assign from another small_function, destroying current callable
+  /// first.
   small_function& operator=(small_function&& other) noexcept {
 	if (this != &other) {
 	  reset();
@@ -60,26 +57,23 @@ class small_function<void(), StorageSize> {
 	}
 	return *this;
   }
-  /** \brief Constructs a function from a callable.
-   *
-   * \tparam F The type of the callable.
-   * \param f The callable to store.
+  /**
+   * @brief Construct from any callable F that is not small_function itself.
+   * @tparam F Callable type.
+   * @param f  Callable instance, perfectly forwarded.
    */
   template <typename F, typename = std::enable_if_t<
 							!std::is_same_v<std::decay_t<F>, small_function>>>
   small_function(F&& f) {
 	emplace(std::forward<F>(f));
   }
-  /** \brief Destroys the function, cleaning up the stored callable. */
+  /// Destroy and release any stored callable.
   ~small_function() { reset(); }
-  /** \brief Checks if the function is valid (non-empty).
-   *
-   * \return True if a callable is stored, false otherwise.
-   */
+  /// @return true if a callable is currently stored.
   explicit operator bool() const noexcept { return call_ != nullptr; }
-  /** \brief Invokes the stored callable. */
+  /// Invoke the stored callable. Behavior is undefined if empty.
   void operator()() { call_(storage_); }
-  /** \brief Resets the function, destroying the stored callable. */
+  /// Destroy the stored callable and make this wrapper empty.
   void reset() noexcept {
 	if (destroy_) {
 	  destroy_(storage_, nullptr);
@@ -88,17 +82,21 @@ class small_function<void(), StorageSize> {
 	  move_ = nullptr;
 	}
   }
-  /** \brief Emplaces a new callable into the function.
+  /**
+   * @brief In-place construct a callable into the inline storage.
+   * @tparam F Callable type.
+   * @param f  Callable instance to store.
    *
-   * \tparam F The type of the callable.
-   * \param f The callable to store.
+   * Destroys any currently stored callable first. The callable must fit
+   * into the inline storage and be invocable as `void()`.
    */
   template <typename F>
   void emplace(F&& f) {
 	reset();
 	using FnT = std::decay_t<F>;
 	static_assert(std::is_invocable_r_v<void, FnT&>, "Callable must be void()");
-	static_assert(sizeof(FnT) <= StorageSize, "Callable too large");
+	static_assert(sizeof(FnT) <= StorageSize,
+				  "Callable too large for small_function");
 
 	new (storage_) FnT(std::forward<F>(f));
 
@@ -113,13 +111,11 @@ class small_function<void(), StorageSize> {
   }
 
  private:
-  using CallFn = void (*)(void*); /**< \brief Function pointer for calling. */
-  using OpFn =
-	  void (*)(void*, void*); /**< \brief Function pointer for move/destroy. */
-  /** \brief Moves a function from another instance.
-   *
-   * \param other The function to move from.
-   */
+  /// Type of the call thunk.
+  using CallFn = void (*)(void*);
+  /// Type of the move/destroy thunk.
+  using OpFn = void (*)(void*, void*);
+  /// Helper to steal the callable from another instance.
   void move_from(small_function&& other) noexcept {
 	if (other.call_) {
 	  move_ = other.move_;
@@ -131,13 +127,14 @@ class small_function<void(), StorageSize> {
 	  other.destroy_ = nullptr;
 	}
   }
-
-  alignas(
-	  std::max_align_t) unsigned char storage_[StorageSize]; /**< \brief Storage
-																buffer. */
-  CallFn call_ = nullptr;  /**< \brief Callable function pointer. */
-  OpFn move_ = nullptr;	   /**< \brief Move function pointer. */
-  OpFn destroy_ = nullptr; /**< \brief Destroy function pointer. */
+  /// Inline storage buffer properly aligned for any type storable here.
+  alignas(std::max_align_t) unsigned char storage_[StorageSize];
+  /// Call thunk pointer or nullptr if empty.
+  CallFn call_ = nullptr;
+  /// Move thunk pointer or nullptr if empty.
+  OpFn move_ = nullptr;
+  /// Destroy thunk pointer or nullptr if empty.
+  OpFn destroy_ = nullptr;
 };
 
 }  // namespace tp

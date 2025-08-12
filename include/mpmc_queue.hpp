@@ -1,4 +1,27 @@
 #pragma once
+/**
+ * @file mpmc_queue.hpp
+ * @brief Michael–Scott lock-free MPMC queue with Hazard Pointers and QSBR
+ * reclamation.
+ *
+ * @details
+ * This is a classic Michael–Scott queue with a dummy head node.
+ * Producers allocate a node, enqueue it by linking at the tail and possibly
+ * moving the tail. Consumers read `head->next`; if non-null they move the value
+ * out of the next node and swing the head pointer forward. The old head is
+ * retired via QSBR once the CAS succeeds.
+ *
+ * Safety and memory reclamation:
+ *  - Two hazard pointer slots are used by pop(): one for `head` and one for
+ * `next`.
+ *  - The old `head` is retired via `retire_qsbr` to avoid concurrent
+ * reclamation hazards.
+ *
+ * Progress:
+ *  - The data structure is lock-free and supports multiple producers and
+ * consumers.
+ */
+
 #include <atomic>
 #include <optional>
 #include <utility>
@@ -6,39 +29,41 @@
 #include "hazard_ptr.hpp"
 
 namespace tp::detail {
-
-/** \class mpmc_queue
- * \brief A lock-free MPMC queue using the Michael-Scott algorithm.
- *
- * This class provides a thread-safe queue that supports multiple producers and
- * consumers, using hazard pointers and optional QSBR for memory reclamation.
- *
- * \tparam T The type of elements stored in the queue.
+/**
+ * @brief Michael–Scott lock-free MPMC queue with Hazard Pointers and QSBR
+ * reclamation.
+ * @tparam T 
  */
 template <typename T>
 class mpmc_queue {
-  /** \struct node
-   * \brief Represents a node in the queue.
+  /**
+   * @brief Intrusive node holding the payload and the next pointer.
+   *
+   * The `next` pointer is atomic and participates in the Michael–Scott
+   * protocol.
    */
   struct node {
-	std::atomic<node*> next{nullptr}; /**< \brief Pointer to the next node. */
-	T data;							  /**< \brief Data stored in the node. */
-	node() = default;				  // dummy
-	/** \brief Constructs a node with data.
-	 *
-	 * \param v The data to store (moved into the node).
-	 */
+	std::atomic<node*> next{nullptr};
+	T data;
+	node() = default;
 	explicit node(T v) : next(nullptr), data(std::move(v)) {}
   };
 
  public:
-  /** \brief Constructs an empty queue with a dummy node. */
+  /**
+   * @brief Construct an empty queue with a dummy head.
+   */
   mpmc_queue() {
 	node* d = new node();
 	head_.store(d, std::memory_order_relaxed);
 	tail_.store(d, std::memory_order_relaxed);
   }
-  /** \brief Destroys the queue, freeing all nodes. */
+  /**
+   * @brief Destroy the queue by deleting all remaining nodes.
+   *
+   * This is safe only when no other threads are concurrently accessing the
+   * queue.
+   */
   ~mpmc_queue() {
 	node* p = head_.load(std::memory_order_relaxed);
 	while (p) {
@@ -47,19 +72,22 @@ class mpmc_queue {
 	  p = n;
 	}
   }
-  /** \brief Deleted copy constructor to prevent copying. */
+
   mpmc_queue(const mpmc_queue&) = delete;
-  /** \brief Deleted copy assignment operator to prevent copying. */
   mpmc_queue& operator=(const mpmc_queue&) = delete;
-  /** \brief Pushes an element to the queue.
+  /**
+   * @brief Enqueue a value at the tail (multi-producer).
+   * @param v Value to push; it is moved into the newly allocated node.
    *
-   * \param v The element to push (moved into the queue).
+   * The operation follows the standard MS-queue algorithm:
+   *  - Read tail and tail->next under a hazard pointer.
+   *  - If next is null, attempt to link the new node.
+   *  - Otherwise, help advance the tail to keep the structure moving forward.
    */
   void push(T v) {
 	auto& dom = hazard_domain::instance();
 	auto* tr = dom.acquire_thread_rec();
-
-	detail::qsbr_section qs(tr);
+	qsbr_section qs(tr);
 
 	node* n = new node(std::move(v));
 	for (;;) {
@@ -83,15 +111,17 @@ class mpmc_queue {
 	  }
 	}
   }
-  /** \brief Attempts to pop an element from the queue.
+  /**
+   * @brief Dequeue from the head (multi-consumer).
+   * @return std::nullopt if the queue is currently empty; otherwise the value.
    *
-   * \return An optional containing the popped element, or std::nullopt if the
-   * queue is empty.
+   * The operation uses two hazard pointer slots to protect `head` and `next`
+   * during the read and CAS sequence.
    */
   std::optional<T> pop() {
 	auto& dom = hazard_domain::instance();
 	auto* tr = dom.acquire_thread_rec();
-	detail::qsbr_section qs(tr);
+	qsbr_section qs(tr);
 
 	for (;;) {
 	  hp_guard hh(tr, 0), hn(tr, 1);
@@ -117,9 +147,9 @@ class mpmc_queue {
 	  }
 	}
   }
-  /** \brief Checks if the queue is empty.
-   *
-   * \return True if the queue is empty, false otherwise.
+  /**
+   * @brief Snapshot emptiness check.
+   * @return true if the queue is observed empty (head->next == nullptr).
    */
   bool empty() const {
 	node* head = head_.load(std::memory_order_acquire);
@@ -127,10 +157,10 @@ class mpmc_queue {
   }
 
  private:
-  alignas(64) std::atomic<node*> head_{
-	  nullptr}; /**< \brief Head of the queue (atomic). */
-  alignas(64) std::atomic<node*> tail_{
-	  nullptr}; /**< \brief Tail of the queue (atomic). */
+  /// Head pointer (points to dummy node or the first node). 64-byte aligned.
+  alignas(64) std::atomic<node*> head_{nullptr};
+  /// Tail pointer (points to last node). 64-byte aligned.
+  alignas(64) std::atomic<node*> tail_{nullptr};
 };
 
 }  // namespace tp::detail

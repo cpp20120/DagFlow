@@ -1,9 +1,9 @@
-#include "../include/thread_pool.hpp"
-
 #include <cassert>
 #include <random>
 #include <span>
 #include <utility>
+
+#include "../include/thread_pool.hpp"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -119,9 +119,8 @@ Handle Pool::combine(std::span<const Handle> hs, SubmitOptions opt) {
 	auto dep = h.get();
 	submit_impl(small_function<void()>{[this, dep = std::move(dep), c = ctr] {
 				  while (dep->count.load(std::memory_order_acquire) > 0) {
-					if (!tls_in_pool_ || !try_help_one(tls_id_)) {
+					if (!tls_in_pool_ || !try_help_one(tls_id_))
 					  std::this_thread::yield();
-					}
 				  }
 				  complete_counter(c.get());
 				}},
@@ -144,9 +143,7 @@ void Pool::wait(const Handle& h) {
 
   if (tls_in_pool_) {
 	while (c->count.load(std::memory_order_acquire) > 0) {
-	  if (!try_help_one(tls_id_)) {
-		std::this_thread::yield();
-	  }
+	  if (!try_help_one(tls_id_)) std::this_thread::yield();
 	}
   } else {
 	std::unique_lock<std::mutex> lk(c->mu);
@@ -189,18 +186,13 @@ bool Pool::try_help_one(uint32_t id) {
 	inflight_.fetch_add(1, std::memory_order_acq_rel);
 	try {
 	  if (t->fn) t->fn();
-	} catch (...) {
-	  // проглатываем — политика пула
+	} catch (...) { /* swallow as per pool policy */
 	}
 	executed_.fetch_add(1, std::memory_order_relaxed);
 
 	auto done = std::move(t->done);
-
 	if (t->owned) delete t;
-
-	if (done) {
-	  complete_counter(done.get());
-	}
+	if (done) complete_counter(done.get());
 
 	if (inflight_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
 	  std::lock_guard lk(wait_mu_);
@@ -218,7 +210,6 @@ bool Pool::try_help_one(uint32_t id) {
 	return true;
   }
 
-  // попробуем прямо из центральной очереди выполнить, без двойного копирования
   if (auto v = centrals_[id % centrals_.size()]->hi.pop()) {
 	exec(*v);
 	return true;
@@ -269,9 +260,7 @@ void Pool::worker_loop(uint32_t id) {
 	executed_.fetch_add(1, std::memory_order_relaxed);
 
 	auto done = std::move(t->done);
-
 	if (t->owned) delete t;
-
 	if (done) complete_counter(done.get());
 
 	if (inflight_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
@@ -347,7 +336,6 @@ void Pool::worker_loop(uint32_t id) {
 			   !centrals_[id % centrals_.size()]->hi.empty() ||
 			   !centrals_[id % centrals_.size()]->lo.empty();
 	  });
-	  // exponential backoff с ограничением
 	  uint32_t next = me.backoff_us ? (me.backoff_us * 2) : cfg_.idle_us_min;
 	  me.backoff_us = std::min<uint32_t>(
 		  cfg_.idle_us_max, std::max<uint32_t>(cfg_.idle_us_min, next));

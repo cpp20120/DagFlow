@@ -1,9 +1,26 @@
+#pragma once
 /**
  * @file small_vec.hpp
- * @brief A small vector optimization container similar to std::vector but with
- * stack storage for small sizes.
+ * @brief Small vector with inline storage (SSO) that spills to the heap when
+ * size exceeds N.
+ *
+ * @details
+ * For up to N elements this container stores objects inside an inline buffer
+ * without any heap allocations. When the size would exceed N, the container
+ * performs a one-time spill: it moves the existing inline elements into an
+ * owned std::vector, and from that point on uses the vector for storage
+ * exclusively. Destructors are invoked appropriately in both SSO and spilled
+ * modes.
+ *
+ * Complexity:
+ *  - push_back: O(1) amortized; O(size) during the first spill due to moves.
+ *  - operator[], data(), begin(), end(): O(1).
+ *
+ * Exception safety:
+ *  - Strong guarantees during moves where applicable; inline elements are
+ * destroyed only after successful move into the heap vector.
  */
-#pragma once
+
 #include <array>
 #include <cstddef>
 #include <new>
@@ -13,30 +30,20 @@
 
 namespace tp {
 /**
- * @class SmallVec
- * @brief A vector-like container with small size optimization.
- *
- * @tparam T The type of elements stored in the container.
- * @tparam N The number of elements to store on the stack before spilling to
- * heap. Defaults to 4.
- *
- * This container provides similar functionality to std::vector but stores the
- * first N elements on the stack (using small size optimization) before spilling
- * over to heap allocation.
+ * @brief Small vector with inline storage (SSO) that spills to the heap when size exceeds N
+ * @tparam T element type pameter
+ * @tparam N size of element for sso
  */
 template <typename T, std::size_t N = 4>
 class SmallVec {
  public:
-  /** @brief Default constructor (empty vector). */
+  /// Construct an empty container.
   SmallVec() = default;
-  /** @brief Deleted copy constructor (non-copyable). */
   SmallVec(const SmallVec&) = delete;
-  /** @brief Deleted copy assignment (non-copyable). */
   SmallVec& operator=(const SmallVec&) = delete;
-
-  /** @brief Move constructor. */
+  /// Move-construct by stealing storage from @p other.
   SmallVec(SmallVec&& other) noexcept { move_from(std::move(other)); }
-  /** @brief Move assignment operator. */
+  /// Move-assign by destroying current elements and stealing from @p other.
   SmallVec& operator=(SmallVec&& other) noexcept {
 	if (this != &other) {
 	  destroy_sso();
@@ -47,11 +54,11 @@ class SmallVec {
 	}
 	return *this;
   }
-  /** @brief Destructor (destroys elements in either storage). */
+  /// Destroy the container and all contained elements.
   ~SmallVec() { destroy_sso(); }
   /**
-   * @brief Append a copy of a value to the vector.
-   * @param v Value to copy.
+   * @brief Append a copy of @p v at the end.
+   * @param v Element to copy.
    */
   void push_back(const T& v) {
 	if (use_vec()) {
@@ -67,8 +74,8 @@ class SmallVec {
 	hv_.push_back(v);
   }
   /**
-   * @brief Append a value by move.
-   * @param v Value to move.
+   * @brief Append a moved value @p v at the end.
+   * @param v Element to move from.
    */
   void push_back(T&& v) {
 	if (use_vec()) {
@@ -83,43 +90,36 @@ class SmallVec {
 	spill_to_vec();
 	hv_.push_back(std::move(v));
   }
-  /**
-   * @brief Get the number of elements in the vector.
-   * @return Element count.
-   */
+  /// @return Current number of elements.
   std::size_t size() const noexcept { return use_vec() ? hv_.size() : sz_; }
-  /**
-   * @brief Check if the vector is empty.
-   * @return True if empty.
-   */
+  /// @return true if the container is empty.
   bool empty() const noexcept { return size() == 0; }
-
-  /** @brief Access underlying storage pointer (mutable). */
+  /// @return Pointer to the contiguous storage for read/write access.
   T* data() noexcept {
 	return use_vec() ? hv_.data() : reinterpret_cast<T*>(sso_[0].data);
   }
-
-  /** @brief Access underlying storage pointer (const). */
+  /// @return Pointer to the contiguous storage (const).
   const T* data() const noexcept {
 	return use_vec() ? hv_.data() : reinterpret_cast<const T*>(sso_[0].data);
   }
-  /** @brief Element access (mutable). */
+  /// Random-access element reference.
   T& operator[](std::size_t i) noexcept { return data()[i]; }
-  /** @brief Element access (const). */
+  /// Random-access const element reference.
   const T& operator[](std::size_t i) const noexcept { return data()[i]; }
 
-  /** @brief Iterator to first element (mutable). */
+  /// @return Iterator to the first element.
   T* begin() noexcept { return data(); }
-  /** @brief Iterator to one-past-last element (mutable). */
+  /// @return Iterator one past the last element.
   T* end() noexcept { return data() + size(); }
-  /** @brief Iterator to first element (const). */
+  /// @return Const iterator to the first element.
   const T* begin() const noexcept { return data(); }
-  /** @brief Iterator to one-past-last element (const). */
+  /// @return Const iterator one past the last element.
   const T* end() const noexcept { return data() + size(); }
   /**
-   * @brief Clear all elements.
+   * @brief Remove all elements.
    *
-   * Destroys objects in inline storage or clears heap vector.
+   * In SSO mode, destroys inline elements and resets the size to zero.
+   * In spilled mode, clears the underlying vector.
    */
   void clear() noexcept {
 	if (!use_vec()) {
@@ -131,24 +131,21 @@ class SmallVec {
   }
 
  private:
-  /**
-   * @struct Slot
-   * @brief Inline storage slot for one element, aligned to @p alignof(T).
-   */
+  /// Inline slot with proper alignment for T.
   struct alignas(alignof(T)) Slot {
 	std::byte data[sizeof(T)];
   };
-  /** @brief Returns true if currently using heap storage. */
+  /// @return true if the container is in spilled mode and uses the heap vector.
   bool use_vec() const noexcept { return spilled_; }
-  /** @brief Get pointer to inline slot @p i (mutable). */
+  /// @return void* to the inline storage slot @p i.
   void* sso_ptr(std::size_t i) noexcept {
 	return static_cast<void*>(sso_[i].data);
   }
-  /** @brief Get pointer to inline slot @p i (const). */
+  /// @return const void* to the inline storage slot @p i.
   const void* sso_ptr(std::size_t i) const noexcept {
 	return static_cast<const void*>(sso_[i].data);
   }
-  /** @brief Move elements from inline storage to heap vector. */
+  /// Perform the first spill: move all inline elements into the heap vector.
   void spill_to_vec() {
 	if (spilled_) return;
 	hv_.reserve(N * 2);
@@ -160,16 +157,16 @@ class SmallVec {
 	sz_ = 0;
 	spilled_ = true;
   }
-  /** @brief Destroy elements in inline storage. */
+  /// Destroy inline elements if we are still in SSO mode.
   void destroy_sso() noexcept {
 	if (!spilled_) {
 	  for (std::size_t i = 0; i < sz_; ++i) {
-		T* ptr = reinterpret_cast<T*>(sso_ptr(i));
+		auto* ptr = reinterpret_cast<T*>(sso_ptr(i));
 		ptr->~T();
 	  }
 	}
   }
-  /** @brief Move contents from another SmallVec. */
+  /// Steal storage state from @p other.
   void move_from(SmallVec&& other) {
 	if (other.spilled_) {
 	  hv_ = std::move(other.hv_);
@@ -189,10 +186,14 @@ class SmallVec {
 	}
   }
 
-  std::array<Slot, N> sso_{};  ///< Inline storage buffer.
-  std::vector<T> hv_{};		   ///< Heap storage (active after spill).
-  std::size_t sz_{0};		   ///< Number of elements in inline storage.
-  bool spilled_{false};		   ///< True if using heap storage.
+   /// Inline storage for up to N elements.
+  std::array<Slot, N> sso_{};
+  /// Heap vector used after the first spill.
+  std::vector<T> hv_{};
+  /// Number of elements when in SSO mode (undefined when spilled_ is true).
+  std::size_t sz_{0};
+  /// Whether storage has spilled to the heap vector.
+  bool spilled_{false};
 };
 
 }  // namespace tp

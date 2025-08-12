@@ -1,11 +1,34 @@
-/** \file pool.hpp
- * \brief Thread pool implementation with work-stealing and task prioritization.
+#pragma once
+/**
+ * @file pool.hpp
+ * @brief Work-stealing thread pool with per-thread deques, central MPMC queues,
+ * priorities and affinity.
  *
- * This file defines a thread pool that supports task submission with
- * priorities, work-stealing, and thread affinity.
+ * @details
+ * Architecture:
+ *  - N worker threads, each owns two Chase–Lev deques: High and Normal
+ * priority.
+ *  - M central shards (MPMC queues) for external submissions and balancing.
+ *  - Work policy: owner pushes/pops bottom; thieves steal from top; workers
+ * help neighbors.
+ *  - Priority: High is preferred over Normal across owner and central
+ * structures.
+ *
+ * API:
+ *  - `submit(F, SubmitOptions)` -> @ref Handle (countdown of work units).
+ *  - `for_each` — range chunking (~16K elements per chunk).
+ *  - `combine` — wait-all aggregation for multiple handles.
+ *  - `wait(Handle)` and `wait_idle()`.
+ *
+ * Thread-safety:
+ *  - `submit` is safe from any thread. Internals are MPMC and lock-free where
+ * possible.
+ *
+ * Performance:
+ *  - Idle backoff between `idle_us_min..idle_us_max`.
+ *  - RNG for random victim selection while stealing.
  */
 
-#pragma once
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -25,132 +48,116 @@
 #include "small_function.hpp"
 
 namespace tp {
-
-/** \brief Task priority for scheduling. */
-enum class Priority : uint8_t {
-  High = 0,	 /**< \brief High priority tasks. */
-  Normal = 1 /**< \brief Normal priority tasks. */
-};
-
-/** \struct Config
- * \brief Configuration for the thread pool.
+/**
+ * @enum Priority
+ * @brief Task priority: @c High served before @c Normal.
+ */
+enum class Priority : uint8_t { High = 0, Normal = 1 };
+/**
+ * @struct Config
+ * @brief Pool configuration parameters.
+ *
+ * @var threads Number of worker threads (default: hardware concurrency).
+ * @var shards  Number of central shards (default: =threads).
+ * @var central_batch Preferred batch size when draining central queues.
+ * @var idle_us_min Minimal backoff delay on idle.
+ * @var idle_us_max Maximal backoff delay on idle.
+ * @var pin_threads Whether to pin OS threads to CPUs (implementation-defined).
  */
 struct Config {
-  uint32_t threads = std::thread::hardware_concurrency(); /**< \brief Number of
-															 worker threads. */
-  uint32_t shards =
-	  0; /**< \brief Number of central shards (0 => equals threads). */
-  uint32_t central_batch = 64; /**< \brief Max tasks pulled per batch. */
-  uint32_t idle_us_min = 50;   /**< \brief Idle backoff floor (microseconds). */
-  uint32_t idle_us_max =
-	  200;					/**< \brief Idle backoff ceiling (microseconds). */
-  bool pin_threads = false; /**< \brief Pin workers to cores if true. */
+  uint32_t threads = std::thread::hardware_concurrency();
+  uint32_t shards = 0;
+  uint32_t central_batch = 64;
+  uint32_t idle_us_min = 50;
+  uint32_t idle_us_max = 200;
+  bool pin_threads = false;
 };
-
-/** \struct SubmitOptions
- * \brief Options for task submission.
+/**
+ * @struct SubmitOptions
+ * @brief Submission hints.
+ *
+ * @var affinity Optional worker id affinity.
+ * @var priority Task priority.
+ * @var owned    Internal ownership flag (true for pool-owned tasks).
  */
 struct SubmitOptions {
-  std::optional<uint32_t>
-	  affinity; /**< \brief Optional worker affinity (worker ID). */
-  Priority priority = Priority::Normal; /**< \brief Task priority. */
-  bool owned = true; /**< \brief Whether the pool owns the task object. */
+  std::optional<uint32_t> affinity;
+  Priority priority = Priority::Normal;
+  bool owned = true;
 };
-
-/** \class Handle
- * \brief Handle for tracking task completion.
+/**
+ * @class Handle
+ * @brief Waitable completion handle with an internal countdown.
+ *
+ * @details
+ * Each completed unit of work decrements the shared counter. Waiting threads
+ * block on a condition variable until the counter reaches zero.
  */
 class Handle {
  public:
-  /** \struct Counter
-   * \brief Counter for tracking task completion.
-   */
+  /// Internal shared counter state.
   struct Counter {
-	std::atomic<int> count{0};	/**< \brief Number of tasks remaining. */
-	std::mutex mu;				/**< \brief Mutex for condition variable. */
-	std::condition_variable cv; /**< \brief Condition variable for waiting. */
+	std::atomic<int> count{0};
+	std::mutex mu;
+	std::condition_variable cv;
   };
-
-  /** \brief Default constructor, initializes an invalid handle. */
+  /// Invalid/empty handle.
   Handle() noexcept = default;
-
-  /** \brief Constructs a handle with a counter.
-   *
-   * \param c The counter to track.
-   */
+  /// Construct from a shared counter.
   explicit Handle(std::shared_ptr<Counter> c) noexcept : ctr_(std::move(c)) {}
-
-  /** \brief Checks if the handle is valid.
-   *
-   * \return True if the handle is valid, false otherwise.
-   */
+  /// @return true if the handle refers to a valid counter.
   bool valid() const noexcept { return static_cast<bool>(ctr_); }
-
-  /** \brief Gets the underlying counter.
-   *
-   * \return The counter pointer.
-   */
+  /// @return shared pointer to the underlying counter.
   std::shared_ptr<Counter> get() const noexcept { return ctr_; }
 
  private:
-  std::shared_ptr<Counter>
-	  ctr_{}; /**< \brief The counter for task completion. */
+  std::shared_ptr<Counter> ctr_{};
   friend class Pool;
 };
-
-using Fn = void (*)(void*); /**< \brief Function pointer type for tasks. */
-
-/** \class Pool
- * \brief A thread pool with work-stealing and task prioritization.
+/// Raw function signature for low-level submission.
+using Fn = void (*)(void*);
+/**
+ * @class Pool
+ * @brief Work-stealing thread pool with central queues and priorities.
  */
 class Pool {
  public:
-  /** \brief Constructs a thread pool with the specified configuration.
-   *
-   * \param cfg The configuration for the thread pool.
+  /**
+   * @brief Construct a pool with the given config.
    */
   explicit Pool(const Config& cfg = {});
-
-  /** \brief Destroys the thread pool, stopping all workers. */
+  /**
+   * @brief Join worker threads and destroy the pool.
+   * @warning Ensure no external references to enqueued tasks remain.
+   */
   ~Pool();
 
-  /** \brief Deleted copy constructor to prevent copying. */
   Pool(const Pool&) = delete;
-
-  /** \brief Deleted copy assignment operator to prevent copying. */
   Pool& operator=(const Pool&) = delete;
-
-  /** \brief Submits a task to the thread pool.
-   *
-   * \param fn The function to execute.
-   * \param arg The argument to pass to the function.
-   * \param opt Submission options.
-   * \return A handle to track the task.
+  /**
+   * @brief Submit a raw function pointer with an optional argument.
+   * @param fn  Function pointer `void(void*)`.
+   * @param arg Opaque pointer passed to @p fn.
+   * @param opt Submission options (priority, affinity).
+   * @return Handle that completes when this task's unit of work is done.
    */
   Handle submit(Fn fn, void* arg = nullptr, SubmitOptions opt = {});
-
-  /** \brief Submits a callable task to the thread pool.
-   *
-   * \tparam F The type of the callable.
-   * \param f The callable to execute.
-   * \param opt Submission options.
-   * \return A handle to track the task.
+  /**
+   * @brief Submit a callable (moved into internal small_function).
+   * @tparam F Callable type invocable as `void()`.
+   * @param f   Callable (moved).
+   * @param opt Options (priority, affinity).
    */
   template <class F>
   Handle submit(F f, SubmitOptions opt = {}) {
 	return submit_impl(small_function<void()>{[g = std::move(f)] { g(); }},
 					   std::move(opt));
   }
-
-  /** \brief Submits tasks for each element in a range.
-   *
-   * \tparam It The iterator type.
-   * \tparam F The callable type.
-   * \param begin The start of the range.
-   * \param end The end of the range.
-   * \param f The callable to apply to each element.
-   * \param opt Submission options.
-   * \return A handle to track the tasks.
+  /**
+   * @brief Parallel for-each over [begin,end), chunked to approx 16K elements.
+   * @tparam It Iterator type (input or random-access).
+   * @tparam F  Functor type (invocable as `void(T&)`).
+   * @return Handle whose count equals the number of chunks.
    */
   template <class It, class F>
   Handle for_each(It begin, It end, F f, SubmitOptions opt = {}) {
@@ -191,142 +198,145 @@ class Pool {
 	}
 	return Handle{std::move(ctr)};
   }
-
-  /** \brief Combines multiple handles into a single handle.
-   *
-   * \param hs The span of handles to combine.
-   * \param opt Submission options.
-   * \return A handle to track the combined tasks.
+  /**
+   * @brief Combine multiple handles; returns a handle that completes when all
+   * do.
    */
   Handle combine(std::span<const Handle> hs, SubmitOptions opt = {});
-
-  /** \brief Combines multiple handles into a single handle (initializer list).
-   *
-   * \param hs The initializer list of handles.
-   * \param opt Submission options.
-   * \return A handle to track the combined tasks.
-   */
+  /// Convenience overload from initializer_list.
   Handle combine(std::initializer_list<Handle> hs, SubmitOptions opt = {}) {
 	return combine(std::span<const Handle>(hs.begin(), hs.size()),
 				   std::move(opt));
   }
-
-  /** \brief Waits for a handle to complete.
-   *
-   * \param h The handle to wait for.
+  /**
+   * @brief Block the caller until @p h completes.
    */
   void wait(const Handle& h);
-
-  /** \brief Waits for the pool to become idle. */
+  /**
+   * @brief Block until the pool has no in-flight work (best effort).
+   */
   void wait_idle();
 
  private:
-  /** \struct Task
-   * \brief Represents a task in the thread pool.
+  /**
+   * @struct Task
+   * @brief Scheduled unit of work kept in worker deques or central queues.
+   *
+   * @var fn Small-function `void()`.
+   * @var prio Priority of the task.
+   * @var owned Whether the pool owns the task object lifetime.
+   * @var done Optional shared counter to decrement on completion.
    */
   struct Task {
-	small_function<void()> fn;		 /**< \brief The callable to execute. */
-	Priority prio{Priority::Normal}; /**< \brief Task priority. */
-	bool owned{true}; /**< \brief Whether the pool owns the task. */
-	std::shared_ptr<Handle::Counter> done{}; /**< \brief Completion counter. */
+	small_function<void()> fn;
+	Priority prio{Priority::Normal};
+	bool owned{true};
+	std::shared_ptr<Handle::Counter> done{};
   };
-
-  /** \struct Worker
-   * \brief Represents a worker thread's state.
+  /**
+   * @struct Worker
+   * @brief Per-thread worker state with two deques and idle backoff.
+   *
+   * @var deq_hi High-priority owner deque.
+   * @var deq_lo Normal-priority owner deque.
+   * @var rng RNG used for selecting steal victims.
+   * @var mu/cv Synchronization primitives for parking/notification.
+   * @var backoff_us Current idle backoff duration.
    */
   struct Worker {
-	detail::chase_lev_deque<Task*>
-		deq_hi; /**< \brief High-priority task deque. */
-	detail::chase_lev_deque<Task*>
-		deq_lo;		  /**< \brief Low-priority task deque. */
-	std::mt19937 rng; /**< \brief Random number generator for work-stealing. */
-	std::mutex mu;	  /**< \brief Mutex for condition variable. */
-	std::condition_variable cv; /**< \brief Condition variable for worker. */
-	uint32_t backoff_us{};		/**< \brief Backoff time in microseconds. */
+	detail::chase_lev_deque<Task*> deq_hi;
+	detail::chase_lev_deque<Task*> deq_lo;
+	std::mt19937 rng;
+	std::mutex mu;
+	std::condition_variable cv;
+	uint32_t backoff_us{};
   };
-
-  /** \struct CentralShard
-   * \brief Central queue shard for tasks.
+  /**
+   * @struct CentralShard
+   * @brief Central MPMC queues for high/low priority tasks.
    */
   struct CentralShard {
-	detail::mpmc_queue<Task*> hi; /**< \brief High-priority task queue. */
-	detail::mpmc_queue<Task*> lo; /**< \brief Low-priority task queue. */
+	detail::mpmc_queue<Task*> hi;
+	detail::mpmc_queue<Task*> lo;
   };
 
-  /** \brief Submits a task implementation.
-   *
-   * \param job The callable to execute.
-   * \param opt Submission options.
-   * \return A handle to track the task.
+   /**
+   * @brief Core submit implementation taking a small_function job.
    */
   Handle submit_impl(small_function<void()> job, SubmitOptions opt);
 
-  /** \brief Dispatches a task to a worker.
-   *
-   * \param t The task to dispatch.
-   * \param affinity Optional worker affinity.
+  /**
+   * @brief Dispatch a task either to a specific worker (affinity) or centrally.
    */
   void dispatch(Task* t, std::optional<uint32_t> affinity);
 
-  /** \brief Main loop for a worker thread.
-   *
-   * \param id The worker's ID.
+  /**
+   * @brief Main loop for worker @p id.
    */
   void worker_loop(uint32_t id);
 
-  /** \brief Attempts to steal and execute one task.
-   *
-   * \param id The worker's ID.
-   * \return True if a task was executed, false otherwise.
+  /**
+   * @brief Attempt to help execute one task from other queues (steal).
+   * @return true if a task was helped/executed.
    */
   bool try_help_one(uint32_t id);
 
-  /** \brief Completes a counter when a task finishes.
-   *
-   * \param ctr The counter to update.
+  /**
+   * @brief Decrement a handle counter and notify waiting threads if it reaches
+   * zero.
    */
   static void complete_counter(Handle::Counter* ctr);
 
-  /** \brief Checks if all queues are empty.
-   *
-   * \return True if all queues are empty, false otherwise.
+  /**
+   * @brief Check whether all queues are empty (best effort).
    */
   bool all_empty() const;
 
-  /** \brief Notifies a worker to check for tasks.
-   *
-   * \param id The worker's ID.
+  /**
+   * @brief Wake up worker @p id.
    */
   void notify_worker(uint32_t id);
 
-  /** \brief Picks a central queue for work-stealing.
-   *
-   * \return The index of the selected queue.
+  /**
+   * @brief Pick a central shard index in round-robin fashion.
    */
   uint32_t pick_queue();
 
-  static thread_local uint32_t tls_id_; /**< \brief Thread-local worker ID. */
-  static thread_local bool
-	  tls_in_pool_; /**< \brief Whether the thread is in the pool. */
+  /// TLS: current worker id (UINT32_MAX if not in pool thread).
+  static thread_local uint32_t tls_id_;
 
-  Config cfg_;						 /**< \brief Thread pool configuration. */
-  std::vector<std::thread> threads_; /**< \brief Worker threads. */
-  std::vector<std::unique_ptr<Worker>> workers_; /**< \brief Worker states. */
-  std::vector<std::unique_ptr<CentralShard>>
-	  centrals_; /**< \brief Central queue shards. */
-  alignas(64) std::atomic<bool> stop_{false}; /**< \brief Stop flag. */
-  alignas(64) std::atomic<uint64_t> submitted_{
-	  0}; /**< \brief Number of submitted tasks. */
-  alignas(64) std::atomic<uint64_t> executed_{
-	  0}; /**< \brief Number of executed tasks. */
-  alignas(64) std::atomic<uint64_t> stolen_{
-	  0}; /**< \brief Number of stolen tasks. */
-  alignas(64) std::atomic<uint32_t> rr_{0}; /**< \brief Round-robin counter. */
-  alignas(64) std::atomic<uint32_t> inflight_{
-	  0};					   /**< \brief Number of inflight tasks. */
-  mutable std::mutex wait_mu_; /**< \brief Mutex for waiting. */
-  std::condition_variable
-	  wait_cv_; /**< \brief Condition variable for waiting. */
+  /// TLS: whether the current thread is a pool worker.
+  static thread_local bool tls_in_pool_;
+
+ /// Configuration.
+  Config cfg_;
+
+  /// Worker threads.
+  std::vector<std::thread> threads_;
+
+  /// Per-worker state.
+  std::vector<std::unique_ptr<Worker>> workers_;
+
+  /// Central shards (MPMC queues).
+  std::vector<std::unique_ptr<CentralShard>> centrals_;
+
+  /// Stop flag shared by workers.
+  alignas(64) std::atomic<bool> stop_{false};
+
+  /// Counters for diagnostics.
+  alignas(64) std::atomic<uint64_t> submitted_{0};
+  alignas(64) std::atomic<uint64_t> executed_{0};
+  alignas(64) std::atomic<uint64_t> stolen_{0};
+
+  /// Round-robin counter for central shards.
+  alignas(64) std::atomic<uint32_t> rr_{0};
+
+  /// Number of in-flight tasks (for wait_idle).
+  alignas(64) std::atomic<uint32_t> inflight_{0};
+
+  /// Global wait condition for `wait_idle`.
+  mutable std::mutex wait_mu_;
+  std::condition_variable wait_cv_;
 };
 
 }  // namespace tp
