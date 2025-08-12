@@ -6,6 +6,9 @@
 
 Self written thread pool (was started when engine dev begins.
 
+A self-contained, minimal runtime for parallel task execution in C++20.  
+Designed for workloads where you know the dependency graph in advance, need predictable scheduling, and want full control over affinity, priorities, and back-pressure — without the complexity of a full TBB.
+
 Mini-runtime for parallel tasks in C++20:
 
 * Work-stealing pool (Chase–Lev decks, central MPMC queues).
