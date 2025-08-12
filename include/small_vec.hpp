@@ -30,7 +30,8 @@
 
 namespace tp {
 /**
- * @brief Small vector with inline storage (SSO) that spills to the heap when size exceeds N
+ * @brief Small vector with inline storage (SSO) that spills to the heap when
+ * size exceeds N
  * @tparam T element type pameter
  * @tparam N size of element for sso
  */
@@ -186,7 +187,7 @@ class SmallVec {
 	}
   }
 
-   /// Inline storage for up to N elements.
+  /// Inline storage for up to N elements.
   std::array<Slot, N> sso_{};
   /// Heap vector used after the first spill.
   std::vector<T> hv_{};

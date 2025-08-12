@@ -32,7 +32,7 @@ namespace tp::detail {
 /**
  * @brief Michael–Scott lock-free MPMC queue with Hazard Pointers and QSBR
  * reclamation.
- * @tparam T 
+ * @tparam T
  */
 template <typename T>
 class mpmc_queue {

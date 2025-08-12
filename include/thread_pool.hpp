@@ -260,7 +260,7 @@ class Pool {
 	detail::mpmc_queue<Task*> lo;
   };
 
-   /**
+  /**
    * @brief Core submit implementation taking a small_function job.
    */
   Handle submit_impl(small_function<void()> job, SubmitOptions opt);
@@ -308,7 +308,7 @@ class Pool {
   /// TLS: whether the current thread is a pool worker.
   static thread_local bool tls_in_pool_;
 
- /// Configuration.
+  /// Configuration.
   Config cfg_;
 
   /// Worker threads.

@@ -46,9 +46,9 @@
 #include <vector>
 
 #include "mpmc_queue.hpp"
-#include "thread_pool.hpp"
 #include "small_function.hpp"
 #include "small_vec.hpp"
+#include "thread_pool.hpp"
 
 namespace tp {
 /**
@@ -99,10 +99,12 @@ class TaskGraph {
    */
   struct NodeOptions {
 	Priority priority = Priority::Normal;  ///<	Submit priority for pool.
-	std::optional<uint32_t> affinity{};	///< Optional worker affinity hint.
-	int concurrency = 1;  ///< Maximum concurrent executions; `<=0` means unlimited.
+	std::optional<uint32_t> affinity{};	   ///< Optional worker affinity hint.
+	int concurrency =
+		1;	///< Maximum concurrent executions; `<=0` means unlimited.
 	std::size_t capacity = SIZE_MAX;  ///< Inbox capacity (max tokens queued).
-	Overflow overflow = Overflow::Block;  ///<  Enqueue policy when capacity is reached.
+	Overflow overflow =
+		Overflow::Block;  ///<  Enqueue policy when capacity is reached.
   };
   /**
    * @brief Bind the graph to a pool.
@@ -326,7 +328,7 @@ class TaskGraph {
    * @var tokens_primed Tokens to enqueue when node becomes ready.
    */
   struct Node {
-	small_function<void(), 128> fn;	 
+	small_function<void(), 128> fn;
 	SmallVec<std::size_t, 4> succ;
 	int preds_total{0};
 	std::atomic<int> preds_remain{0};

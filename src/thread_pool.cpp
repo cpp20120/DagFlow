@@ -1,9 +1,9 @@
+#include "../include/thread_pool.hpp"
+
 #include <cassert>
 #include <random>
 #include <span>
 #include <utility>
-
-#include "../include/thread_pool.hpp"
 
 #ifdef _WIN32
 #include <windows.h>

@@ -81,8 +81,10 @@ class hazard_domain {
    */
   struct retire_record {
 	void* p{};	///< p Retired pointer to reclaim later.
-	void (*deleter)(void*){}; ///< deleter Function that deletes the retired pointer.
-	uint64_t epoch{};  ///< epoch Epoch snapshot at retirement (used by QSBR); zero
+	void (*deleter)(
+		void*){};  ///< deleter Function that deletes the retired pointer.
+	uint64_t
+		epoch{};  ///< epoch Epoch snapshot at retirement (used by QSBR); zero
   };
   /**
    * @struct thread_rec
@@ -96,10 +98,15 @@ class hazard_domain {
    * @var thread_rec::local_epoch Last published epoch for QSBR progress.
    */
   struct thread_rec {
-	slot_block* block{};  ///< Pointer to the slot_block registered in the domain.
-	std::vector<retire_record> retired_hp;	///<  Batch of HP-retired nodes, reclaimed after hazard scan.
-	std::vector<retire_record> retired_qsbr;  ///<	Batch of QSBR-retired nodes, reclaimed once	epochs advance.
-	std::atomic<uint64_t> local_epoch{0};	  ///<	Last published epoch for QSBR progress.
+	slot_block*
+		block{};  ///< Pointer to the slot_block registered in the domain.
+	std::vector<retire_record> retired_hp;	///<  Batch of HP-retired nodes,
+											///<  reclaimed after hazard scan.
+	std::vector<retire_record>
+		retired_qsbr;  ///<	Batch of QSBR-retired nodes, reclaimed once	epochs
+					   ///<advance.
+	std::atomic<uint64_t> local_epoch{
+		0};	 ///<	Last published epoch for QSBR progress.
 	~thread_rec() { hazard_domain::instance().deregister(block); }
   };
   /**
