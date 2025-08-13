@@ -12,5 +12,5 @@ endif()
 
 add_executable(ThreadPool
     src/main.cpp
- src/thread_pool.cpp)
+ src/thread_pool.cpp "bench/tbb_bench.cpp")
 target_include_directories(ThreadPool PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)

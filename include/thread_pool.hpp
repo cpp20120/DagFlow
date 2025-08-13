@@ -67,10 +67,10 @@ enum class Priority : uint8_t { High = 0, Normal = 1 };
 struct Config {
   uint32_t threads = std::thread::hardware_concurrency();
   uint32_t shards = 0;
-  uint32_t central_batch = 64;
+  uint32_t central_batch = 1024;
   uint32_t idle_us_min = 50;
   uint32_t idle_us_max = 200;
-  bool pin_threads = false;
+  bool pin_threads = true;
 };
 /**
  * @struct SubmitOptions
@@ -268,7 +268,8 @@ class Pool {
   /**
    * @brief Dispatch a task either to a specific worker (affinity) or centrally.
    */
-  void dispatch(Task* t, std::optional<uint32_t> affinity);
+  void dispatch(Task* t, std::optional<uint32_t> affinity, 
+				bool rate_limit_notify);
 
   /**
    * @brief Main loop for worker @p id.
@@ -302,6 +303,9 @@ class Pool {
    */
   uint32_t pick_queue();
 
+  void notify_all_workers();
+
+
   /// TLS: current worker id (UINT32_MAX if not in pool thread).
   static thread_local uint32_t tls_id_;
 
@@ -325,6 +329,7 @@ class Pool {
 
   /// Counters for diagnostics.
   alignas(64) std::atomic<uint64_t> submitted_{0};
+  alignas(64) std::atomic<uint32_t> submit_tick_{0};
   alignas(64) std::atomic<uint64_t> executed_{0};
   alignas(64) std::atomic<uint64_t> stolen_{0};
 

@@ -3,7 +3,6 @@
 #include <cmath>
 #include <iostream>
 #include <numeric>
-#include <random>
 #include <vector>
 
 #include "../include/api.hpp"
@@ -148,6 +147,18 @@ void test_workflow(tp::Pool& pool, int width, int depth) {
 			<< "): " << time << " s\n";
 }
 
+void test_noop_tasks(tp::Pool& pool, int task_count) {
+  tp::TaskScope scope(pool);
+  for (int i = 0; i < task_count; ++i) {
+	scope.submit([] {});
+  }
+  Timer timer;
+  scope.run_and_wait();
+  std::cout << "Noop tasks (" << task_count << "): " << timer.elapsed()
+			<< " s\n";
+}
+
+
 void test_error_handling(tp::Pool& pool) {
   tp::TaskScope scope(pool);
 
@@ -194,6 +205,7 @@ void test_independent_tasks_batched(tp::Pool& pool, int task_count,
 			<< "): " << timer.elapsed() << " s\n";
 }
 
+
 int main() {
   tp::Pool pool;
   const int runs = 5;
@@ -237,6 +249,14 @@ int main() {
 	batch_times.push_back(timer.elapsed());
   }
   print_stats("Batch benchmark", batch_times);
+
+  std::vector<double> noop_times;
+  for (int i = 0; i < runs; ++i) {
+	Timer timer;
+	test_noop_tasks(pool, 1000000);
+	noop_times.push_back(timer.elapsed());
+  }
+  print_stats("Noop benchmark", noop_times);
 
   test_error_handling(pool);
 

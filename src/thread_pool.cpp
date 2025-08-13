@@ -1,6 +1,5 @@
 #include "../include/thread_pool.hpp"
 
-#include <cassert>
 #include <random>
 #include <span>
 #include <utility>
@@ -84,12 +83,14 @@ Handle Pool::submit_impl(small_function<void()> job, SubmitOptions opt) {
   t->owned = opt.owned;
   t->done = ctr;
 
-  dispatch(t, opt.affinity);
+
+  dispatch(t, opt.affinity, true);
   submitted_.fetch_add(1, std::memory_order_relaxed);
   return Handle{std::move(ctr)};
 }
 
-void Pool::dispatch(Task* t, std::optional<uint32_t> affinity) {
+void Pool::dispatch(Task* t, std::optional<uint32_t> affinity,
+					bool rate_limit_notify) {
   if (tls_in_pool_) {
 	auto& me = *workers_[tls_id_];
 	if (t->prio == Priority::High)
@@ -99,6 +100,7 @@ void Pool::dispatch(Task* t, std::optional<uint32_t> affinity) {
 	notify_worker(tls_id_);
 	return;
   }
+
   const auto m = static_cast<uint32_t>(centrals_.size());
   const uint32_t shard =
 	  affinity ? (*affinity % m)
@@ -107,8 +109,34 @@ void Pool::dispatch(Task* t, std::optional<uint32_t> affinity) {
 	centrals_[shard]->hi.push(t);
   else
 	centrals_[shard]->lo.push(t);
-  notify_worker(shard % workers_.size());
+
+  const uint32_t W = static_cast<uint32_t>(workers_.size());
+  const uint32_t base = shard % W;
+
+  // Всегда разбудим хотя бы одного — снижает холодный старт workflow
+  notify_worker(base);
+
+  // Фан-аут будим редко (снижает контеншн на noop)
+  if (!rate_limit_notify) {
+	// без лимита — полный fan-out
+	notify_worker((base + 1) % W);
+	notify_worker((base + 2) % W);
+	notify_worker(rr_.fetch_add(1, std::memory_order_relaxed) % W);
+  } else {
+	// редкий fan-out + очень редкий мягкий broadcast
+	uint32_t tick = submit_tick_.fetch_add(1, std::memory_order_relaxed) + 1;
+	if ((tick & 31u) == 0u) {  // каждые 32 сабмита
+	  notify_worker((base + 1) % W);
+	  notify_worker((base + 2) % W);
+	  notify_worker(rr_.fetch_add(1, std::memory_order_relaxed) % W);
+	}
+	if ((tick & 4095u) == 0u) {	 // очень редко — всех
+	  notify_all_workers();
+	}
+  }
+
 }
+
 
 Handle Pool::combine(std::span<const Handle> hs, SubmitOptions opt) {
   if (hs.empty()) return Handle{};
@@ -174,6 +202,11 @@ void Pool::notify_worker(uint32_t id) {
   w.cv.notify_one();
 }
 
+void Pool::notify_all_workers() {
+  const uint32_t W = static_cast<uint32_t>(workers_.size());
+  for (uint32_t i = 0; i < W; ++i) notify_worker(i);
+}
+
 uint32_t Pool::pick_queue() {
   return rr_.fetch_add(1, std::memory_order_relaxed) %
 		 static_cast<uint32_t>(workers_.size());
@@ -186,7 +219,8 @@ bool Pool::try_help_one(uint32_t id) {
 	inflight_.fetch_add(1, std::memory_order_acq_rel);
 	try {
 	  if (t->fn) t->fn();
-	} catch (...) { /* swallow as per pool policy */
+	} catch (...) {
+	  // swallow as per pool policy
 	}
 	executed_.fetch_add(1, std::memory_order_relaxed);
 
@@ -200,6 +234,7 @@ bool Pool::try_help_one(uint32_t id) {
 	}
   };
 
+  // 1) сначала локальные деки (HI→LO)
   Task* t = nullptr;
   if (me.deq_hi.pop_bottom(t)) {
 	exec(t);
@@ -210,19 +245,43 @@ bool Pool::try_help_one(uint32_t id) {
 	return true;
   }
 
-  if (auto v = centrals_[id % centrals_.size()]->hi.pop()) {
-	exec(*v);
-	return true;
+  // 2) попробуем батчево «перелить» из central в локальные деки
+  auto& shard = *centrals_[id % centrals_.size()];
+
+  auto drain_central_to_local = [&](auto& q, auto& local_deque,
+									uint32_t limit) -> uint32_t {
+	uint32_t taken = 0;
+	for (; taken < limit; ++taken) {
+	  if (auto v = q.pop()) {
+		local_deque.push_bottom(*v);
+	  } else {
+		break;
+	  }
+	}
+	return taken;
+  };
+
+  // HI приоритет
+  if (drain_central_to_local(shard.hi, me.deq_hi, cfg_.central_batch) > 0) {
+	if (me.deq_hi.pop_bottom(t)) {
+	  exec(t);
+	  return true;
+	}
   }
-  if (auto v = centrals_[id % centrals_.size()]->lo.pop()) {
-	exec(*v);
-	return true;
+  // LO приоритет
+  if (drain_central_to_local(shard.lo, me.deq_lo, cfg_.central_batch) > 0) {
+	if (me.deq_lo.pop_bottom(t)) {
+	  exec(t);
+	  return true;
+	}
   }
 
+  // 3) воровство у соседей (сначала HI, затем LO)
   bool stolen = false;
   std::uniform_int_distribution<uint32_t> dist(
 	  0, static_cast<uint32_t>(workers_.size() - 1));
   const uint32_t start = dist(me.rng);
+
   for (uint32_t i = 0; i < workers_.size(); ++i) {
 	uint32_t vic = (start + i) % workers_.size();
 	if (vic == id) continue;
@@ -234,6 +293,7 @@ bool Pool::try_help_one(uint32_t id) {
 	}
   }
   if (stolen) return true;
+
   for (uint32_t i = 0; i < workers_.size(); ++i) {
 	uint32_t vic = (start + i) % workers_.size();
 	if (vic == id) continue;
@@ -243,8 +303,10 @@ bool Pool::try_help_one(uint32_t id) {
 	  return true;
 	}
   }
+
   return false;
 }
+
 
 void Pool::worker_loop(uint32_t id) {
   auto& me = *workers_[id];
@@ -256,6 +318,7 @@ void Pool::worker_loop(uint32_t id) {
 	try {
 	  if (t->fn) t->fn();
 	} catch (...) {
+	  // swallow as per pool policy
 	}
 	executed_.fetch_add(1, std::memory_order_relaxed);
 
@@ -269,8 +332,24 @@ void Pool::worker_loop(uint32_t id) {
 	}
   };
 
+  // helper: drain up to N tasks from a central queue into local deque
+  auto drain_central_to_local = [&](auto& q, auto& local_deque,
+									uint32_t limit) -> uint32_t {
+	uint32_t taken = 0;
+	for (; taken < limit; ++taken) {
+	  if (auto v = q.pop()) {
+		local_deque.push_bottom(*v);
+	  } else {
+		break;
+	  }
+	}
+	return taken;
+  };
+
   while (!stop_.load(std::memory_order_acquire)) {
 	Task* t = nullptr;
+
+	// 1) локальные деки — самый дешёвый путь
 	if (me.deq_hi.pop_bottom(t)) {
 	  exec(t);
 	  me.backoff_us = cfg_.idle_us_min;
@@ -282,20 +361,26 @@ void Pool::worker_loop(uint32_t id) {
 	  continue;
 	}
 
+	// 2) батчево «переложим» из central в локальные деки (а не выполнять по
+	// одной)
 	auto& shard = *centrals_[id % centrals_.size()];
-	if (auto v = shard.hi.pop()) {
-	  exec(*v);
+
+	// HI priority batch
+	if (drain_central_to_local(shard.hi, me.deq_hi, cfg_.central_batch) > 0) {
+	  // съедаем локально на следующей итерации
 	  me.backoff_us = cfg_.idle_us_min;
 	  continue;
 	}
-	if (auto v = shard.lo.pop()) {
-	  exec(*v);
+	// LO priority batch
+	if (drain_central_to_local(shard.lo, me.deq_lo, cfg_.central_batch) > 0) {
 	  me.backoff_us = cfg_.idle_us_min;
 	  continue;
 	}
 
+	// 3) воровство из чужих деков (сначала HI, потом LO)
 	bool got = false;
 	const uint32_t start = dist(me.rng);
+
 	for (uint32_t i = 0; i < workers_.size(); ++i) {
 	  uint32_t vic = (start + i) % workers_.size();
 	  if (vic == id) continue;
@@ -326,8 +411,10 @@ void Pool::worker_loop(uint32_t id) {
 	  continue;
 	}
 
+	// 4) обслуживание домена HP/QSBR (дёшево)
 	tp::detail::hazard_domain::instance().maybe_advance();
 
+	// 5) backoff с коротким сном; просыпаемся если где-то появились задачи
 	{
 	  std::unique_lock lk(me.mu);
 	  me.cv.wait_for(lk, std::chrono::microseconds(me.backoff_us), [&] {
@@ -336,6 +423,7 @@ void Pool::worker_loop(uint32_t id) {
 			   !centrals_[id % centrals_.size()]->hi.empty() ||
 			   !centrals_[id % centrals_.size()]->lo.empty();
 	  });
+	  // эксп. бэк-офф
 	  uint32_t next = me.backoff_us ? (me.backoff_us * 2) : cfg_.idle_us_min;
 	  me.backoff_us = std::min<uint32_t>(
 		  cfg_.idle_us_max, std::max<uint32_t>(cfg_.idle_us_min, next));
