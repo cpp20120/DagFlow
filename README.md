@@ -58,7 +58,7 @@ Config: pin_threads = false
 
 Compare with TBB
 
-| Benchmark           |    Problem size | Your TP mean (s) | TBB mean (s) | Speedup (TP / TBB) |     TP throughput |      TBB throughput |
+| Benchmark           |    Problem size | My   TP mean (s) | TBB mean (s) | Speedup (TP / TBB) |     TP throughput |      TBB throughput |
 | ------------------- | --------------: | ---------------: | -----------: | -----------------: | ----------------: | ------------------: |
 | Dependent chain     |      1000 tasks |          0.00579 |   0.00288156 |          **2.01×** | \~172,712 tasks/s |   \~347,034 tasks/s |
 | Independent tasks   |      1000 tasks |          1.52830 |      1.25051 |          **1.22×** |   \~654.3 tasks/s |     \~799.7 tasks/s |
