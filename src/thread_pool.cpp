@@ -83,7 +83,6 @@ Handle Pool::submit_impl(small_function<void()> job, SubmitOptions opt) {
   t->owned = opt.owned;
   t->done = ctr;
 
-
   dispatch(t, opt.affinity, true);
   submitted_.fetch_add(1, std::memory_order_relaxed);
   return Handle{std::move(ctr)};
@@ -113,7 +112,7 @@ void Pool::dispatch(Task* t, std::optional<uint32_t> affinity,
   const uint32_t W = static_cast<uint32_t>(workers_.size());
   const uint32_t base = shard % W;
 
-  // Всегда разбудим хотя бы одного — снижает холодный старт workflow
+  // всегда разбудим хотя бы одного — снижает холодный старт workflow
   notify_worker(base);
 
   // Фан-аут будим редко (снижает контеншн на noop)
@@ -134,9 +133,7 @@ void Pool::dispatch(Task* t, std::optional<uint32_t> affinity,
 	  notify_all_workers();
 	}
   }
-
 }
-
 
 Handle Pool::combine(std::span<const Handle> hs, SubmitOptions opt) {
   if (hs.empty()) return Handle{};
@@ -213,6 +210,8 @@ uint32_t Pool::pick_queue() {
 }
 
 bool Pool::try_help_one(uint32_t id) {
+  constexpr uint32_t kStealBatch = 4;
+
   auto& me = *workers_[id];
 
   auto exec = [&](Task* t) {
@@ -229,23 +228,22 @@ bool Pool::try_help_one(uint32_t id) {
 	if (done) complete_counter(done.get());
 
 	if (inflight_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
-	  std::lock_guard lk(wait_mu_);
+	  std::lock_guard<std::mutex> lk(wait_mu_);
 	  wait_cv_.notify_all();
 	}
   };
 
-  // 1) сначала локальные деки (HI→LO)
-  Task* t = nullptr;
-  if (me.deq_hi.pop_bottom(t)) {
+  // локальные — самый дешёвый путь
+  if (Task* t = nullptr; me.deq_hi.pop_bottom(t)) {
 	exec(t);
 	return true;
   }
-  if (me.deq_lo.pop_bottom(t)) {
+  if (Task* t = nullptr; me.deq_lo.pop_bottom(t)) {
 	exec(t);
 	return true;
   }
 
-  // 2) попробуем батчево «перелить» из central в локальные деки
+  // батчево переложим из central в локальные деки
   auto& shard = *centrals_[id % centrals_.size()];
 
   auto drain_central_to_local = [&](auto& q, auto& local_deque,
@@ -261,45 +259,62 @@ bool Pool::try_help_one(uint32_t id) {
 	return taken;
   };
 
-  // HI приоритет
+  // HI priority batch
   if (drain_central_to_local(shard.hi, me.deq_hi, cfg_.central_batch) > 0) {
-	if (me.deq_hi.pop_bottom(t)) {
+	if (Task* t = nullptr; me.deq_hi.pop_bottom(t)) {
 	  exec(t);
 	  return true;
 	}
   }
-  // LO приоритет
+  // LO priority batch
   if (drain_central_to_local(shard.lo, me.deq_lo, cfg_.central_batch) > 0) {
-	if (me.deq_lo.pop_bottom(t)) {
+	if (Task* t = nullptr; me.deq_lo.pop_bottom(t)) {
 	  exec(t);
 	  return true;
 	}
   }
 
-  // 3) воровство у соседей (сначала HI, затем LO)
-  bool stolen = false;
+  // воровство пачками у соседей
+  auto steal_n_from = [](auto& victim_deque, Task* out[], uint32_t max_take) {
+	uint32_t taken = 0;
+	for (; taken < max_take; ++taken) {
+	  Task* t = nullptr;
+	  if (!victim_deque.steal(t)) break;
+	  out[taken] = t;
+	}
+	return taken;
+  };
+
   std::uniform_int_distribution<uint32_t> dist(
 	  0, static_cast<uint32_t>(workers_.size() - 1));
   const uint32_t start = dist(me.rng);
 
+  // HI
   for (uint32_t i = 0; i < workers_.size(); ++i) {
 	uint32_t vic = (start + i) % workers_.size();
 	if (vic == id) continue;
-	if (workers_[vic]->deq_hi.steal(t)) {
-	  stolen_.fetch_add(1, std::memory_order_relaxed);
-	  exec(t);
-	  stolen = true;
-	  break;
+
+	Task* buf[kStealBatch];
+	uint32_t n = steal_n_from(workers_[vic]->deq_hi, buf, kStealBatch);
+	if (n > 0) {
+	  stolen_.fetch_add(n, std::memory_order_relaxed);
+	  exec(buf[0]);
+	  for (uint32_t k = 1; k < n; ++k) me.deq_hi.push_bottom(buf[k]);
+	  return true;
 	}
   }
-  if (stolen) return true;
 
+  // LO
   for (uint32_t i = 0; i < workers_.size(); ++i) {
 	uint32_t vic = (start + i) % workers_.size();
 	if (vic == id) continue;
-	if (workers_[vic]->deq_lo.steal(t)) {
-	  stolen_.fetch_add(1, std::memory_order_relaxed);
-	  exec(t);
+
+	Task* buf[kStealBatch];
+	uint32_t n = steal_n_from(workers_[vic]->deq_lo, buf, kStealBatch);
+	if (n > 0) {
+	  stolen_.fetch_add(n, std::memory_order_relaxed);
+	  exec(buf[0]);
+	  for (uint32_t k = 1; k < n; ++k) me.deq_lo.push_bottom(buf[k]);
 	  return true;
 	}
   }
@@ -307,8 +322,9 @@ bool Pool::try_help_one(uint32_t id) {
   return false;
 }
 
-
 void Pool::worker_loop(uint32_t id) {
+  constexpr uint32_t kStealBatch = 4;
+
   auto& me = *workers_[id];
   std::uniform_int_distribution<uint32_t> dist(
 	  0, static_cast<uint32_t>(workers_.size() - 1));
@@ -327,12 +343,11 @@ void Pool::worker_loop(uint32_t id) {
 	if (done) complete_counter(done.get());
 
 	if (inflight_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
-	  std::lock_guard lk(wait_mu_);
+	  std::lock_guard<std::mutex> lk(wait_mu_);
 	  wait_cv_.notify_all();
 	}
   };
 
-  // helper: drain up to N tasks from a central queue into local deque
   auto drain_central_to_local = [&](auto& q, auto& local_deque,
 									uint32_t limit) -> uint32_t {
 	uint32_t taken = 0;
@@ -347,46 +362,54 @@ void Pool::worker_loop(uint32_t id) {
   };
 
   while (!stop_.load(std::memory_order_acquire)) {
-	Task* t = nullptr;
-
-	// 1) локальные деки — самый дешёвый путь
-	if (me.deq_hi.pop_bottom(t)) {
+	// 1) локальные деки — самый быстрый путь
+	if (Task* t = nullptr; me.deq_hi.pop_bottom(t)) {
 	  exec(t);
 	  me.backoff_us = cfg_.idle_us_min;
 	  continue;
 	}
-	if (me.deq_lo.pop_bottom(t)) {
+	if (Task* t = nullptr; me.deq_lo.pop_bottom(t)) {
 	  exec(t);
 	  me.backoff_us = cfg_.idle_us_min;
 	  continue;
 	}
 
-	// 2) батчево «переложим» из central в локальные деки (а не выполнять по
-	// одной)
+	// 2) central → локальные (batch)
 	auto& shard = *centrals_[id % centrals_.size()];
 
-	// HI priority batch
 	if (drain_central_to_local(shard.hi, me.deq_hi, cfg_.central_batch) > 0) {
-	  // съедаем локально на следующей итерации
 	  me.backoff_us = cfg_.idle_us_min;
 	  continue;
 	}
-	// LO priority batch
 	if (drain_central_to_local(shard.lo, me.deq_lo, cfg_.central_batch) > 0) {
 	  me.backoff_us = cfg_.idle_us_min;
 	  continue;
 	}
 
-	// 3) воровство из чужих деков (сначала HI, потом LO)
+	// 3) воровство пачками
 	bool got = false;
 	const uint32_t start = dist(me.rng);
+
+	// HI
+	auto steal_n_from = [](auto& victim_deque, Task* out[], uint32_t max_take) {
+	  uint32_t taken = 0;
+	  for (; taken < max_take; ++taken) {
+		Task* t = nullptr;
+		if (!victim_deque.steal(t)) break;
+		out[taken] = t;
+	  }
+	  return taken;
+	};
 
 	for (uint32_t i = 0; i < workers_.size(); ++i) {
 	  uint32_t vic = (start + i) % workers_.size();
 	  if (vic == id) continue;
-	  if (workers_[vic]->deq_hi.steal(t)) {
-		stolen_.fetch_add(1, std::memory_order_relaxed);
-		exec(t);
+	  Task* buf[kStealBatch];
+	  uint32_t n = steal_n_from(workers_[vic]->deq_hi, buf, kStealBatch);
+	  if (n > 0) {
+		stolen_.fetch_add(n, std::memory_order_relaxed);
+		exec(buf[0]);
+		for (uint32_t k = 1; k < n; ++k) me.deq_hi.push_bottom(buf[k]);
 		got = true;
 		break;
 	  }
@@ -396,12 +419,16 @@ void Pool::worker_loop(uint32_t id) {
 	  continue;
 	}
 
+	// LO
 	for (uint32_t i = 0; i < workers_.size(); ++i) {
 	  uint32_t vic = (start + i) % workers_.size();
 	  if (vic == id) continue;
-	  if (workers_[vic]->deq_lo.steal(t)) {
-		stolen_.fetch_add(1, std::memory_order_relaxed);
-		exec(t);
+	  Task* buf[kStealBatch];
+	  uint32_t n = steal_n_from(workers_[vic]->deq_lo, buf, kStealBatch);
+	  if (n > 0) {
+		stolen_.fetch_add(n, std::memory_order_relaxed);
+		exec(buf[0]);
+		for (uint32_t k = 1; k < n; ++k) me.deq_lo.push_bottom(buf[k]);
 		got = true;
 		break;
 	  }

@@ -444,11 +444,21 @@ class TaskGraph {
 	auto& nodes = *core->nodes;
 	Node* n = nodes[i].get();
 
-	int cur = n->inflight.load(std::memory_order_relaxed);
-	while (cur < n->max_concurrency) {
-	  if (n->inflight.compare_exchange_weak(cur, cur + 1,
-											std::memory_order_acq_rel)) {
-		schedule_worker_once(core, i, ctr);
+	for (;;) {
+	  int cur = n->inflight.load(std::memory_order_relaxed);
+	  int free = n->max_concurrency - cur;
+	  if (free <= 0) return;
+
+	  std::size_t queued = n->queued.load(std::memory_order_acquire);
+	  if (queued == 0) return;
+
+	  int launch = static_cast<int>(std::min<std::size_t>(queued, free));
+	  if (n->inflight.compare_exchange_weak(cur, cur + launch,
+											std::memory_order_acq_rel,
+											std::memory_order_relaxed)) {
+		for (int k = 0; k < launch; ++k) {
+		  schedule_worker_once(core, i, ctr);
+		}
 		return;
 	  }
 	}

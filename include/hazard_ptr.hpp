@@ -254,15 +254,20 @@ class hazard_domain {
    * @param tr Thread record whose HP retire list will be processed.
    */
   void scan_and_reclaim_hp(thread_rec* tr) {
-	std::vector<void*> hazards;
+	std::vector<slot_block*> blocks;
 	{
 	  std::lock_guard lk(reg_mu_);
-	  hazards.reserve(registry_.size() * kHPPerThread);
-	  for (auto* blk : registry_) {
-		for (size_t i = 0; i < kHPPerThread; ++i) {
-		  void* p = blk->slots[i].load(std::memory_order_acquire);
-		  if (p) hazards.push_back(p);
-		}
+	  blocks.reserve(registry_.size());
+	  for (auto* blk : registry_)
+		if (blk) blocks.push_back(blk);
+	}
+
+	std::vector<void*> hazards;
+	hazards.reserve(blocks.size() * kHPPerThread);
+	for (auto* blk : blocks) {
+	  for (size_t i = 0; i < kHPPerThread; ++i) {
+		void* p = blk->slots[i].load(std::memory_order_acquire);
+		if (p) hazards.push_back(p);
 	  }
 	}
 	std::sort(hazards.begin(), hazards.end());
@@ -271,14 +276,14 @@ class hazard_domain {
 	std::vector<retire_record> keep;
 	keep.reserve(tr->retired_hp.size());
 	for (auto& r : tr->retired_hp) {
-	  if (r.p && std::binary_search(hazards.begin(), hazards.end(), r.p)) {
+	  if (r.p && std::binary_search(hazards.begin(), hazards.end(), r.p))
 		keep.push_back(r);
-	  } else if (r.p) {
+	  else if (r.p)
 		r.deleter(r.p);
-	  }
 	}
 	tr->retired_hp.swap(keep);
   }
+
 
  private:
   hazard_domain() = default;

@@ -58,9 +58,9 @@ class chase_lev_deque {
 	auto b = bottom_.load(std::memory_order_relaxed);
 	auto t = top_.load(std::memory_order_acquire);
 	if (b - t >= static_cast<ptrdiff_t>(cap_ - 1)) grow(b, t);
+
 	buf_[b & (cap_ - 1)] = std::move(v);
-	std::atomic_thread_fence(std::memory_order_release);
-	bottom_.store(b + 1, std::memory_order_relaxed);
+	bottom_.store(b + 1, std::memory_order_release);
   }
   /**
    * @brief Pop a value from the bottom. Only the owner may call this.
@@ -71,15 +71,21 @@ class chase_lev_deque {
   bool pop_bottom(T& out) {
 	auto b = bottom_.load(std::memory_order_relaxed) - 1;
 	bottom_.store(b, std::memory_order_relaxed);
+
 	std::atomic_thread_fence(std::memory_order_seq_cst);
+
 	auto t = top_.load(std::memory_order_relaxed);
+
 	if (t > b) {
 	  bottom_.store(b + 1, std::memory_order_relaxed);
 	  return false;
 	}
+
 	out = std::move(buf_[b & (cap_ - 1)]);
+
 	if (t == b) {
-	  if (!top_.compare_exchange_strong(t, t + 1, std::memory_order_seq_cst,
+	  if (!top_.compare_exchange_strong(t, t + 1,
+										std::memory_order_seq_cst,
 										std::memory_order_relaxed)) {
 		bottom_.store(b + 1, std::memory_order_relaxed);
 		return false;
@@ -88,6 +94,7 @@ class chase_lev_deque {
 	}
 	return true;
   }
+
   /**
    * @brief Attempt to steal a value from the top. Any thief thread may call
    * this.
@@ -97,11 +104,11 @@ class chase_lev_deque {
    */
   bool steal(T& out) {
 	auto t = top_.load(std::memory_order_acquire);
-	std::atomic_thread_fence(std::memory_order_seq_cst);
 	auto b = bottom_.load(std::memory_order_acquire);
 	if (t >= b) return false;
+
 	out = std::move(buf_[t & (cap_ - 1)]);
-	return top_.compare_exchange_strong(t, t + 1, std::memory_order_seq_cst,
+	return top_.compare_exchange_strong(t, t + 1, std::memory_order_acq_rel,
 										std::memory_order_relaxed);
   }
   /**
