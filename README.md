@@ -56,7 +56,7 @@ Config: pin_threads = false
 
 * Numbers may vary with CPU governor, background load, and configuration.
 
-Compare with TBB
+Compare with [TBB](https://github.com/uxlfoundation/oneTBB)
 
 | Benchmark           |    Problem size | My   TP mean (s) | TBB mean (s) | Speedup (TP / TBB) |     TP throughput |      TBB throughput |
 | ------------------- | --------------: | ---------------: | -----------: | -----------------: | ----------------: | ------------------: |
