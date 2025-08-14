@@ -88,5 +88,5 @@ Uniform loading of threads on uneven load and less "tails". Compatible only with
 ![Third](docs/for_each.jpg)
 
 Note:
-This pool is not yet optimized for noop and parallel_for microbenchmarks — missing chunk/range stealing and has a non-ideal queue implementation for such patterns.
+This pool is not yet optimized for noop and parallel_for microbenchmarks — missing generalized chunk/range stealing(it is exists only for RA iterators) and has a non-ideal queue implementation for such patterns.
 The focus is DAG execution, affinity control, and back-pressure.
