@@ -198,6 +198,138 @@ class Pool {
 	}
 	return Handle{std::move(ctr)};
   }
+  /// Helper for cound threads
+  uint32_t thread_count() const noexcept {
+	if (!workers_.empty()) return static_cast<uint32_t>(workers_.size());
+	return cfg_.threads ? cfg_.threads : 1u;
+  }
+  /**
+   * @brief Parallel range processing with dynamic range stealing (help-first).
+   *
+   * @tparam It Random-access iterator type.
+   * @tparam F  Callable type, invocable as `void(T&)` for `*It`.
+   * @param begin  Iterator to the start of the range.
+   * @param end    Iterator to the end of the range.
+   * @param f      Functor to apply to each element in the range.
+   * @param opt    Submission options (priority, affinity).
+   * @param min_grain_hint Minimal grain size hint (default: 16K elements).
+   *        The algorithm may pick a smaller grain if the range is small.
+   *
+   * @details
+   * Implements *help-first* lazy binary splitting:
+   * - The current range is processed by repeatedly splitting off the upper half
+   *   into a new task if it is at least @c min_grain elements long.
+   * - The "leaf" range (≤ 2 × min_grain) is processed sequentially.
+   * - Tasks are submitted to the pool with optional affinity to improve NUMA
+   * locality.
+   *
+   * Compared to @ref for_each:
+   * - Balances load better for skewed workloads.
+   * - Reduces tail-latency by allowing idle workers to steal large chunks.
+   * - Requires random-access iterators for O(1) splitting.
+   *
+   * Example:
+   * @code
+   * std::vector<int> data(50'000'000, 1);
+   * tp::Pool pool;
+   * auto h = pool.for_each_ws(data.begin(), data.end(),
+   *     [](int& x) { x += 1; },
+   *     {.priority = tp::Priority::High});
+   * pool.wait(h);
+   * @endcode
+   *
+   * @note This overload requires @c std::random_access_iterator_tag.
+   *       Use @ref for_each for generic iterators.
+   *
+   * @return Handle that completes when all subranges are processed.
+   */
+  template <class It, class F>
+  Handle for_each_ws(It begin, It end, F f, SubmitOptions opt = {},
+					 std::size_t min_grain_hint = (1u << 14)) {
+	using Cat = typename std::iterator_traits<It>::iterator_category;
+	static_assert(std::is_base_of_v<std::random_access_iterator_tag, Cat>,
+				  "for_each_ws requires random-access iterators");
+
+	const std::size_t n = static_cast<std::size_t>(end - begin);
+	if (n == 0) return Handle{};
+
+	const uint32_t T = this->thread_count();
+	std::size_t min_grain = std::max<std::size_t>(n / (T * 8u), min_grain_hint);
+	min_grain = std::min<std::size_t>(min_grain, n);
+
+	struct Range {
+	  std::size_t lo, hi;
+	};
+
+	struct ProcState {
+	  Pool* pool;
+	  It begin;
+	  F func;
+	  SubmitOptions opt;
+	  std::size_t min_grain;
+	  std::shared_ptr<Handle::Counter> ctr;
+	};
+
+	auto ctr = std::make_shared<Handle::Counter>();
+	ctr->count.store(1, std::memory_order_relaxed);
+
+	auto st = std::make_shared<ProcState>(
+		ProcState{this, begin, std::move(f), opt, min_grain, ctr});
+
+	struct Exec {
+	  std::shared_ptr<ProcState> st;
+
+	  void operator()(Range r) const {
+		while ((r.hi - r.lo) > (st->min_grain * 2)) {
+		  const std::size_t mid = r.lo + ((r.hi - r.lo) >> 1);
+		  Range upper{mid, r.hi};
+		  r.hi = mid;
+
+		  st->ctr->count.fetch_add(1, std::memory_order_relaxed);
+
+		  Exec ex{st};
+		  st->pool->submit_impl(
+			  small_function<void()>{[ex, upper]() mutable { ex(upper); }},
+			  st->opt);
+		}
+
+		auto* base = &st->begin[r.lo];
+		const std::size_t cnt = r.hi - r.lo;
+		for (std::size_t i = 0; i < cnt; ++i) st->func(base[i]);
+
+		Pool::complete_counter(st->ctr.get());
+	  }
+	};
+
+	Exec ex{st};
+
+	if (n >= min_grain * 4 && T > 1) {
+	  const std::size_t tiles = T;
+	  ctr->count.store(static_cast<int>(tiles), std::memory_order_relaxed);
+
+	  for (std::size_t t = 0; t < tiles; ++t) {
+		const std::size_t lo = (n * t) / tiles;
+		const std::size_t hi = (n * (t + 1)) / tiles;
+
+		auto opt_local = st->opt;
+		opt_local.affinity = static_cast<uint32_t>(t % T);
+
+		Exec ex2{st}; 
+		this->submit_impl(small_function<void()>{[ex2, lo, hi]() mutable {
+							ex2(Range{lo, hi});
+						  }},
+						  opt_local);
+	  }
+	  return Handle{std::move(ctr)};
+	}
+
+	this->submit_impl(
+		small_function<void()>{[ex, n]() mutable { ex(Range{0, n}); }},
+		st->opt);
+	return Handle{std::move(ctr)};
+  }
+
+
   /**
    * @brief Combine multiple handles; returns a handle that completes when all
    * do.

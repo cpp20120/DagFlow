@@ -291,6 +291,35 @@ class TaskScope {
 	return JobHandle{nid.idx};
   }
 
+  template <class F>
+  inline Handle for_each_index_ws(Pool& p, std::size_t n, F f,
+								  SubmitOptions opt = {},
+								  std::size_t min_grain = (1u << 14)) {
+	struct It {
+	  using iterator_category = std::random_access_iterator_tag;
+	  using value_type = std::size_t;
+	  using difference_type = std::ptrdiff_t;
+	  std::size_t i;
+	  std::size_t operator*() const { return i; }
+	  It& operator++() {
+		++i;
+		return *this;
+	  }
+	  It operator+(std::ptrdiff_t d) const {
+		return It{i + static_cast<std::size_t>(d)};
+	  }
+	  std::ptrdiff_t operator-(It o) const {
+		return static_cast<std::ptrdiff_t>(i) -
+			   static_cast<std::ptrdiff_t>(o.i);
+	  }
+	  bool operator!=(It o) const { return i != o.i; }
+	};
+	return p.for_each_ws(
+		It{0}, It{n}, [g = std::move(f)](std::size_t i) { g(i); }, opt,
+		min_grain);
+  }
+
+
   /**
    * @brief Tokenized parallel-for that depends on @p dep.
    *

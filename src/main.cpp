@@ -109,6 +109,43 @@ void test_parallel_for(tp::Pool& pool, int data_size) {
   }
 }
 
+inline double ms_since(std::chrono::high_resolution_clock::time_point start) {
+  auto now = std::chrono::high_resolution_clock::now();
+  return std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(
+			 now - start)
+	  .count();
+}
+
+void test_parallel_for_ws(tp::Pool& pool, int data_size) {
+  const std::size_t N = 50'000'000;
+  std::vector<int> data(N, 1);
+
+  auto start_static = std::chrono::high_resolution_clock::now();
+  {
+	auto h = pool.for_each(data.begin(), data.end(), [](int& x) {
+	  x += 1; 
+	});
+	pool.wait(h);
+  }
+  double t_static = ms_since(start_static);
+
+  auto start_ws = std::chrono::high_resolution_clock::now();
+  {
+	auto h = pool.for_each_ws(data.begin(), data.end(), [](int& x) {
+	  x += 1;  
+	});
+	pool.wait(h);
+  }
+  double t_ws = ms_since(start_ws);
+
+  bool ok = (data[0] == 3);
+  std::cout << "Check: " << (ok ? "OK" : "FAIL") << "\n";
+
+  std::cout << "Static chunking: " << t_static << " ms\n";
+  std::cout << "Range stealing: " << t_ws << " ms\n";
+  
+}
+
 void test_workflow(tp::Pool& pool, int width, int depth) {
   tp::TaskScope scope(pool);
   std::vector<std::vector<double>> matrix(depth, std::vector<double>(width));
@@ -249,7 +286,7 @@ int main() {
 	batch_times.push_back(timer.elapsed());
   }
   print_stats("Batch benchmark", batch_times);
-
+  /**
   std::vector<double> noop_times;
   for (int i = 0; i < runs; ++i) {
 	Timer timer;
@@ -257,6 +294,13 @@ int main() {
 	noop_times.push_back(timer.elapsed());
   }
   print_stats("Noop benchmark", noop_times);
+				*/
+  std::vector<double> ws_new;
+  for (int i = 0; i < runs; ++i) {
+	Timer timer;
+	test_parallel_for_ws(pool, 50'000'000); 
+	ws_new.push_back(timer.elapsed());
+  }
 
   test_error_handling(pool);
 

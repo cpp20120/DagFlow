@@ -63,14 +63,29 @@ Compare with [TBB](https://github.com/uxlfoundation/oneTBB)
 | Dependent chain     |      1000 tasks |          0.00579 |   0.00288156 |          **2.01×** | \~172,712 tasks/s |   \~347,034 tasks/s |
 | Independent tasks   |      1000 tasks |          1.52830 |      1.25051 |          **1.22×** |   \~654.3 tasks/s |     \~799.7 tasks/s |
 | Independent batched | 1000 (batch=10) |          1.41718 |      1.30121 |          **1.09×** |   \~705.6 tasks/s |     \~768.5 tasks/s |
-| parallel\_for       | 1,000,000 elems |          0.54729 |    0.0268362 |         **20.39×** |   \~1.83M elems/s |    \~37.26M elems/s |
+| parallel\_for(old)  | 1,000,000 elems |          0.54729 |    0.0268362 |         **20.39×** |   \~1.83M elems/s |    \~37.26M elems/s |
+|for_each_ws (new)	  |1,000,000 elems	|          0.00957 |    0.0268362 |	0.36×*			   |	~104.5M elems/s|	~37.26M elems/s  |
 | Workflow (w=10,d=5) |  \~50 stage ops |          0.00161 |   0.00029248 |          **5.50×** |                 — |                   — |
 | Noop tasks          | 1,000,000 tasks |            4.411 |     0.225568 |         **20.75×** | \~213,630 tasks/s | \~4,433,253 tasks/s |
 
+`*` - (2.8× faster than TBB)
+
+For each versions
+
+| For each version                   | Runs | Mean Time | Min Time  | Max Time  | Notes / Speedup              |
+| ---------------------------------- | ---- | --------- | --------- | --------- | ---------------------------- |
+| **for\_each (static chunking)**    | 5    | 0.01761 s | 0.01456 s | 0.02074 s | baseline                     |
+| **for\_each\_ws (range stealing)** | 5    | 0.00957 s | 0.00855 s | 0.01058 s | **\~1.84× faster vs static** |
+
+
+
+**for_each_ws (range stealing)** — Lazy binary range partitioning with stealing "upper" halves (help-first). 
+Uniform loading of threads on uneven load and less "tails". Compatible only with RA iterators.
 
 ### Visualization
 ![First](docs/tp_vs_tbb.jpg)
 ![Second](docs/relative.jpg)
+![Third](docs/for_each.jpg)
 
 Note:
 This pool is not yet optimized for noop and parallel_for microbenchmarks — missing chunk/range stealing and has a non-ideal queue implementation for such patterns.
