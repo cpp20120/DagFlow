@@ -87,6 +87,19 @@ Uniform loading of threads on uneven load and less "tails". Compatible only with
 ![Second](docs/relative.jpg)
 ![Third](docs/for_each.jpg)
 
+### Examples
+## 📚 Examples
+
+See [`main.cpp`](https://github.com/cpp20120/ThreadPool/blob/main/src/main.cpp) for complete usage examples and benchmarks:
+- **Dependent chain** – tasks with strict linear dependencies.
+- **Independent tasks** – CPU-heavy tasks without dependencies.
+- **Independent batched** – grouping tasks into batches to reduce scheduling overhead.
+- **parallel_for** – default parallel loop API with various `ScheduleOptions`.
+- **for_each_ws** – range-stealing variant for RA iterators (up to 2.8× faster than TBB in our tests).
+- **Workflow** – DAG-shaped dependencies (width × depth).
+- **Error handling** – safe exception propagation and dependent cancellation.
+- **Noop benchmark** – raw scheduling overhead measurement.
+
 Note:
 This pool is not yet optimized for noop and parallel_for microbenchmarks — missing generalized chunk/range stealing(it is exists only for RA iterators) and has a non-ideal queue implementation for such patterns.
 The focus is DAG execution, affinity control, and back-pressure.
