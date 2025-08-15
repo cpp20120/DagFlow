@@ -87,6 +87,38 @@ Uniform loading of threads on uneven load and less "tails". Compatible only with
 ![Second](docs/relative.jpg)
 ![Third](docs/for_each.jpg)
 
+
+### Build and usage
+
+```sh
+git clone https://github.com/cpp20120/ThreadPool.git
+cd ThreadPool
+cmake -B build -DTp_BUILD_EXAMPLES=ON
+cmake --build build --config Release
+```
+
+How to use at your cmake project
+
+1. Via `add_subdirectory`:
+```cmake
+add_subdirectory(external/ThreadPool)
+
+add_executable(my_app main.cpp)
+target_link_libraries(my_app PRIVATE ThreadPool)
+```
+
+2. Via `find_package`:
+```cmake
+find_package(ThreadPool REQUIRED)
+
+add_executable(my_app main.cpp)
+target_link_libraries(my_app PRIVATE ThreadPool::ThreadPool)
+```
+
+`find_package` works after cmake --install.
+
+### Exampe of usage: [there](https://github.com/cpp20120/ThreadPool/blob/main/src/main.cpp)
+
 Note:
-This pool is not yet optimized for noop and parallel_for microbenchmarks — missing chunk/range stealing and has a non-ideal queue implementation for such patterns.
+This pool is not yet optimized  noop and non ws version of for_each microbenchmarks — missing chunk/range stealing and has a non-ideal queue implementation for such patterns.
 The focus is DAG execution, affinity control, and back-pressure.

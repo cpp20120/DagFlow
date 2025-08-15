@@ -29,7 +29,10 @@ void print_stats(const std::string& name, const std::vector<double>& times) {
 			<< "  Min:  " << *min_it << " s\n"
 			<< "  Max:  " << *max_it << " s\n";
 }
-
+/**
+ * @example dependent_chain_example
+ * @brief Demonstrates chaining tasks (submit → then → then).
+ */
 void test_dependent_tasks(tp::Pool& pool, int chain_length) {
   tp::TaskScope scope(pool);
   std::vector<double> results(chain_length);
@@ -49,7 +52,10 @@ void test_dependent_tasks(tp::Pool& pool, int chain_length) {
   std::cout << "Dependent chain (" << chain_length << " tasks): " << time
 			<< " s, result=" << results.back() << "\n";
 }
-
+/**
+ * @example independent_tasks_example
+ * @brief N independent tasks inside a TaskScope.
+ */
 void test_independent_tasks(tp::Pool& pool, int task_count) {
   tp::TaskScope scope(pool);
   std::vector<double> results(task_count);
@@ -71,7 +77,10 @@ void test_independent_tasks(tp::Pool& pool, int task_count) {
 
   std::cout << "Independent tasks (" << task_count << "): " << time << " s\n";
 }
-
+/**
+ * @example parallel_for_example
+ * @brief Parallel loop using tokenized `parallel_for()`.
+ */
 void test_parallel_for(tp::Pool& pool, int data_size) {
   std::vector<int> data(data_size);
   std::iota(data.begin(), data.end(), 0);
@@ -115,7 +124,10 @@ inline double ms_since(std::chrono::high_resolution_clock::time_point start) {
 			 now - start)
 	  .count();
 }
-
+/**
+ * @example for_each_ws_example
+ * @brief Compares static split vs work-stealing range splitting.
+ */
 void test_parallel_for_ws(tp::Pool& pool, int data_size) {
   const std::size_t N = 50'000'000;
   std::vector<int> data(N, 1);
@@ -145,7 +157,10 @@ void test_parallel_for_ws(tp::Pool& pool, int data_size) {
   std::cout << "Range stealing: " << t_ws << " ms\n";
   
 }
-
+/**
+ * @example workflow_dag_example
+ * @brief Builds a small DAG using when_all() and then().
+ */
 void test_workflow(tp::Pool& pool, int width, int depth) {
   tp::TaskScope scope(pool);
   std::vector<std::vector<double>> matrix(depth, std::vector<double>(width));
@@ -183,7 +198,10 @@ void test_workflow(tp::Pool& pool, int width, int depth) {
   std::cout << "Workflow (width=" << width << ", depth=" << depth
 			<< "): " << time << " s\n";
 }
-
+/**
+ * @example noop_tasks_example
+ * @brief Submits a large number of trivial (noop) tasks to measure overhead.
+ */
 void test_noop_tasks(tp::Pool& pool, int task_count) {
   tp::TaskScope scope(pool);
   for (int i = 0; i < task_count; ++i) {
@@ -195,7 +213,10 @@ void test_noop_tasks(tp::Pool& pool, int task_count) {
 			<< " s\n";
 }
 
-
+/**
+ * @example error_propagation_example
+ * @brief Shows how exceptions propagate through run_and_wait().
+ */
 void test_error_handling(tp::Pool& pool) {
   tp::TaskScope scope(pool);
 
@@ -216,7 +237,10 @@ void test_error_handling(tp::Pool& pool) {
 	std::cout << "Caught exception: " << e.what() << "\n";
   }
 }
-
+/**
+ * @example batched_submission_example
+ * @brief Submits independent tasks in batches for reduced overhead.
+ */
 void test_independent_tasks_batched(tp::Pool& pool, int task_count,
 									int batch_size = 10) {
   tp::TaskScope scope(pool);
