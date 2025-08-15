@@ -119,6 +119,20 @@ target_link_libraries(my_app PRIVATE ThreadPool::ThreadPool)
 
 ### Exampe of usage: [there](https://github.com/cpp20120/ThreadPool/blob/main/src/main.cpp)
 
+Minimal example
+```cpp
+#include <api.hpp>
+
+tp::Pool pool;
+tp::TaskScope scope(pool);
+
+auto a = scope.submit([] { /* … */ });
+auto b = scope.then(a, [] { /* … */ });
+auto c = scope.when_all({a, b}, [] { /* … */ });
+
+scope.run_and_wait();
+```
+
 Note:
 This pool is not yet optimized  noop and non ws version of for_each microbenchmarks — missing chunk/range stealing and has a non-ideal queue implementation for such patterns.
 The focus is DAG execution, affinity control, and back-pressure.
