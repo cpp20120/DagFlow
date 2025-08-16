@@ -4,7 +4,7 @@
 #include <type_traits>
 #include <vector>
 
-namespace tp {
+namespace dagflow {
 /** \class ThreadPool
  * \brief Forward declaration of the ThreadPool class.
  */

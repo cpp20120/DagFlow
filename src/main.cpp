@@ -5,7 +5,7 @@
 #include <numeric>
 #include <vector>
 
-#include "../include/api.hpp"
+#include "../include/dagflow.hpp"
 
 using namespace std::chrono;
 
@@ -33,13 +33,13 @@ void print_stats(const std::string& name, const std::vector<double>& times) {
  * @example dependent_chain_example
  * @brief Demonstrates chaining tasks (submit → then → then).
  */
-void test_dependent_tasks(tp::Pool& pool, int chain_length) {
-  tp::TaskScope scope(pool);
+void test_dependent_tasks(dagflow::Pool& pool, int chain_length) {
+  dagflow::TaskScope scope(pool);
   std::vector<double> results(chain_length);
 
   auto first = scope.submit([&] { results[0] = 1.0; });
 
-  tp::JobHandle prev = first;
+  dagflow::JobHandle prev = first;
   for (int i = 1; i < chain_length; ++i) {
 	prev = scope.then(prev,
 					  [&, i] { results[i] = results[i - 1] + std::sqrt(i); });
@@ -56,10 +56,10 @@ void test_dependent_tasks(tp::Pool& pool, int chain_length) {
  * @example independent_tasks_example
  * @brief N independent tasks inside a TaskScope.
  */
-void test_independent_tasks(tp::Pool& pool, int task_count) {
-  tp::TaskScope scope(pool);
+void test_independent_tasks(dagflow::Pool& pool, int task_count) {
+  dagflow::TaskScope scope(pool);
   std::vector<double> results(task_count);
-  std::vector<tp::JobHandle> handles;
+  std::vector<dagflow::JobHandle> handles;
 
   for (int i = 0; i < task_count; ++i) {
 	handles.push_back(scope.submit([&, i] {
@@ -81,23 +81,23 @@ void test_independent_tasks(tp::Pool& pool, int task_count) {
  * @example parallel_for_example
  * @brief Parallel loop using tokenized `parallel_for()`.
  */
-void test_parallel_for(tp::Pool& pool, int data_size) {
+void test_parallel_for(dagflow::Pool& pool, int data_size) {
   std::vector<int> data(data_size);
   std::iota(data.begin(), data.end(), 0);
 
   struct Config {
 	std::string name;
-	tp::ScheduleOptions options;
+	dagflow::ScheduleOptions options;
   };
 
   std::vector<Config> configs = {
 	  {"Default", {}},
-	  {"High priority", {.priority = tp::Priority::High}},
+	  {"High priority", {.priority = dagflow::Priority::High}},
 	  {"Limited concurrency", {.concurrency = 2}},
 	  {"Small chunks", {.concurrency = 0, .capacity = 100}}};
 
   for (auto& cfg : configs) {
-	tp::TaskScope scope(pool);
+	dagflow::TaskScope scope(pool);
 
 	scope.parallel_for(
 		data.begin(), data.end(),
@@ -128,7 +128,7 @@ inline double ms_since(std::chrono::high_resolution_clock::time_point start) {
  * @example for_each_ws_example
  * @brief Compares static split vs work-stealing range splitting.
  */
-void test_parallel_for_ws(tp::Pool& pool, int data_size) {
+void test_parallel_for_ws(dagflow::Pool& pool, int data_size) {
   const std::size_t N = 50'000'000;
   std::vector<int> data(N, 1);
 
@@ -161,17 +161,17 @@ void test_parallel_for_ws(tp::Pool& pool, int data_size) {
  * @example workflow_dag_example
  * @brief Builds a small DAG using when_all() and then().
  */
-void test_workflow(tp::Pool& pool, int width, int depth) {
-  tp::TaskScope scope(pool);
+void test_workflow(dagflow::Pool& pool, int width, int depth) {
+  dagflow::TaskScope scope(pool);
   std::vector<std::vector<double>> matrix(depth, std::vector<double>(width));
 
-  std::vector<tp::JobHandle> prev_layer;
+  std::vector<dagflow::JobHandle> prev_layer;
   for (int i = 0; i < width; ++i) {
 	prev_layer.push_back(scope.submit([&, i] { matrix[0][i] = std::sin(i); }));
   }
 
   for (int d = 1; d < depth; ++d) {
-	std::vector<tp::JobHandle> current_layer;
+	std::vector<dagflow::JobHandle> current_layer;
 	for (int i = 0; i < width; ++i) {
 	  auto h = scope.when_all(prev_layer, [&, d, i] {
 		double sum = 0;
@@ -202,8 +202,8 @@ void test_workflow(tp::Pool& pool, int width, int depth) {
  * @example noop_tasks_example
  * @brief Submits a large number of trivial (noop) tasks to measure overhead.
  */
-void test_noop_tasks(tp::Pool& pool, int task_count) {
-  tp::TaskScope scope(pool);
+void test_noop_tasks(dagflow::Pool& pool, int task_count) {
+  dagflow::TaskScope scope(pool);
   for (int i = 0; i < task_count; ++i) {
 	scope.submit([] {});
   }
@@ -217,8 +217,8 @@ void test_noop_tasks(tp::Pool& pool, int task_count) {
  * @example error_propagation_example
  * @brief Shows how exceptions propagate through run_and_wait().
  */
-void test_error_handling(tp::Pool& pool) {
-  tp::TaskScope scope(pool);
+void test_error_handling(dagflow::Pool& pool) {
+  dagflow::TaskScope scope(pool);
 
   auto good_task = scope.submit([] { std::cout << "Good task executed\n"; });
 
@@ -241,11 +241,11 @@ void test_error_handling(tp::Pool& pool) {
  * @example batched_submission_example
  * @brief Submits independent tasks in batches for reduced overhead.
  */
-void test_independent_tasks_batched(tp::Pool& pool, int task_count,
+void test_independent_tasks_batched(dagflow::Pool& pool, int task_count,
 									int batch_size = 10) {
-  tp::TaskScope scope(pool);
+  dagflow::TaskScope scope(pool);
   std::vector<double> results(task_count);
-  std::vector<tp::JobHandle> handles;
+  std::vector<dagflow::JobHandle> handles;
 
   for (int i = 0; i < task_count; i += batch_size) {
 	int end = std::min(i + batch_size, task_count);
@@ -268,7 +268,7 @@ void test_independent_tasks_batched(tp::Pool& pool, int task_count,
 
 
 int main() {
-  tp::Pool pool;
+  dagflow::Pool pool;
   const int runs = 5;
 
   std::vector<double> dep_times;

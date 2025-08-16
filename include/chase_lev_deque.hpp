@@ -31,7 +31,7 @@
 #include <memory>
 #include <utility>
 
-namespace tp::detail {
+namespace dagflow::detail {
 
 template <typename T>
 class chase_lev_deque {

@@ -8,7 +8,7 @@
 #include <windows.h>
 #endif
 
-namespace tp {
+namespace dagflow {
 
 thread_local uint32_t Pool::tls_id_ = UINT32_MAX;
 thread_local bool Pool::tls_in_pool_ = false;

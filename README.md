@@ -1,10 +1,10 @@
-# ThreadPool
+# DagFlow
 
 [![CMake](https://img.shields.io/badge/CMake-3.26+-blue.svg)](https://cmake.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![](https://tokei.rs/b1/github/cpp20120/ThreadPool)](https://github.com/cpp20120/ThreadPool).
 
-Self written thread pool (was started when engine dev begins.
+DAG-flow runtime.
 
 A self-contained, minimal runtime for parallel task execution in C++20.  
 Designed for workloads where you know the dependency graph in advance, need predictable scheduling, and want full control over affinity, priorities, and back-pressure — without the complexity of a full TBB.
@@ -92,7 +92,7 @@ Uniform loading of threads on uneven load and less "tails". Compatible only with
 
 ```sh
 git clone https://github.com/cpp20120/ThreadPool.git
-cd ThreadPool
+cd DagFlow
 cmake -B build -DTp_BUILD_EXAMPLES=ON
 cmake --build build --config Release
 ```
@@ -101,23 +101,48 @@ How to use at your cmake project
 
 1. Via `add_subdirectory`:
 ```cmake
-add_subdirectory(external/ThreadPool)
+add_subdirectory(external/DagFlow)
 
 add_executable(my_app main.cpp)
-target_link_libraries(my_app PRIVATE ThreadPool)
+target_link_libraries(my_app PRIVATE DagFlow)
 ```
 
 2. Via `find_package`:
 ```cmake
-find_package(ThreadPool REQUIRED)
+find_package(DagFlow REQUIRED)
 
 add_executable(my_app main.cpp)
-target_link_libraries(my_app PRIVATE ThreadPool::ThreadPool)
+target_link_libraries(my_app PRIVATE DagFlow::DagFlow)
 ```
 
 `find_package` works after cmake --install.
 
+2.5 On windows add to your target:
+```cmake
+if (WIN32 AND TP_BUILD_SHARED)
+  add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      $<TARGET_FILE:ThreadPool>
+      $<TARGET_FILE_DIR:my_app>
+  )
+endif()
+```
+
 ### Exampe of usage: [there](https://github.com/cpp20120/ThreadPool/blob/main/src/main.cpp)
+
+Minimal example
+```cpp
+#include <dagflow.hpp>
+
+dagflow::Pool pool;
+dagflow::TaskScope scope(pool);
+
+auto a = scope.submit([] { /* … */ });
+auto b = scope.then(a, [] { /* … */ });
+auto c = scope.when_all({a, b}, [] { /* … */ });
+
+scope.run_and_wait();
+```
 
 Note:
 This pool is not yet optimized  noop and non ws version of for_each microbenchmarks — missing chunk/range stealing and has a non-ideal queue implementation for such patterns.

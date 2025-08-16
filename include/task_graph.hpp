@@ -50,7 +50,7 @@
 #include "small_vec.hpp"
 #include "thread_pool.hpp"
 
-namespace tp {
+namespace dagflow {
 /**
  * @class TaskGraph
  * @brief DAG builder and single-run executor.

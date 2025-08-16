@@ -23,7 +23,7 @@
 #include <type_traits>
 #include <utility>
 
-namespace tp {
+namespace dagflow {
 /**
  * @brief Primary template declaration (unspecialized).
  */

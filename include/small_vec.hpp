@@ -28,7 +28,7 @@
 #include <utility>
 #include <vector>
 
-namespace tp {
+namespace dagflow {
 /**
  * @brief Small vector with inline storage (SSO) that spills to the heap when
  * size exceeds N

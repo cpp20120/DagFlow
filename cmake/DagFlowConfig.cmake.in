@@ -1,0 +1,15 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+
+include("${CMAKE_CURRENT_LIST_DIR}/DagFlowTargets.cmake")
+
+check_required_components(DagFlow)
+
+set(DagFlow_FOUND TRUE)
+set(DagFlow_VERSION @PROJECT_VERSION@)
+
+function(dagflow_enable_cxx_standard target)
+    target_compile_features(${target} PRIVATE cxx_std_23)
+endfunction()

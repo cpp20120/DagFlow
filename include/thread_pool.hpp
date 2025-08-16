@@ -47,7 +47,7 @@
 #include "mpmc_queue.hpp"
 #include "small_function.hpp"
 
-namespace tp {
+namespace dagflow {
 /**
  * @enum Priority
  * @brief Task priority: @c High served before @c Normal.

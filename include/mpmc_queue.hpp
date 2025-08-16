@@ -28,7 +28,7 @@
 
 #include "hazard_ptr.hpp"
 
-namespace tp::detail {
+namespace dagflow::detail {
 /**
  * @brief Michael–Scott lock-free MPMC queue with Hazard Pointers and QSBR
  * reclamation.

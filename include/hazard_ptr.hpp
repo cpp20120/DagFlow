@@ -40,7 +40,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace tp::detail {
+namespace dagflow::detail {
 /**
  * @class hazard_domain
  * @brief Global domain that manages hazard pointer slots and QSBR epochs.

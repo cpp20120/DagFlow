@@ -48,7 +48,7 @@
 #include "task_graph.hpp"
 #include "thread_pool.hpp"
 
-namespace tp {
+namespace dagflow {
 
 /**
  * @struct ScheduleOptions
