@@ -439,7 +439,7 @@ void Pool::worker_loop(uint32_t id) {
 	}
 
 	// 4) обслуживание домена HP/QSBR (дёшево)
-	tp::detail::hazard_domain::instance().maybe_advance();
+	dagflow::detail::hazard_domain::instance().maybe_advance();
 
 	// 5) backoff с коротким сном; просыпаемся если где-то появились задачи
 	{
