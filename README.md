@@ -2,7 +2,7 @@
 
 [![CMake](https://img.shields.io/badge/CMake-3.26+-blue.svg)](https://cmake.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![](https://tokei.rs/b1/github/cpp20120/ThreadPool)](https://github.com/cpp20120/ThreadPool).
+[![](https://tokei.rs/b1/github/cpp20120/DagFlow)](https://github.com/cpp20120/DagFlow).
 
 DAG-flow runtime.
 
@@ -21,7 +21,7 @@ Mini-runtime for parallel tasks in C++20:
 
 * High-level API in the spirit of TBB: submit/then/when_all/parallel_for via TaskScope.
 
-### [Design](https://github.com/cpp20120/ThreadPool/blob/main/docs/how_it_works.md) 
+### [Design](https://github.com/cpp20120/DagFlow/blob/main/docs/how_it_works.md) 
 * Scheduler: local deques (Chase–Lev) + "central" MPMC queues for external submissions; worker-first, then an attempt to steal from neighbors.
 
 * MPMC: Michael–Scott + hazard pointers; there is a QSBR path (quiet state based reclamation) for queue tails in the pool.
@@ -91,7 +91,7 @@ Uniform loading of threads on uneven load and less "tails". Compatible only with
 ### Build and usage
 
 ```sh
-git clone https://github.com/cpp20120/ThreadPool.git
+git clone https://github.com/cpp20120/DagFlow.git
 cd DagFlow
 cmake -B build -DTp_BUILD_EXAMPLES=ON
 cmake --build build --config Release
@@ -122,13 +122,13 @@ target_link_libraries(my_app PRIVATE DagFlow::DagFlow)
 if (WIN32 AND TP_BUILD_SHARED)
   add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-      $<TARGET_FILE:ThreadPool>
+      $<TARGET_FILE:DagFlow>
       $<TARGET_FILE_DIR:my_app>
   )
 endif()
 ```
 
-### Exampe of usage: [there](https://github.com/cpp20120/ThreadPool/blob/main/src/main.cpp)
+### Exampe of usage: [there](https://github.com/cpp20120/DagFlow/blob/main/src/main.cpp)
 
 Minimal example
 ```cpp
