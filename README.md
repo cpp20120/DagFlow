@@ -117,6 +117,17 @@ target_link_libraries(my_app PRIVATE ThreadPool::ThreadPool)
 
 `find_package` works after cmake --install.
 
+2.5 On windows add to your target:
+```cmake
+if (WIN32 AND TP_BUILD_SHARED)
+  add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+      $<TARGET_FILE:ThreadPool>
+      $<TARGET_FILE_DIR:RayTracing>
+  )
+endif()
+```
+
 ### Exampe of usage: [there](https://github.com/cpp20120/ThreadPool/blob/main/src/main.cpp)
 
 Minimal example
