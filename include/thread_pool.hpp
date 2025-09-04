@@ -43,7 +43,6 @@
 #include <vector>
 
 #include "chase_lev_deque.hpp"
-#include "hazard_ptr.hpp"
 #include "mpmc_queue.hpp"
 #include "small_function.hpp"
 

@@ -214,6 +214,10 @@ bool Pool::try_help_one(uint32_t id) {
 
   auto& me = *workers_[id];
 
+  auto& qdom = dagflow::detail::qsbr_domain::instance();
+  auto* qtr = qdom.acquire_thread_rec();
+  static thread_local uint32_t qs_ops_help = 0;
+
   auto exec = [&](Task* t) {
 	inflight_.fetch_add(1, std::memory_order_acq_rel);
 	try {
@@ -231,6 +235,7 @@ bool Pool::try_help_one(uint32_t id) {
 	  std::lock_guard<std::mutex> lk(wait_mu_);
 	  wait_cv_.notify_all();
 	}
+
   };
 
   // локальные — самый дешёвый путь
@@ -329,6 +334,10 @@ void Pool::worker_loop(uint32_t id) {
   std::uniform_int_distribution<uint32_t> dist(
 	  0, static_cast<uint32_t>(workers_.size() - 1));
 
+  auto& qdom = dagflow::detail::qsbr_domain::instance();
+  auto* qtr = qdom.acquire_thread_rec();
+  uint32_t qs_ops = 0;
+
   auto exec = [&](Task* t) {
 	inflight_.fetch_add(1, std::memory_order_acq_rel);
 	try {
@@ -346,6 +355,7 @@ void Pool::worker_loop(uint32_t id) {
 	  std::lock_guard<std::mutex> lk(wait_mu_);
 	  wait_cv_.notify_all();
 	}
+	if ((++qs_ops & 0x3Fu) == 0) qdom.quiescent(qtr);
   };
 
   auto drain_central_to_local = [&](auto& q, auto& local_deque,
@@ -439,7 +449,7 @@ void Pool::worker_loop(uint32_t id) {
 	}
 
 	// 4) обслуживание домена HP/QSBR (дёшево)
-	dagflow::detail::hazard_domain::instance().maybe_advance();
+	if ((++qs_ops & 0xFFu) == 0) qdom.quiescent(qtr);
 
 	// 5) backoff с коротким сном; просыпаемся если где-то появились задачи
 	{

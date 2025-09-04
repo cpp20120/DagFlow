@@ -18,9 +18,10 @@ option(TP_BUILD_TESTS "Build tests" OFF)
 option(TP_INSTALL "Generate install target" ON)
 
 add_library(dagflow_sources
-  include/api.hpp
+  include/dagflow.hpp
   include/chase_lev_deque.hpp
   include/hazard_ptr.hpp
+  include/qsbr_domain.hpp
   include/mpmc_queue.hpp
   include/small_function.hpp
   include/small_vec.hpp
