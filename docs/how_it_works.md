@@ -11,7 +11,7 @@ sequenceDiagram
     participant Worker
     participant ChaseLevDeque as Worker Deque (Chase–Lev)
     participant CentralMPMC as Central Shard (MPMCQueue)
-    participant HazardDomain
+    participant QSBRDomain
 
     Note over TaskGraph: token == one node execution<br/>max_concurrency limits parallel workers per node
 
@@ -51,7 +51,7 @@ sequenceDiagram
                     Worker->>Worker: execute task
                 else No tasks
                     Worker->>Worker: backoff (sleep/yield)
-                    Worker->>HazardDomain: maybe_advance()  %% periodic epoch advance
+                    Worker->>QSBRDomain: maybe_advance()  %% periodic epoch advance
                 end
             end
         end
@@ -78,7 +78,7 @@ sequenceDiagram
     note over TaskGraph: Overflow policy on enqueue:<br/>Block = wait until space<br/>Drop = best-effort enqueue<br/>Fail = set error & cancel
     end
 
-    note over CentralMPMC,HazardDomain: HP/QSBR are used inside MPMCQueue push/pop<br/>(acquire_thread_rec, protect, retire_qsbr)
+    note over CentralMPMC,QSBRdDomain:QSBR are used inside MPMCQueue push/pop<br/>(acquire_thread_rec, protect, retire_qsbr)
 
     Pool->>TaskScope: Handle::Counter reaches zero
     TaskScope->>User: wait() completes (via Pool::wait(handle))
@@ -114,7 +114,7 @@ It’s a focused, lightweight, single-run DAG executor designed for cases where 
    - You can use the pool directly without TaskGraph, like a very lean replacement for `std::thread` + `std::async` — without heavy allocators or global state.
 
 6. **Integrated memory reclamation for lock-free structures**  
-   - Hazard Pointers + QSBR domain is part of the runtime.  
+   - QSBR domain is part of the runtime.  
    - MPMC queues and other internals are safe for lock-free pushes/pops without external GC or RCU glue.
 
 7. **Small-function and small-vector for zero-dependency, allocation-friendly core**  
