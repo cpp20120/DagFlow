@@ -13,7 +13,7 @@ Mini-runtime for parallel tasks in C++20:
 
 * Work-stealing pool (Chase–Lev decks, central MPMC queues).
 
-* Lockfree MPMC (Michael–Scott) with hazard pointers (+ QSBR path).
+* Lockfree MPMC (Michael–Scott) with QSBR path.
 
 * A local small_function for cheap closures.
 
@@ -24,7 +24,7 @@ Mini-runtime for parallel tasks in C++20:
 ### [Design](https://github.com/cpp20120/DagFlow/blob/main/docs/how_it_works.md) 
 * Scheduler: local deques (Chase–Lev) + "central" MPMC queues for external submissions; worker-first, then an attempt to steal from neighbors.
 
-* MPMC: Michael–Scott + hazard pointers; there is a QSBR path (quiet state based reclamation) for queue tails in the pool.
+* MPMC: Michael–Scott with a QSBR path (quiet state based reclamation) for queue tails in the pool.
 
 * Synchronization:  memory_order (acquire/release/seq_cst where reconciliation is needed).
 
