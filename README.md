@@ -83,11 +83,6 @@ Compare with [TBB](https://github.com/uxlfoundation/oneTBB)
 | Workflow (w=10,d=5) | ~50 stage ops   | 143 µs       | 292 µs     | —                   |
 | Noop tasks          | 1 000 000 tasks | 0.606 s      | 0.226 s    | ~1.65 M tasks/s     |
 
-### Visualization
-![First](docs/tp_vs_tbb.jpg)
-![Second](docs/relative.jpg)
-![Third](docs/for_each.jpg)
-
 
 ### Build and usage
 
