@@ -26,7 +26,6 @@ add_library(
         include/qsbr_domain.hpp
         include/small_function.hpp
         include/small_vec.hpp
-        include/task.hpp
         include/task_graph.hpp
         include/thread_pool.hpp
         src/thread_pool.cpp)
@@ -38,7 +37,6 @@ add_library(
         include/qsbr_domain.hpp
         include/small_function.hpp
         include/small_vec.hpp
-        include/task.hpp
         include/task_graph.hpp
         include/thread_pool.hpp
         src/thread_pool.cpp)
