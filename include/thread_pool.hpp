@@ -105,6 +105,7 @@ class Handle {
 	std::atomic<int> count{0};
 	std::mutex mu;
 	std::condition_variable cv;
+	Counter* pool_next{nullptr};  ///< Intrusive link for the per-worker free-list.
   };
   /// Invalid/empty handle.
   Handle() noexcept = default;
@@ -171,8 +172,7 @@ class Pool {
 	std::size_t chunks = (n + target - 1) / target;
 	if (chunks == 0) chunks = 1;
 
-	auto ctr = std::make_shared<Handle::Counter>();
-	ctr->count.store(static_cast<int>(chunks), std::memory_order_relaxed);
+	auto ctr = alloc_counter(static_cast<int>(chunks));
 
 	using Cat = typename std::iterator_traits<It>::iterator_category;
 	// Shared ownership so tasks can safely outlive this call frame.
@@ -276,8 +276,7 @@ class Pool {
 	  std::shared_ptr<Handle::Counter> ctr;
 	};
 
-	auto ctr = std::make_shared<Handle::Counter>();
-	ctr->count.store(1, std::memory_order_relaxed);
+	auto ctr = alloc_counter(1);
 
 	auto st = std::make_shared<ProcState>(
 		ProcState{this, begin, std::move(f), opt, min_grain, ctr});
@@ -395,6 +394,10 @@ class Pool {
 	uint32_t task_pool_sz{0};
 	/// Maximum free-list depth; excess tasks are deleted normally.
 	static constexpr uint32_t kTaskPoolMax = 64;
+	/// Per-worker free-list for Handle::Counter objects.
+	Handle::Counter* counter_pool{nullptr};
+	uint32_t counter_pool_sz{0};
+	static constexpr uint32_t kCounterPoolMax = 64;
   };
   /**
    * @struct CentralShard
@@ -407,6 +410,14 @@ class Pool {
 	detail::ring_mpmc<Task*, DAGFLOW_CENTRAL_QUEUE_CAPACITY> hi;
 	detail::ring_mpmc<Task*, DAGFLOW_CENTRAL_QUEUE_CAPACITY> lo;
   };
+
+  /**
+   * @brief Allocate a Handle::Counter from the per-worker free-list (or heap).
+   *
+   * The shared_ptr deleter returns the counter to whichever worker's free-list
+   * is current at destruction time, eliminating heap round-trips on the hot path.
+   */
+  std::shared_ptr<Handle::Counter> alloc_counter(int initial_count);
 
   /**
    * @brief Core submit implementation taking a small_function job.
@@ -459,6 +470,7 @@ class Pool {
 
   /// TLS: whether the current thread is a pool worker.
   static thread_local bool tls_in_pool_;
+
 
   /// Configuration.
   Config cfg_;
