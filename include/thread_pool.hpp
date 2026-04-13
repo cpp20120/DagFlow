@@ -43,9 +43,9 @@
 #include <vector>
 
 #include "chase_lev_deque.hpp"
+#include "config.hpp"
 #include "ring_mpmc.hpp"
 #include "small_function.hpp"
-#include "config.hpp"
 
 namespace dagflow {
 
@@ -105,7 +105,8 @@ class Handle {
 	std::atomic<int> count{0};
 	std::mutex mu;
 	std::condition_variable cv;
-	Counter* pool_next{nullptr};  ///< Intrusive link for the per-worker free-list.
+	Counter* pool_next{
+		nullptr};  ///< Intrusive link for the per-worker free-list.
   };
   /// Invalid/empty handle.
   Handle() noexcept = default;
@@ -183,8 +184,8 @@ class Pool {
 
 	  if constexpr (std::is_base_of_v<std::random_access_iterator_tag, Cat>) {
 		It base = begin + static_cast<long>(lo);
-		auto task =
-			small_function<void()>{[base, count = hi - lo, shared_fn, ctr]() mutable {
+		auto task = small_function<void()>{
+			[base, count = hi - lo, shared_fn, ctr]() mutable {
 			  auto it = base;
 			  for (std::size_t i = 0; i < count; ++i, ++it) (*shared_fn)(*it);
 			  complete_counter(ctr.get());
@@ -193,8 +194,8 @@ class Pool {
 	  } else {
 		It base = begin;
 		std::advance(base, static_cast<long>(lo));
-		auto task =
-			small_function<void()>{[base, count = hi - lo, shared_fn, ctr]() mutable {
+		auto task = small_function<void()>{
+			[base, count = hi - lo, shared_fn, ctr]() mutable {
 			  auto it = base;
 			  for (std::size_t i = 0; i < count; ++i, ++it) (*shared_fn)(*it);
 			  complete_counter(ctr.get());
@@ -319,7 +320,7 @@ class Pool {
 		auto opt_local = st->opt;
 		opt_local.affinity = static_cast<uint32_t>(t % T);
 
-		Exec ex2{st}; 
+		Exec ex2{st};
 		this->submit_impl(small_function<void()>{[ex2, lo, hi]() mutable {
 							ex2(Range{lo, hi});
 						  }},
@@ -333,7 +334,6 @@ class Pool {
 		st->opt);
 	return Handle{std::move(ctr)};
   }
-
 
   /**
    * @brief Combine multiple handles; returns a handle that completes when all
@@ -415,7 +415,8 @@ class Pool {
    * @brief Allocate a Handle::Counter from the per-worker free-list (or heap).
    *
    * The shared_ptr deleter returns the counter to whichever worker's free-list
-   * is current at destruction time, eliminating heap round-trips on the hot path.
+   * is current at destruction time, eliminating heap round-trips on the hot
+   * path.
    */
   std::shared_ptr<Handle::Counter> alloc_counter(int initial_count);
 
@@ -427,7 +428,7 @@ class Pool {
   /**
    * @brief Dispatch a task either to a specific worker (affinity) or centrally.
    */
-  void dispatch(Task* t, std::optional<uint32_t> affinity, 
+  void dispatch(Task* t, std::optional<uint32_t> affinity,
 				bool rate_limit_notify);
 
   /**
@@ -464,13 +465,11 @@ class Pool {
 
   void notify_all_workers();
 
-
   /// TLS: current worker id (UINT32_MAX if not in pool thread).
   static thread_local uint32_t tls_id_;
 
   /// TLS: whether the current thread is a pool worker.
   static thread_local bool tls_in_pool_;
-
 
   /// Configuration.
   Config cfg_;

@@ -8,7 +8,6 @@
 #include <windows.h>
 #endif
 
-
 #ifdef DAGFLOW_STATIC
 #define DAGFLOW_TLS_ATTR [[gnu::tls_model("initial-exec")]]
 #else
@@ -77,48 +76,49 @@ Pool::~Pool() {
 
   // Drain per-worker free-lists after all threads have exited.
   for (auto& wkr : workers_) {
-    Task* tsk = wkr->task_pool;
-    while (tsk != nullptr) {
-      Task* nxt = tsk->pool_next;
-      delete tsk;
-      tsk = nxt;
-    }
-    Handle::Counter* ctr = wkr->counter_pool;
-    while (ctr != nullptr) {
-      Handle::Counter* nxt = ctr->pool_next;
-      delete ctr;
-      ctr = nxt;
-    }
+	Task* tsk = wkr->task_pool;
+	while (tsk != nullptr) {
+	  Task* nxt = tsk->pool_next;
+	  delete tsk;
+	  tsk = nxt;
+	}
+	Handle::Counter* ctr = wkr->counter_pool;
+	while (ctr != nullptr) {
+	  Handle::Counter* nxt = ctr->pool_next;
+	  delete ctr;
+	  ctr = nxt;
+	}
   }
 }
 
 std::shared_ptr<Handle::Counter> Pool::alloc_counter(int initial_count) {
   Handle::Counter* from_pool = nullptr;
   if (tls_in_pool_) {
-    auto& wkr = *workers_[tls_id_];
-    if (wkr.counter_pool != nullptr) {
-      from_pool = wkr.counter_pool;
-      wkr.counter_pool = from_pool->pool_next;
-      from_pool->pool_next = nullptr;
-      --wkr.counter_pool_sz;
-    }
+	auto& wkr = *workers_[tls_id_];
+	if (wkr.counter_pool != nullptr) {
+	  from_pool = wkr.counter_pool;
+	  wkr.counter_pool = from_pool->pool_next;
+	  from_pool->pool_next = nullptr;
+	  --wkr.counter_pool_sz;
+	}
   }
-  // Pass new directly into shared_ptr so no owned allocation sits in a plain pointer.
-  // The deleter returns the counter to whichever worker is current at destruction time.
+  // Pass new directly into shared_ptr so no owned allocation sits in a plain
+  // pointer. The deleter returns the counter to whichever worker is current at
+  // destruction time.
   std::shared_ptr<Handle::Counter> ctr{
-      (from_pool != nullptr) ? from_pool : new Handle::Counter{},
-      [this](Handle::Counter* c) noexcept {
-        if (tls_in_pool_) {
-          auto& wkr = *workers_[tls_id_];
-          if (wkr.counter_pool_sz < Worker::kCounterPoolMax) {
-            c->pool_next = wkr.counter_pool;
-            wkr.counter_pool = c;
-            ++wkr.counter_pool_sz;
-            return;
-          }
-        }
-        std::unique_ptr<Handle::Counter>{c};
-      }};
+	  (from_pool != nullptr) ? from_pool : new Handle::Counter{},
+	  [this](Handle::Counter* c) noexcept {
+		if (tls_in_pool_) {
+		  auto& wkr = *workers_[tls_id_];
+		  if (wkr.counter_pool_sz < Worker::kCounterPoolMax) {
+			c->pool_next = wkr.counter_pool;
+			wkr.counter_pool = c;
+			++wkr.counter_pool_sz;
+			return;
+		  }
+		}
+		std::unique_ptr<Handle::Counter>{c};
+	  }};
   ctr->count.store(initial_count, std::memory_order_relaxed);
   return ctr;
 }
@@ -133,23 +133,23 @@ Handle Pool::submit_impl(small_function<void()> job, SubmitOptions opt) {
   // own shared counter, so we skip this allocation entirely.
   std::shared_ptr<Handle::Counter> ctr;
   if (!opt.skip_counter) {
-    ctr = alloc_counter(1);
+	ctr = alloc_counter(1);
   }
 
   // Prefer the per-worker free-list when called from a pool thread to avoid
   // a heap round-trip on every child-task submission.
   Task* t;
   if (tls_in_pool_) {
-    auto& me = *workers_[tls_id_];
-    if (me.task_pool) {
-      t = me.task_pool;
-      me.task_pool = t->pool_next;
-      --me.task_pool_sz;
-    } else {
-      t = new Task{};
-    }
+	auto& me = *workers_[tls_id_];
+	if (me.task_pool) {
+	  t = me.task_pool;
+	  me.task_pool = t->pool_next;
+	  --me.task_pool_sz;
+	} else {
+	  t = new Task{};
+	}
   } else {
-    t = new Task{};
+	t = new Task{};
   }
 
   t->fn = std::move(job);
@@ -201,9 +201,10 @@ void Pool::dispatch(Task* t, std::optional<uint32_t> affinity,
 	notify_worker(rr_.fetch_add(1, std::memory_order_relaxed) % W);
   } else {
 	// Notify periods: power-of-two masks for cheap modulo via bitwise AND.
-	constexpr uint32_t kWakeOneMask   = 63U;   // wake one worker every 64 submits
-	constexpr uint32_t kFanOutMask    = 127U;  // fan-out every 128 submits
-	constexpr uint32_t kBroadcastMask = 8191U; // full broadcast every 8192 submits
+	constexpr uint32_t kWakeOneMask = 63U;	// wake one worker every 64 submits
+	constexpr uint32_t kFanOutMask = 127U;	// fan-out every 128 submits
+	constexpr uint32_t kBroadcastMask =
+		8191U;	// full broadcast every 8192 submits
 
 	uint32_t tick = submit_tick_.fetch_add(1, std::memory_order_relaxed);
 	// Cold-start: if the pool was idle (inflight==0) notify a worker so
@@ -287,7 +288,9 @@ void Pool::notify_worker(uint32_t id) {
   // Release-before-notify: unlock first so the woken thread can acquire the
   // mutex immediately instead of blocking on the notifier (hurry-up-and-wait).
   auto& w = *workers_[id % workers_.size()];
-  { std::lock_guard lk(w.mu); }
+  {
+	std::lock_guard lk(w.mu);
+  }
   w.cv.notify_one();
 }
 
@@ -332,7 +335,6 @@ bool Pool::try_help_one(uint32_t id) {
 	  std::lock_guard<std::mutex> lk(wait_mu_);
 	  wait_cv_.notify_all();
 	}
-
   };
 
   // локальные — самый дешёвый путь

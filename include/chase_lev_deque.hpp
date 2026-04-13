@@ -86,8 +86,7 @@ class chase_lev_deque {
 	out = std::move(buf_[b & (cap_ - 1)]);
 
 	if (t == b) {
-	  if (!top_.compare_exchange_strong(t, t + 1,
-										std::memory_order_seq_cst,
+	  if (!top_.compare_exchange_strong(t, t + 1, std::memory_order_seq_cst,
 										std::memory_order_relaxed)) {
 		bottom_.store(b + 1, std::memory_order_relaxed);
 		return false;

@@ -18,7 +18,7 @@ struct Timer {
 		.count();
   }
 };
-}
+}  // namespace
 
 void print_stats(const std::string& name, const std::vector<double>& times) {
   double const sum = std::accumulate(times.begin(), times.end(), 0.0);

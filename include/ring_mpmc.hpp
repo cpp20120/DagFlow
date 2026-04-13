@@ -32,14 +32,14 @@ class ring_mpmc {
   static constexpr std::size_t MASK = N - 1;
 
   struct Cell {
-    std::atomic<std::size_t> seq{};
-    T data{};
+	std::atomic<std::size_t> seq{};
+	T data{};
   };
 
  public:
   ring_mpmc() noexcept {
-    for (std::size_t i = 0; i < N; ++i)
-      buf_[i].seq.store(i, std::memory_order_relaxed);
+	for (std::size_t i = 0; i < N; ++i)
+	  buf_[i].seq.store(i, std::memory_order_relaxed);
   }
 
   ring_mpmc(const ring_mpmc&) = delete;
@@ -49,59 +49,59 @@ class ring_mpmc {
    * @brief Push an element. Spins (yielding) when the buffer is full.
    */
   void push(T v) {
-    std::size_t pos = tail_.load(std::memory_order_relaxed);
-    for (;;) {
-      Cell& cell = buf_[pos & MASK];
-      std::size_t seq = cell.seq.load(std::memory_order_acquire);
-      auto diff =
-          static_cast<std::ptrdiff_t>(seq) - static_cast<std::ptrdiff_t>(pos);
-      if (diff == 0) {
-        if (tail_.compare_exchange_weak(pos, pos + 1,
-                                        std::memory_order_relaxed))
-          break;
-      } else if (diff < 0) {
-        // Full — yield and retry.
-        std::this_thread::yield();
-        pos = tail_.load(std::memory_order_relaxed);
-      } else {
-        pos = tail_.load(std::memory_order_relaxed);
-      }
-    }
-    buf_[pos & MASK].data = std::move(v);
-    buf_[pos & MASK].seq.store(pos + 1, std::memory_order_release);
+	std::size_t pos = tail_.load(std::memory_order_relaxed);
+	for (;;) {
+	  Cell& cell = buf_[pos & MASK];
+	  std::size_t seq = cell.seq.load(std::memory_order_acquire);
+	  auto diff =
+		  static_cast<std::ptrdiff_t>(seq) - static_cast<std::ptrdiff_t>(pos);
+	  if (diff == 0) {
+		if (tail_.compare_exchange_weak(pos, pos + 1,
+										std::memory_order_relaxed))
+		  break;
+	  } else if (diff < 0) {
+		// Full — yield and retry.
+		std::this_thread::yield();
+		pos = tail_.load(std::memory_order_relaxed);
+	  } else {
+		pos = tail_.load(std::memory_order_relaxed);
+	  }
+	}
+	buf_[pos & MASK].data = std::move(v);
+	buf_[pos & MASK].seq.store(pos + 1, std::memory_order_release);
   }
 
   /**
    * @brief Try to pop; returns std::nullopt if empty.
    */
   std::optional<T> pop() {
-    std::size_t pos = head_.load(std::memory_order_relaxed);
-    for (;;) {
-      Cell& cell = buf_[pos & MASK];
-      std::size_t seq = cell.seq.load(std::memory_order_acquire);
-      auto diff = static_cast<std::ptrdiff_t>(seq) -
-                  static_cast<std::ptrdiff_t>(pos + 1);
-      if (diff == 0) {
-        if (head_.compare_exchange_weak(pos, pos + 1,
-                                        std::memory_order_relaxed))
-          break;
-      } else if (diff < 0) {
-        return std::nullopt;
-      } else {
-        pos = head_.load(std::memory_order_relaxed);
-      }
-    }
-    T v = std::move(buf_[pos & MASK].data);
-    buf_[pos & MASK].seq.store(pos + MASK + 1, std::memory_order_release);
-    return v;
+	std::size_t pos = head_.load(std::memory_order_relaxed);
+	for (;;) {
+	  Cell& cell = buf_[pos & MASK];
+	  std::size_t seq = cell.seq.load(std::memory_order_acquire);
+	  auto diff = static_cast<std::ptrdiff_t>(seq) -
+				  static_cast<std::ptrdiff_t>(pos + 1);
+	  if (diff == 0) {
+		if (head_.compare_exchange_weak(pos, pos + 1,
+										std::memory_order_relaxed))
+		  break;
+	  } else if (diff < 0) {
+		return std::nullopt;
+	  } else {
+		pos = head_.load(std::memory_order_relaxed);
+	  }
+	}
+	T v = std::move(buf_[pos & MASK].data);
+	buf_[pos & MASK].seq.store(pos + MASK + 1, std::memory_order_release);
+	return v;
   }
 
   /**
    * @brief Best-effort empty check (no lock).
    */
   [[nodiscard]] bool empty() const noexcept {
-    std::size_t pos = head_.load(std::memory_order_acquire);
-    return buf_[pos & MASK].seq.load(std::memory_order_acquire) != pos + 1;
+	std::size_t pos = head_.load(std::memory_order_acquire);
+	return buf_[pos & MASK].seq.load(std::memory_order_acquire) != pos + 1;
   }
 
  private:

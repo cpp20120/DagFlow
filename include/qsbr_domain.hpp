@@ -9,7 +9,8 @@
 
 namespace dagflow::detail {
 
-/// @brief Epoch-based memory reclamation domain (Quiescent State-Based Reclamation).
+/// @brief Epoch-based memory reclamation domain (Quiescent State-Based
+/// Reclamation).
 ///
 /// `qsbr_domain` implements QSBR: deferred memory reclamation that is safe
 /// for lock-free data structures. Threads periodically declare quiescent
@@ -36,9 +37,10 @@ class qsbr_domain {
 
   /// @brief A single deferred-deletion record.
   struct retire_record {
-    void* p{};                ///< Pointer to the object to free.
-    void (*deleter)(void*){}; ///< Type-erased deleter (typically `operator delete`).
-    uint64_t epoch{};         ///< Global epoch at the time `retire()` was called.
+	void* p{};	///< Pointer to the object to free.
+	void (*deleter)(
+		void*){};	   ///< Type-erased deleter (typically `operator delete`).
+	uint64_t epoch{};  ///< Global epoch at the time `retire()` was called.
   };
 
   /// @brief Per-thread registration state.
@@ -47,16 +49,18 @@ class qsbr_domain {
   /// list of retired records not yet freed, and a local operation counter used
   /// to amortize the cost of reclamation checks.
   struct thread_rec {
-    size_t idx{};                          ///< Index into `epochs_` for this thread.
-    std::vector<retire_record> retired;    ///< Records pending reclamation.
-    std::atomic<uint64_t> local_epoch{0}; ///< Last epoch published by this thread.
-    uint32_t local_ops{0};                ///< Operation counter; triggers checks every 256 ops.
+	size_t idx{};  ///< Index into `epochs_` for this thread.
+	std::vector<retire_record> retired;	 ///< Records pending reclamation.
+	std::atomic<uint64_t> local_epoch{
+		0};	 ///< Last epoch published by this thread.
+	uint32_t local_ops{
+		0};	 ///< Operation counter; triggers checks every 256 ops.
   };
 
   /// @brief Returns the process-wide singleton domain.
   static qsbr_domain& instance() {
-    static qsbr_domain dom;
-    return dom;
+	static qsbr_domain dom;
+	return dom;
   }
 
   /// @brief Registers the calling thread and returns its `thread_rec`.
@@ -66,17 +70,17 @@ class qsbr_domain {
   ///
   /// @return Non-owning pointer to the thread's registration record.
   thread_rec* acquire_thread_rec() {
-    thread_local thread_rec* tr = nullptr;
-    if (tr) return tr;
+	thread_local thread_rec* tr = nullptr;
+	if (tr) return tr;
 
-    auto idx = register_thread();
-    tr = new thread_rec{};
-    tr->idx = idx;
+	auto idx = register_thread();
+	tr = new thread_rec{};
+	tr->idx = idx;
 
-    uint64_t const g = global_epoch_.load(std::memory_order_relaxed);
-    tr->local_epoch.store(g, std::memory_order_relaxed);
-    epochs_[idx].val.store(g, std::memory_order_relaxed);
-    return tr;
+	uint64_t const g = global_epoch_.load(std::memory_order_relaxed);
+	tr->local_epoch.store(g, std::memory_order_relaxed);
+	epochs_[idx].val.store(g, std::memory_order_relaxed);
+	return tr;
   }
 
   /// @brief Declares a quiescent point for the calling thread.
@@ -88,13 +92,13 @@ class qsbr_domain {
   ///
   /// @param tr  Thread record obtained from `acquire_thread_rec()`.
   void quiescent(thread_rec* tr) {
-    uint64_t g = global_epoch_.load(std::memory_order_relaxed);
-    epochs_[tr->idx].val.store(g, std::memory_order_release);
+	uint64_t g = global_epoch_.load(std::memory_order_relaxed);
+	epochs_[tr->idx].val.store(g, std::memory_order_release);
 
-    if ((++tr->local_ops & 0xFFu) == 0 &&
-        tr->retired.size() >= kReclaimThreshold) {
-      try_advance_and_reclaim(tr);
-    }
+	if ((++tr->local_ops & 0xFFu) == 0 &&
+		tr->retired.size() >= kReclaimThreshold) {
+	  try_advance_and_reclaim(tr);
+	}
   }
 
   /// @brief Schedules @p p for deferred deletion.
@@ -104,16 +108,18 @@ class qsbr_domain {
   ///
   /// @param tr      Thread record for the calling thread.
   /// @param p       Pointer to the object to retire.
-  /// @param deleter Callable that frees @p p (e.g., `[](void* x){ delete static_cast<T*>(x); }`).
+  /// @param deleter Callable that frees @p p (e.g., `[](void* x){ delete
+  /// static_cast<T*>(x); }`).
   void retire(thread_rec* tr, void* p, void (*deleter)(void*)) {
-    auto e = global_epoch_.load(std::memory_order_acquire);
-    tr->retired.push_back({p, deleter, e});
-    if (tr->retired.size() >= kReclaimThreshold) {
-      try_advance_and_reclaim(tr);
-    }
+	auto e = global_epoch_.load(std::memory_order_acquire);
+	tr->retired.push_back({p, deleter, e});
+	if (tr->retired.size() >= kReclaimThreshold) {
+	  try_advance_and_reclaim(tr);
+	}
   }
 
-  /// @brief RAII guard that calls `quiescent()` on the owning domain when destroyed.
+  /// @brief RAII guard that calls `quiescent()` on the owning domain when
+  /// destroyed.
   ///
   /// Wrap a section of code that does not hold live pointers into shared
   /// lock-free structures:
@@ -124,58 +130,59 @@ class qsbr_domain {
   ///   } // quiescent() called here
   /// @endcode
   struct qsbr_section {
-    thread_rec* tr{}; ///< Thread record passed at construction.
+	thread_rec* tr{};  ///< Thread record passed at construction.
 
-    /// @param r Thread record for the calling thread.
-    explicit qsbr_section(thread_rec* r) : tr(r) {}
+	/// @param r Thread record for the calling thread.
+	explicit qsbr_section(thread_rec* r) : tr(r) {}
 
-    /// Calls `qsbr_domain::instance().quiescent(tr)`.
-    ~qsbr_section() { qsbr_domain::instance().quiescent(tr); }
+	/// Calls `qsbr_domain::instance().quiescent(tr)`.
+	~qsbr_section() { qsbr_domain::instance().quiescent(tr); }
   };
 
  private:
   /// @brief Cache-line-padded atomic epoch slot to eliminate false sharing.
   struct alignas(CACHE_LINE_SIZE) atomic_epoch {
-    std::atomic<uint64_t> val;
-    uint8_t pad[CACHE_LINE_SIZE - sizeof(std::atomic<uint64_t>)];
+	std::atomic<uint64_t> val;
+	uint8_t pad[CACHE_LINE_SIZE - sizeof(std::atomic<uint64_t>)];
 
-    atomic_epoch() noexcept : val(0) {}
+	atomic_epoch() noexcept : val(0) {}
 
-    atomic_epoch(const atomic_epoch&) = delete;
-    atomic_epoch& operator=(const atomic_epoch&) = delete;
+	atomic_epoch(const atomic_epoch&) = delete;
+	atomic_epoch& operator=(const atomic_epoch&) = delete;
 
-    atomic_epoch(atomic_epoch&& other) noexcept {
-      val.store(other.val.load(std::memory_order_relaxed),
-                std::memory_order_relaxed);
-    }
+	atomic_epoch(atomic_epoch&& other) noexcept {
+	  val.store(other.val.load(std::memory_order_relaxed),
+				std::memory_order_relaxed);
+	}
 
-    atomic_epoch& operator=(atomic_epoch&& other) noexcept {
-      val.store(other.val.load(std::memory_order_relaxed),
-                std::memory_order_relaxed);
-      return *this;
-    }
+	atomic_epoch& operator=(atomic_epoch&& other) noexcept {
+	  val.store(other.val.load(std::memory_order_relaxed),
+				std::memory_order_relaxed);
+	  return *this;
+	}
   };
 
-  /// Constructs the domain, pre-sizing the epoch table to `hardware_concurrency`.
+  /// Constructs the domain, pre-sizing the epoch table to
+  /// `hardware_concurrency`.
   qsbr_domain() {
-    auto n = std::thread::hardware_concurrency();
-    epochs_.reserve(n);
-    epochs_.resize(n);
-    for (auto& e : epochs_) {
-      e.val.store(0, std::memory_order_relaxed);
-    }
+	auto n = std::thread::hardware_concurrency();
+	epochs_.reserve(n);
+	epochs_.resize(n);
+	for (auto& e : epochs_) {
+	  e.val.store(0, std::memory_order_relaxed);
+	}
   }
 
   /// @brief Assigns the next available index in `epochs_` to a new thread.
   /// Grows the vector if needed.
   /// @return The assigned index.
   size_t register_thread() {
-    size_t id = next_idx_.fetch_add(1, std::memory_order_relaxed);
-    if (id >= epochs_.size()) {
-      epochs_.resize(id + 1);
-      epochs_[id].val.store(0, std::memory_order_relaxed);
-    }
-    return id;
+	size_t id = next_idx_.fetch_add(1, std::memory_order_relaxed);
+	if (id >= epochs_.size()) {
+	  epochs_.resize(id + 1);
+	  epochs_[id].val.store(0, std::memory_order_relaxed);
+	}
+	return id;
   }
 
   /// @brief Tries to advance the global epoch and reclaim safe records.
@@ -187,35 +194,38 @@ class qsbr_domain {
   ///
   /// @param tr  The calling thread's record (its `retired` list is compacted).
   void try_advance_and_reclaim(thread_rec* tr) {
-    uint64_t g = global_epoch_.load(std::memory_order_acquire);
-    uint64_t min_epoch = g;
+	uint64_t g = global_epoch_.load(std::memory_order_acquire);
+	uint64_t min_epoch = g;
 
-    for (auto& e : epochs_) {
-      uint64_t const v = e.val.load(std::memory_order_acquire);
-      min_epoch = std::min(min_epoch, v);
-    }
+	for (auto& e : epochs_) {
+	  uint64_t const v = e.val.load(std::memory_order_acquire);
+	  min_epoch = std::min(min_epoch, v);
+	}
 
-    if (min_epoch >= g) {
-      global_epoch_.compare_exchange_strong(g, g + 1, std::memory_order_acq_rel,
-                                            std::memory_order_relaxed);
-    }
+	if (min_epoch >= g) {
+	  global_epoch_.compare_exchange_strong(g, g + 1, std::memory_order_acq_rel,
+											std::memory_order_relaxed);
+	}
 
-    std::vector<retire_record> keep;
-    keep.reserve(tr->retired.size());
-    for (auto& r : tr->retired) {
-      if (r.epoch < min_epoch) {
-        r.deleter(r.p);
-      } else {
-        keep.push_back(r);
-      }
-    }
-    tr->retired.swap(keep);
+	std::vector<retire_record> keep;
+	keep.reserve(tr->retired.size());
+	for (auto& r : tr->retired) {
+	  if (r.epoch < min_epoch) {
+		r.deleter(r.p);
+	  } else {
+		keep.push_back(r);
+	  }
+	}
+	tr->retired.swap(keep);
   }
 
-  std::atomic<uint64_t> global_epoch_{1};          ///< Monotonically increasing epoch counter.
-  std::atomic<size_t> next_idx_{0};                ///< Next free slot in `epochs_`.
-  std::vector<atomic_epoch> epochs_;               ///< Per-thread last-observed epoch (cache-line padded).
-  std::atomic<size_t> ops_since_last_check_{0};    ///< (Reserved) global op counter, unused by current logic.
+  std::atomic<uint64_t> global_epoch_{
+	  1};  ///< Monotonically increasing epoch counter.
+  std::atomic<size_t> next_idx_{0};	 ///< Next free slot in `epochs_`.
+  std::vector<atomic_epoch>
+	  epochs_;	///< Per-thread last-observed epoch (cache-line padded).
+  std::atomic<size_t> ops_since_last_check_{
+	  0};  ///< (Reserved) global op counter, unused by current logic.
 };
 
 /// @brief Convenience alias for `qsbr_domain::qsbr_section`.

@@ -3,9 +3,8 @@
 #include <type_traits>
 #include <vector>
 
-#include "small_function.hpp"
-
 #include "config.hpp"
+#include "small_function.hpp"
 
 namespace dagflow {
 /** \class ThreadPool
@@ -90,12 +89,14 @@ class Task {
   static constexpr int kCancelled = 1; /**< \brief Flag for cancelled state. */
   static constexpr int kInvoked = 1 << 1; /**< \brief Flag for invoked state. */
 
-  small_function<void(), DAGFLOW_TASK_FN_SIZE> func_; /**< \brief The callable to execute. */
-  std::vector<Task*> next_{};	 /**< \brief Successor tasks. */
-  int total_preds_{0};			 /**< \brief Total number of predecessors. */
+  small_function<void(), DAGFLOW_TASK_FN_SIZE>
+	  func_;				  /**< \brief The callable to execute. */
+  std::vector<Task*> next_{}; /**< \brief Successor tasks. */
+  int total_preds_{0};		  /**< \brief Total number of predecessors. */
   alignas(CACHE_LINE_SIZE) std::atomic<int> remain_preds_{
-	  0};								  /**< \brief Remaining predecessors. */
-  alignas(CACHE_LINE_SIZE) std::atomic<int> flags_{0}; /**< \brief Task state flags. */
+	  0}; /**< \brief Remaining predecessors. */
+  alignas(CACHE_LINE_SIZE) std::atomic<int> flags_{
+	  0}; /**< \brief Task state flags. */
 };
 
 }  // namespace dagflow

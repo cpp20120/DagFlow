@@ -92,7 +92,9 @@ class SmallVec {
 	hv_.push_back(std::move(v));
   }
   /// @return Current number of elements.
-  [[nodiscard]] std::size_t size() const noexcept { return use_vec() ? hv_.size() : sz_; }
+  [[nodiscard]] std::size_t size() const noexcept {
+	return use_vec() ? hv_.size() : sz_;
+  }
   /// @return true if the container is empty.
   [[nodiscard]] bool empty() const noexcept { return size() == 0; }
   /// @return Pointer to the contiguous storage for read/write access.

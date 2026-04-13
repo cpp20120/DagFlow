@@ -275,7 +275,8 @@ class TaskGraph {
 	for (std::size_t i = 0; i < nodes_.size(); ++i) {
 	  Node* n = nodes_[i].get();
 	  if (n->preds_total == 0) {
-		enqueue_tokens_and_maybe_dispatch(core_.get(), i, active_ctr_.get(), n->tokens_primed);
+		enqueue_tokens_and_maybe_dispatch(core_.get(), i, active_ctr_.get(),
+										  n->tokens_primed);
 	  }
 	}
 
@@ -411,9 +412,9 @@ class TaskGraph {
   /**
    * @brief Enqueue @p tokens for node @p i and schedule its worker if needed.
    */
-  static void enqueue_tokens_and_maybe_dispatch(
-	  Core* core, std::size_t i,
-	  Handle::Counter* ctr, std::size_t tokens) {
+  static void enqueue_tokens_and_maybe_dispatch(Core* core, std::size_t i,
+												Handle::Counter* ctr,
+												std::size_t tokens) {
 	auto& nodes = *core->nodes;
 	RunCtx& ctx = *core->ctx;
 	Node* n = nodes[i].get();
@@ -454,8 +455,7 @@ class TaskGraph {
   /**
    * @brief If under concurrency limit, schedule one worker to process a token.
    */
-  static void maybe_dispatch_node(Core* core,
-								  std::size_t i,
+  static void maybe_dispatch_node(Core* core, std::size_t i,
 								  Handle::Counter* ctr) {
 	auto& nodes = *core->nodes;
 	Node* n = nodes[i].get();
@@ -483,9 +483,8 @@ class TaskGraph {
    * @brief Submit a single worker task that pops one token and executes node
    * body.
    */
-  static void schedule_worker_once(
-	  Core* core, std::size_t i,
-	  Handle::Counter* ctr) {
+  static void schedule_worker_once(Core* core, std::size_t i,
+								   Handle::Counter* ctr) {
 	auto& nodes = *core->nodes;
 	RunCtx& ctx = *core->ctx;
 	Node* n = nodes[i].get();
@@ -510,8 +509,8 @@ class TaskGraph {
 			std::size_t cur = self->queued.load(std::memory_order_acquire);
 			while (cur > 0) {
 			  if (self->queued.compare_exchange_weak(
-					cur, cur - 1, std::memory_order_acq_rel,
-					std::memory_order_relaxed)) {
+					  cur, cur - 1, std::memory_order_acq_rel,
+					  std::memory_order_relaxed)) {
 				executed = true;
 				break;
 			  }

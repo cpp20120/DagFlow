@@ -212,8 +212,8 @@ class TaskScope {
   template <class F>
   JobHandle when_all(std::initializer_list<JobHandle> deps, F&& f,
 					 const ScheduleOptions& opt = {}) {
-	return when_all(std::span(deps.begin(), deps.size()),
-					std::forward<F>(f), opt);
+	return when_all(std::span(deps.begin(), deps.size()), std::forward<F>(f),
+					opt);
   }
 
   /**
@@ -292,9 +292,8 @@ class TaskScope {
   }
 
   template <class F>
-  Handle for_each_index_ws(Pool& p, std::size_t n, F f,
-								  SubmitOptions opt = {},
-								  std::size_t min_grain = (1u << 14)) {
+  Handle for_each_index_ws(Pool& p, std::size_t n, F f, SubmitOptions opt = {},
+						   std::size_t min_grain = (1u << 14)) {
 	struct It {
 	  using iterator_category = std::random_access_iterator_tag;
 	  using value_type = std::size_t;
@@ -318,7 +317,6 @@ class TaskScope {
 		It{0}, It{n}, [g = std::move(f)](std::size_t i) { g(i); }, opt,
 		min_grain);
   }
-
 
   /**
    * @brief Tokenized parallel-for that depends on @p dep.
