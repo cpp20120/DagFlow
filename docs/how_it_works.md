@@ -20,7 +20,7 @@ sequenceDiagram
 
     User->>TaskScope: run()
     TaskScope->>TaskGraph: run()
-    TaskGraph->>TaskGraph: seal() (cycle check; skipped if no edges)
+    TaskGraph->>TaskGraph: seal() (cycle check, skipped if no edges)
     TaskGraph->>TaskGraph: reset preds_remain + prime tokens (single pass)
 
     loop For each ready node token
