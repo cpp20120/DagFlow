@@ -43,10 +43,12 @@
 #include <vector>
 
 #include "chase_lev_deque.hpp"
-#include "mpmc_queue.hpp"
+#include "ring_mpmc.hpp"
 #include "small_function.hpp"
+#include "config.hpp"
 
 namespace dagflow {
+
 /**
  * @enum Priority
  * @brief Task priority: @c High served before @c Normal.
@@ -83,6 +85,10 @@ struct SubmitOptions {
   std::optional<uint32_t> affinity;
   Priority priority = Priority::Normal;
   bool owned = true;
+  /// When true, submit_impl skips allocating a Handle::Counter.
+  /// The returned Handle will be invalid. Use for fire-and-forget internal
+  /// tasks where the caller manages its own completion counter.
+  bool skip_counter = false;
 };
 /**
  * @class Handle
@@ -149,8 +155,7 @@ class Pool {
    */
   template <class F>
   Handle submit(F f, SubmitOptions opt = {}) {
-	return submit_impl(small_function<void()>{[g = std::move(f)] { g(); }},
-					   std::move(opt));
+	return submit_impl(small_function<void()>{std::move(f)}, std::move(opt));
   }
   /**
    * @brief Parallel for-each over [begin,end), chunked to approx 16K elements.
@@ -170,6 +175,8 @@ class Pool {
 	ctr->count.store(static_cast<int>(chunks), std::memory_order_relaxed);
 
 	using Cat = typename std::iterator_traits<It>::iterator_category;
+	// Shared ownership so tasks can safely outlive this call frame.
+	auto shared_fn = std::make_shared<F>(std::move(f));
 	for (std::size_t c = 0; c < chunks; ++c) {
 	  std::size_t lo = c * n / chunks;
 	  std::size_t hi = (c + 1) * n / chunks;
@@ -177,9 +184,9 @@ class Pool {
 	  if constexpr (std::is_base_of_v<std::random_access_iterator_tag, Cat>) {
 		It base = begin + static_cast<long>(lo);
 		auto task =
-			small_function<void()>{[base, count = hi - lo, &f, ctr]() mutable {
+			small_function<void()>{[base, count = hi - lo, shared_fn, ctr]() mutable {
 			  auto it = base;
-			  for (std::size_t i = 0; i < count; ++i, ++it) f(*it);
+			  for (std::size_t i = 0; i < count; ++i, ++it) (*shared_fn)(*it);
 			  complete_counter(ctr.get());
 			}};
 		submit_impl(std::move(task), opt);
@@ -187,9 +194,9 @@ class Pool {
 		It base = begin;
 		std::advance(base, static_cast<long>(lo));
 		auto task =
-			small_function<void()>{[base, count = hi - lo, &f, ctr]() mutable {
+			small_function<void()>{[base, count = hi - lo, shared_fn, ctr]() mutable {
 			  auto it = base;
-			  for (std::size_t i = 0; i < count; ++i, ++it) f(*it);
+			  for (std::size_t i = 0; i < count; ++i, ++it) (*shared_fn)(*it);
 			  complete_counter(ctr.get());
 			}};
 		submit_impl(std::move(task), opt);
@@ -363,6 +370,7 @@ class Pool {
 	Priority prio{Priority::Normal};
 	bool owned{true};
 	std::shared_ptr<Handle::Counter> done{};
+	Task* pool_next{nullptr};  ///< Intrusive link for the per-worker free-list.
   };
   /**
    * @struct Worker
@@ -381,14 +389,23 @@ class Pool {
 	std::mutex mu;
 	std::condition_variable cv;
 	uint32_t backoff_us{};
+	/// Per-worker free-list: tasks are recycled here instead of delete'd,
+	/// eliminating a heap round-trip on the hot path.
+	Task* task_pool{nullptr};
+	uint32_t task_pool_sz{0};
+	/// Maximum free-list depth; excess tasks are deleted normally.
+	static constexpr uint32_t kTaskPoolMax = 64;
   };
   /**
    * @struct CentralShard
-   * @brief Central MPMC queues for high/low priority tasks.
+   * @brief Central MPMC ring-buffer queues for high/low priority tasks.
+   *
+   * Capacity 1<<14 = 16 384 slots per queue. With 16 shards and workers
+   * draining in batches of 1024, the queues should never fill in practice.
    */
   struct CentralShard {
-	detail::mpmc_queue<Task*> hi;
-	detail::mpmc_queue<Task*> lo;
+	detail::ring_mpmc<Task*, DAGFLOW_CENTRAL_QUEUE_CAPACITY> hi;
+	detail::ring_mpmc<Task*, DAGFLOW_CENTRAL_QUEUE_CAPACITY> lo;
   };
 
   /**
@@ -456,23 +473,23 @@ class Pool {
   std::vector<std::unique_ptr<CentralShard>> centrals_;
 
   /// Stop flag shared by workers.
-  alignas(64) std::atomic<bool> stop_{false};
+  alignas(CACHE_LINE_SIZE) std::atomic<bool> stop_{false};
 
   /// Counters for diagnostics.
-  alignas(64) std::atomic<uint64_t> submitted_{0};
-  alignas(64) std::atomic<uint32_t> submit_tick_{0};
-  alignas(64) std::atomic<uint64_t> executed_{0};
-  alignas(64) std::atomic<uint64_t> stolen_{0};
+  alignas(CACHE_LINE_SIZE) std::atomic<uint64_t> submitted_{0};
+  alignas(CACHE_LINE_SIZE) std::atomic<uint32_t> submit_tick_{0};
+  alignas(CACHE_LINE_SIZE) std::atomic<uint64_t> executed_{0};
+  alignas(CACHE_LINE_SIZE) std::atomic<uint64_t> stolen_{0};
 
   /// Round-robin counter for central shards.
-  alignas(64) std::atomic<uint32_t> rr_{0};
+  alignas(CACHE_LINE_SIZE) std::atomic<uint32_t> rr_{0};
 
   /// Number of in-flight tasks (for wait_idle).
-  alignas(64) std::atomic<uint32_t> inflight_{0};
+  alignas(CACHE_LINE_SIZE) std::atomic<uint32_t> inflight_{0};
 
   /// Global wait condition for `wait_idle`.
   mutable std::mutex wait_mu_;
   std::condition_variable wait_cv_;
 };
 
-}  // namespace tp
+}  // namespace dagflow

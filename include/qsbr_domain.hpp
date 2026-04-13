@@ -5,6 +5,8 @@
 #include <thread>
 #include <vector>
 
+#include "config.hpp"
+
 namespace dagflow::detail {
 
 class qsbr_domain {
@@ -37,7 +39,7 @@ class qsbr_domain {
 	tr = new thread_rec{};
 	tr->idx = idx;
 
-	uint64_t g = global_epoch_.load(std::memory_order_relaxed);
+	uint64_t const g = global_epoch_.load(std::memory_order_relaxed);
 	tr->local_epoch.store(g, std::memory_order_relaxed);
 	epochs_[idx].val.store(g, std::memory_order_relaxed);
 	return tr;
@@ -68,9 +70,9 @@ class qsbr_domain {
   };
 
  private:
-  struct alignas(64) atomic_epoch {
+  struct alignas(CACHE_LINE_SIZE) atomic_epoch {
 	std::atomic<uint64_t> val;
-	uint8_t pad[64 - sizeof(std::atomic<uint64_t>)];
+	uint8_t pad[CACHE_LINE_SIZE - sizeof(std::atomic<uint64_t>)];
 
 	atomic_epoch() noexcept : val(0) {}
 
@@ -112,7 +114,7 @@ class qsbr_domain {
 	uint64_t min_epoch = g;
 
 	for (auto& e : epochs_) {
-	  uint64_t v = e.val.load(std::memory_order_acquire);
+	  uint64_t const v = e.val.load(std::memory_order_acquire);
 	  min_epoch = std::min(min_epoch, v);
 	}
 

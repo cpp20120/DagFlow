@@ -1,14 +1,18 @@
 #pragma once
 #include <atomic>
-#include <functional>
 #include <type_traits>
 #include <vector>
+
+#include "small_function.hpp"
+
+#include "config.hpp"
 
 namespace dagflow {
 /** \class ThreadPool
  * \brief Forward declaration of the ThreadPool class.
  */
 class ThreadPool;  // fwd
+
 /** \class Task
  * \brief Represents a task with dependencies for execution in a thread pool.
  */
@@ -86,12 +90,12 @@ class Task {
   static constexpr int kCancelled = 1; /**< \brief Flag for cancelled state. */
   static constexpr int kInvoked = 1 << 1; /**< \brief Flag for invoked state. */
 
-  std::function<void()> func_{}; /**< \brief The callable to execute. */
+  small_function<void(), DAGFLOW_TASK_FN_SIZE> func_; /**< \brief The callable to execute. */
   std::vector<Task*> next_{};	 /**< \brief Successor tasks. */
   int total_preds_{0};			 /**< \brief Total number of predecessors. */
-  alignas(64) std::atomic<int> remain_preds_{
+  alignas(CACHE_LINE_SIZE) std::atomic<int> remain_preds_{
 	  0};								  /**< \brief Remaining predecessors. */
-  alignas(64) std::atomic<int> flags_{0}; /**< \brief Task state flags. */
+  alignas(CACHE_LINE_SIZE) std::atomic<int> flags_{0}; /**< \brief Task state flags. */
 };
 
-}  // namespace tp
+}  // namespace dagflow

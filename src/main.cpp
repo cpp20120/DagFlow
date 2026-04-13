@@ -9,18 +9,20 @@
 
 using namespace std::chrono;
 
+namespace {
 struct Timer {
   high_resolution_clock::time_point start;
   Timer() : start(high_resolution_clock::now()) {}
-  double elapsed() const {
+  [[nodiscard]] double elapsed() const {
 	return duration_cast<duration<double>>(high_resolution_clock::now() - start)
 		.count();
   }
 };
+}
 
 void print_stats(const std::string& name, const std::vector<double>& times) {
-  double sum = std::accumulate(times.begin(), times.end(), 0.0);
-  double mean = sum / times.size();
+  double const sum = std::accumulate(times.begin(), times.end(), 0.0);
+  double const mean = sum / times.size();
   auto [min_it, max_it] = std::minmax_element(times.begin(), times.end());
 
   std::cout << name << ":\n"
@@ -61,6 +63,7 @@ void test_independent_tasks(dagflow::Pool& pool, int task_count) {
   std::vector<double> results(task_count);
   std::vector<dagflow::JobHandle> handles;
 
+  handles.reserve(task_count);
   for (int i = 0; i < task_count; ++i) {
 	handles.push_back(scope.submit([&, i] {
 	  double x = 0;
@@ -90,7 +93,7 @@ void test_parallel_for(dagflow::Pool& pool, int data_size) {
 	dagflow::ScheduleOptions options;
   };
 
-  std::vector<Config> configs = {
+  std::vector<Config> const configs = {
 	  {"Default", {}},
 	  {"High priority", {.priority = dagflow::Priority::High}},
 	  {"Limited concurrency", {.concurrency = 2}},
@@ -134,18 +137,14 @@ void test_parallel_for_ws(dagflow::Pool& pool, int data_size) {
 
   auto start_static = std::chrono::high_resolution_clock::now();
   {
-	auto h = pool.for_each(data.begin(), data.end(), [](int& x) {
-	  x += 1; 
-	});
+	auto h = pool.for_each(data.begin(), data.end(), [](int& x) { x += 1; });
 	pool.wait(h);
   }
   double t_static = ms_since(start_static);
 
   auto start_ws = std::chrono::high_resolution_clock::now();
   {
-	auto h = pool.for_each_ws(data.begin(), data.end(), [](int& x) {
-	  x += 1;  
-	});
+	auto h = pool.for_each_ws(data.begin(), data.end(), [](int& x) { x += 1; });
 	pool.wait(h);
   }
   double t_ws = ms_since(start_ws);
@@ -155,7 +154,6 @@ void test_parallel_for_ws(dagflow::Pool& pool, int data_size) {
 
   std::cout << "Static chunking: " << t_static << " ms\n";
   std::cout << "Range stealing: " << t_ws << " ms\n";
-  
 }
 /**
  * @example workflow_dag_example
@@ -266,7 +264,6 @@ void test_independent_tasks_batched(dagflow::Pool& pool, int task_count,
 			<< "): " << timer.elapsed() << " s\n";
 }
 
-
 int main() {
   dagflow::Pool pool;
   const int runs = 5;
@@ -310,7 +307,7 @@ int main() {
 	batch_times.push_back(timer.elapsed());
   }
   print_stats("Batch benchmark", batch_times);
-  /**
+
   std::vector<double> noop_times;
   for (int i = 0; i < runs; ++i) {
 	Timer timer;
@@ -318,11 +315,11 @@ int main() {
 	noop_times.push_back(timer.elapsed());
   }
   print_stats("Noop benchmark", noop_times);
-				*/
+
   std::vector<double> ws_new;
   for (int i = 0; i < runs; ++i) {
 	Timer timer;
-	test_parallel_for_ws(pool, 50'000'000); 
+	test_parallel_for_ws(pool, 50'000'000);
 	ws_new.push_back(timer.elapsed());
   }
 

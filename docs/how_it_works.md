@@ -10,8 +10,7 @@ sequenceDiagram
     participant Pool
     participant Worker
     participant ChaseLevDeque as Worker Deque (Chase–Lev)
-    participant CentralMPMC as Central Shard (MPMCQueue)
-    participant QSBRDomain
+    participant CentralShard as Central Shard (ring_mpmc)
 
     Note over TaskGraph: token == one node execution<br/>max_concurrency limits parallel workers per node
 
@@ -21,19 +20,23 @@ sequenceDiagram
 
     User->>TaskScope: run()
     TaskScope->>TaskGraph: run()
-    TaskGraph->>TaskGraph: seal() (cycle check)
-    TaskGraph->>TaskGraph: reset() & prime tokens (sources)
+    TaskGraph->>TaskGraph: seal() (cycle check; skipped if no edges)
+    TaskGraph->>TaskGraph: reset preds_remain + prime tokens (single pass)
 
     loop For each ready node token
         TaskGraph->>Pool: submit(node fun, SubmitOptions)
         alt submit called from worker thread
             Pool->>ChaseLevDeque: push_bottom(task) on that worker
+            alt inflight < W/2
+                Pool->>Worker: notify_worker(neighbor)
+            end
         else submit called from external thread
             alt affinity set
-                Pool->>CentralMPMC: push(task) to shard (affinity % shards)
+                Pool->>CentralShard: push(task) to shard (affinity % shards)
             else no affinity
-                Pool->>CentralMPMC: push(task) round-robin shard
+                Pool->>CentralShard: push(task) round-robin shard
             end
+            Note over Pool: rate-limited notifications:<br/>cold-start OR every 64 external submits
         end
     end
 
@@ -46,12 +49,11 @@ sequenceDiagram
             alt Steal successful
                 Worker->>Worker: execute stolen task
             else Steal failed
-                Worker->>CentralMPMC: pop()
+                Worker->>CentralShard: pop()
                 alt Got task from central
                     Worker->>Worker: execute task
                 else No tasks
                     Worker->>Worker: backoff (sleep/yield)
-                    Worker->>QSBRDomain: maybe_advance()  %% periodic epoch advance
                 end
             end
         end
@@ -65,20 +67,15 @@ sequenceDiagram
         TaskGraph->>TaskGraph: queued--, inflight-- (on finish)
         Worker->>TaskGraph: for each successor: preds_remain--
         alt successor became ready (preds_remain==0)
-            TaskGraph->>TaskGraph: prime successor tokens
+            TaskGraph->>TaskGraph: prime successor tokens (CAS on queued counter)
             TaskGraph->>Pool: submit(...) for successor tokens
         end
         TaskGraph->>Pool: complete_counter() (per token)
-        alt inbox not empty AND inflight < max_concurrency AND !cancel
-            TaskGraph->>Pool: reschedule worker for same node
-        end
     end
 
     rect rgb(250,250,250)
     note over TaskGraph: Overflow policy on enqueue:<br/>Block = wait until space<br/>Drop = best-effort enqueue<br/>Fail = set error & cancel
     end
-
-    note over CentralMPMC,QSBRdDomain:QSBR are used inside MPMCQueue push/pop<br/>(acquire_thread_rec, protect, retire_qsbr)
 
     Pool->>TaskScope: Handle::Counter reaches zero
     TaskScope->>User: wait() completes (via Pool::wait(handle))
@@ -87,7 +84,7 @@ sequenceDiagram
 
 ### Why not TBB
 This runtime is not a full general-purpose task scheduling framework like Intel oneTBB.
-It’s a focused, lightweight, single-run DAG executor designed for cases where you build a small or medium dependency graph and run it once (or a few times), rather than keeping a long-lived task arena alive.
+It's a focused, lightweight, single-run DAG executor designed for cases where you build a small or medium dependency graph and run it once (or a few times), rather than keeping a long-lived task arena alive.
 
 **Main differences vs TBB-style runtimes:**
 
@@ -97,7 +94,7 @@ It’s a focused, lightweight, single-run DAG executor designed for cases where 
    - No implicit dynamic spawning of tasks during execution (although each node can submit more tokens of itself via `parallel_for` or rescheduling).
 
 2. **Token-based execution model**  
-   - Each node’s *unit of work* is a **token** (one execution of `fn`).  
+   - Each node's *unit of work* is a **token** (one execution of `fn`).  
    - Nodes can have `max_concurrency` limits and back-pressure via inbox `capacity` + `Overflow` policy (`Block`, `Drop`, `Fail`).  
    - This makes per-node load control and memory bounds *deterministic* — something TBB does not directly expose.
 
@@ -106,21 +103,22 @@ It’s a focused, lightweight, single-run DAG executor designed for cases where 
    - This is critical in real-time-ish or bounded-memory pipelines.
 
 4. **Explicit `ScheduleOptions` with affinity and priorities**  
-   - You can pin a node’s tokens to a specific worker (or shard) and give them `High` vs `Normal` priority.  
+   - You can pin a node's tokens to a specific worker (or shard) and give them `High` vs `Normal` priority.  
    - Affinity is respected even for fan-out reschedules, unlike TBB which mostly relies on work stealing locality heuristics.
 
-5. **Work-stealing pool as a standalone, minimal runtime**  
-   - Under the hood is a Chase–Lev per-worker deque + central MPMC shards for external submissions.  
-   - You can use the pool directly without TaskGraph, like a very lean replacement for `std::thread` + `std::async` — without heavy allocators or global state.
+5. **Work-stealing pool with zero-allocation hot path**  
+   - Per-worker Chase–Lev deques for local work; central Vyukov ring-buffer shards (bounded, power-of-two capacity) for external submissions — no heap allocation per push/pop.  
+   - Per-worker `Task` freelist: pool threads recycle task objects without hitting the allocator on the hot path.  
+   - Notification rate-limiting: workers wake on cold-start and periodically (every 64 external submits), not on every submission — eliminates mutex overhead at high task rates.
 
-6. **Integrated memory reclamation for lock-free structures**  
-   - QSBR domain is part of the runtime.  
-   - MPMC queues and other internals are safe for lock-free pushes/pops without external GC or RCU glue.
+6. **Allocation-free central queues**  
+   - Central shards use a bounded Vyukov ring-buffer (`ring_mpmc`, capacity 16 384 by default) — fixed memory footprint, no per-operation heap traffic, no epoch-based reclamation needed.  
+   - DAG node dispatch uses atomic CAS on a `queued` counter rather than a separate per-node queue, cutting allocations per DAG task to zero on the pool-thread path.
 
 7. **Small-function and small-vector for zero-dependency, allocation-friendly core**  
    - No `std::function` allocations for tiny callables.  
    - Inline storage for small vectors without heap hits.
 
 8. **Minimal ABI & zero global singletons**  
-   - You own the `Pool` and `TaskScope`. No hidden thread arenas or global TLS registries (except hazard-domain TLS).  
+   - You own the `Pool` and `TaskScope`. No hidden thread arenas or global TLS registries.  
    - Easy to embed in game engines, simulation loops, or tools where you need predictable teardown.

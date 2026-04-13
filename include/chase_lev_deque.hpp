@@ -31,6 +31,8 @@
 #include <memory>
 #include <utility>
 
+#include "config.hpp"
+
 namespace dagflow::detail {
 
 template <typename T>
@@ -115,7 +117,7 @@ class chase_lev_deque {
    * @brief Snapshot emptiness check.
    * @return true if the deque is observed empty (top >= bottom).
    */
-  bool empty() const {
+  [[nodiscard]] bool empty() const {
 	auto t = top_.load(std::memory_order_acquire);
 	auto b = bottom_.load(std::memory_order_acquire);
 	return t >= b;
@@ -142,13 +144,13 @@ class chase_lev_deque {
   static constexpr size_t initial_capacity_ = 1024;
 
   /// Bottom index (owner thread). 64-byte aligned to avoid false sharing.
-  alignas(64) std::atomic<ptrdiff_t> bottom_;
+  alignas(CACHE_LINE_SIZE) std::atomic<ptrdiff_t> bottom_;
   /// Top index (thieves). 64-byte aligned to avoid false sharing.
-  alignas(64) std::atomic<ptrdiff_t> top_;
+  alignas(CACHE_LINE_SIZE) std::atomic<ptrdiff_t> top_;
   /// Current ring capacity (power of two).
   size_t cap_;
   /// Storage for elements.
   std::unique_ptr<T[]> buf_;
 };
 
-}  // namespace tp::detail
+}  // namespace dagflow::detail

@@ -8,10 +8,17 @@
 #include <windows.h>
 #endif
 
+
+#ifdef DAGFLOW_STATIC
+#define DAGFLOW_TLS_ATTR [[gnu::tls_model("initial-exec")]]
+#else
+#define DAGFLOW_TLS_ATTR [[gnu::tls_model("global-dynamic")]]
+#endif
+
 namespace dagflow {
 
 thread_local uint32_t Pool::tls_id_ = UINT32_MAX;
-thread_local bool Pool::tls_in_pool_ = false;
+DAGFLOW_TLS_ATTR thread_local bool Pool::tls_in_pool_ = false;
 
 static void pin_to_cpu(uint32_t idx) {
 #if defined(_WIN32)
@@ -67,6 +74,16 @@ Pool::~Pool() {
   }
   for (auto& t : threads_)
 	if (t.joinable()) t.join();
+
+  // Drain per-worker task free-lists after all threads have exited.
+  for (auto& w : workers_) {
+    Task* tsk = w->task_pool;
+    while (tsk) {
+      Task* nxt = tsk->pool_next;
+      delete tsk;
+      tsk = nxt;
+    }
+  }
 }
 
 Handle Pool::submit(Fn fn, void* arg, SubmitOptions opt) {
@@ -74,14 +91,36 @@ Handle Pool::submit(Fn fn, void* arg, SubmitOptions opt) {
 }
 
 Handle Pool::submit_impl(small_function<void()> job, SubmitOptions opt) {
-  auto ctr = std::make_shared<Handle::Counter>();
-  ctr->count.store(1, std::memory_order_relaxed);
+  // Allocate the completion counter only when the caller needs a waitable
+  // Handle.  Internal DAG tasks (skip_counter=true) track completion via their
+  // own shared counter, so we skip this allocation entirely.
+  std::shared_ptr<Handle::Counter> ctr;
+  if (!opt.skip_counter) {
+    ctr = std::make_shared<Handle::Counter>();
+    ctr->count.store(1, std::memory_order_relaxed);
+  }
 
-  auto* t = new Task{};
+  // Prefer the per-worker free-list when called from a pool thread to avoid
+  // a heap round-trip on every child-task submission.
+  Task* t;
+  if (tls_in_pool_) {
+    auto& me = *workers_[tls_id_];
+    if (me.task_pool) {
+      t = me.task_pool;
+      me.task_pool = t->pool_next;
+      --me.task_pool_sz;
+    } else {
+      t = new Task{};
+    }
+  } else {
+    t = new Task{};
+  }
+
   t->fn = std::move(job);
   t->prio = opt.priority;
   t->owned = opt.owned;
   t->done = ctr;
+  t->pool_next = nullptr;
 
   dispatch(t, opt.affinity, true);
   submitted_.fetch_add(1, std::memory_order_relaxed);
@@ -96,7 +135,13 @@ void Pool::dispatch(Task* t, std::optional<uint32_t> affinity,
 	  me.deq_hi.push_bottom(t);
 	else
 	  me.deq_lo.push_bottom(t);
-	notify_worker(tls_id_);
+	// Nudge one neighbor when the pool is lightly loaded (most workers may be
+	// sleeping).  Fixes workflow-style graphs where a single worker completes
+	// a layer and enqueues the next one without waking any idle workers.
+	const auto num_workers = static_cast<uint32_t>(workers_.size());
+	if (inflight_.load(std::memory_order_relaxed) < num_workers / 2U) {
+	  notify_worker((tls_id_ + 1U) % num_workers);
+	}
 	return;
   }
 
@@ -112,24 +157,34 @@ void Pool::dispatch(Task* t, std::optional<uint32_t> affinity,
   const uint32_t W = static_cast<uint32_t>(workers_.size());
   const uint32_t base = shard % W;
 
-  // всегда разбудим хотя бы одного — снижает холодный старт workflow
-  notify_worker(base);
-
-  // Фан-аут будим редко (снижает контеншн на noop)
   if (!rate_limit_notify) {
-	// без лимита — полный fan-out
+	// Unlimited fan-out: wake several workers immediately.
+	notify_worker(base);
 	notify_worker((base + 1) % W);
 	notify_worker((base + 2) % W);
 	notify_worker(rr_.fetch_add(1, std::memory_order_relaxed) % W);
   } else {
-	// редкий fan-out + очень редкий мягкий broadcast
-	uint32_t tick = submit_tick_.fetch_add(1, std::memory_order_relaxed) + 1;
-	if ((tick & 31u) == 0u) {  // каждые 32 сабмита
+	// Notify periods: power-of-two masks for cheap modulo via bitwise AND.
+	constexpr uint32_t kWakeOneMask   = 63U;   // wake one worker every 64 submits
+	constexpr uint32_t kFanOutMask    = 127U;  // fan-out every 128 submits
+	constexpr uint32_t kBroadcastMask = 8191U; // full broadcast every 8192 submits
+
+	uint32_t tick = submit_tick_.fetch_add(1, std::memory_order_relaxed);
+	// Cold-start: if the pool was idle (inflight==0) notify a worker so
+	// the batch doesn't sit unprocessed until a timeout fires.  Also fires
+	// periodically to keep workers busy after heavy-load batches.
+	bool cold = inflight_.load(std::memory_order_relaxed) == 0;
+	if (cold || (tick & kWakeOneMask) == 0U) {
+	  notify_worker(base);
+	}
+	// Periodic fan-out to spread work to additional workers.
+	if ((tick & kFanOutMask) == 0U) {
 	  notify_worker((base + 1) % W);
 	  notify_worker((base + 2) % W);
 	  notify_worker(rr_.fetch_add(1, std::memory_order_relaxed) % W);
 	}
-	if ((tick & 4095u) == 0u) {	 // очень редко — всех
+	// Rare full broadcast guards against starvation under heavy load.
+	if ((tick & kBroadcastMask) == 0U) {
 	  notify_all_workers();
 	}
   }
@@ -194,8 +249,10 @@ bool Pool::all_empty() const {
 }
 
 void Pool::notify_worker(uint32_t id) {
+  // Release-before-notify: unlock first so the woken thread can acquire the
+  // mutex immediately instead of blocking on the notifier (hurry-up-and-wait).
   auto& w = *workers_[id % workers_.size()];
-  std::lock_guard lk(w.mu);
+  { std::lock_guard lk(w.mu); }
   w.cv.notify_one();
 }
 
@@ -214,12 +271,8 @@ bool Pool::try_help_one(uint32_t id) {
 
   auto& me = *workers_[id];
 
-  auto& qdom = dagflow::detail::qsbr_domain::instance();
-  auto* qtr = qdom.acquire_thread_rec();
-  static thread_local uint32_t qs_ops_help = 0;
-
   auto exec = [&](Task* t) {
-	inflight_.fetch_add(1, std::memory_order_acq_rel);
+	inflight_.fetch_add(1, std::memory_order_relaxed);
 	try {
 	  if (t->fn) t->fn();
 	} catch (...) {
@@ -228,7 +281,16 @@ bool Pool::try_help_one(uint32_t id) {
 	executed_.fetch_add(1, std::memory_order_relaxed);
 
 	auto done = std::move(t->done);
-	if (t->owned) delete t;
+	if (t->owned) {
+	  t->fn.reset();
+	  if (me.task_pool_sz < Worker::kTaskPoolMax) {
+		t->pool_next = me.task_pool;
+		me.task_pool = t;
+		++me.task_pool_sz;
+	  } else {
+		delete t;
+	  }
+	}
 	if (done) complete_counter(done.get());
 
 	if (inflight_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
@@ -334,12 +396,8 @@ void Pool::worker_loop(uint32_t id) {
   std::uniform_int_distribution<uint32_t> dist(
 	  0, static_cast<uint32_t>(workers_.size() - 1));
 
-  auto& qdom = dagflow::detail::qsbr_domain::instance();
-  auto* qtr = qdom.acquire_thread_rec();
-  uint32_t qs_ops = 0;
-
   auto exec = [&](Task* t) {
-	inflight_.fetch_add(1, std::memory_order_acq_rel);
+	inflight_.fetch_add(1, std::memory_order_relaxed);
 	try {
 	  if (t->fn) t->fn();
 	} catch (...) {
@@ -348,14 +406,22 @@ void Pool::worker_loop(uint32_t id) {
 	executed_.fetch_add(1, std::memory_order_relaxed);
 
 	auto done = std::move(t->done);
-	if (t->owned) delete t;
+	if (t->owned) {
+	  t->fn.reset();
+	  if (me.task_pool_sz < Worker::kTaskPoolMax) {
+		t->pool_next = me.task_pool;
+		me.task_pool = t;
+		++me.task_pool_sz;
+	  } else {
+		delete t;
+	  }
+	}
 	if (done) complete_counter(done.get());
 
 	if (inflight_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
 	  std::lock_guard<std::mutex> lk(wait_mu_);
 	  wait_cv_.notify_all();
 	}
-	if ((++qs_ops & 0x3Fu) == 0) qdom.quiescent(qtr);
   };
 
   auto drain_central_to_local = [&](auto& q, auto& local_deque,
@@ -448,9 +514,6 @@ void Pool::worker_loop(uint32_t id) {
 	  continue;
 	}
 
-	// 4) обслуживание домена HP/QSBR (дёшево)
-	if ((++qs_ops & 0xFFu) == 0) qdom.quiescent(qtr);
-
 	// 5) backoff с коротким сном; просыпаемся если где-то появились задачи
 	{
 	  std::unique_lock lk(me.mu);
@@ -468,4 +531,4 @@ void Pool::worker_loop(uint32_t id) {
   }
 }
 
-}  // namespace tp
+}  // namespace dagflow

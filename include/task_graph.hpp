@@ -45,7 +45,7 @@
 #include <utility>
 #include <vector>
 
-#include "mpmc_queue.hpp"
+#include "config.hpp"
 #include "small_function.hpp"
 #include "small_vec.hpp"
 #include "thread_pool.hpp"
@@ -160,6 +160,7 @@ class TaskGraph {
 	auto* nb = nodes_.at(b.idx).get();
 	na->succ.push_back(b.idx);
 	++nb->preds_total;
+	++edge_count_;
   }
   // Set number of tokens (units of work) this node will receive once it becomes
   // ready.
@@ -182,6 +183,13 @@ class TaskGraph {
   bool seal() {
 	if (state_ == State::Sealed || state_ == State::Idle) return true;
 	if (state_ == State::Running) return false;
+
+	// Fast path: no edges means the graph is trivially acyclic.
+	// Avoids O(V) vector allocations and cache-miss-heavy node traversal.
+	if (edge_count_ == 0) {
+	  state_ = State::Sealed;
+	  return true;
+	}
 
 	std::vector<int> indeg(nodes_.size(), 0);
 	for (std::size_t i = 0; i < nodes_.size(); ++i)
@@ -211,6 +219,7 @@ class TaskGraph {
   void clear() {
 	ensure_not_running();
 	nodes_.clear();
+	edge_count_ = 0;
 	state_ = State::Building;
   }
   /**
@@ -224,8 +233,6 @@ class TaskGraph {
 	  n->preds_remain.store(n->preds_total, std::memory_order_relaxed);
 	  n->inflight.store(0, std::memory_order_relaxed);
 	  n->queued.store(0, std::memory_order_relaxed);
-	  while (n->inbox.pop().has_value()) {
-	  }
 	}
 	state_ = (state_ == State::Building) ? State::Building : State::Sealed;
   }
@@ -239,28 +246,36 @@ class TaskGraph {
   Handle run() {
 	if (nodes_.empty()) return Handle{};
 	if (!seal()) throw std::logic_error("TaskGraph: cycle detected in run()");
-	reset();
 	state_ = State::Running;
 
 	ctx_ = std::make_shared<RunCtx>();
 
-	// total work = sum of tokens across all nodes
+	// Single pass: reset runtime counters AND accumulate total tokens.
+	// Merges the old reset() call + separate total_tokens loop into one
+	// traversal to halve the number of cache-miss-heavy node accesses.
 	int total_tokens = 0;
-	for (auto& up : nodes_) total_tokens += static_cast<int>(up->tokens_primed);
+	for (auto& up : nodes_) {
+	  Node* n = up.get();
+	  n->preds_remain.store(n->preds_total, std::memory_order_relaxed);
+	  n->inflight.store(0, std::memory_order_relaxed);
+	  n->queued.store(0, std::memory_order_relaxed);
+	  total_tokens += static_cast<int>(n->tokens_primed);
+	}
 	auto ctr = std::make_shared<Handle::Counter>();
 	ctr->count.store(total_tokens, std::memory_order_relaxed);
 	active_ctr_ = ctr;
 
-	auto core = std::make_shared<Core>();
-	core->nodes = &nodes_;
-	core->pool = &pool_;
-	core->ctx = ctx_;
+	// core_ is a member; lifetime is guaranteed by the destructor wait.
+	core_ = std::make_shared<Core>();
+	core_->nodes = &nodes_;
+	core_->pool = &pool_;
+	core_->ctx = ctx_;
 
-	// Prime sources: when preds_total==0 enqueue tokens_primed
+	// Second pass: prime sources (needs ctr set up above).
 	for (std::size_t i = 0; i < nodes_.size(); ++i) {
 	  Node* n = nodes_[i].get();
 	  if (n->preds_total == 0) {
-		enqueue_tokens_and_maybe_dispatch(core, i, ctr, n->tokens_primed);
+		enqueue_tokens_and_maybe_dispatch(core_.get(), i, active_ctr_.get(), n->tokens_primed);
 	  }
 	}
 
@@ -328,7 +343,7 @@ class TaskGraph {
    * @var tokens_primed Tokens to enqueue when node becomes ready.
    */
   struct Node {
-	small_function<void(), 128> fn;
+	small_function<void(), DAGFLOW_TASK_FN_SIZE> fn;
 	SmallVec<std::size_t, 4> succ;
 	int preds_total{0};
 	std::atomic<int> preds_remain{0};
@@ -337,8 +352,10 @@ class TaskGraph {
 	std::atomic<int> inflight{0};
 
 	std::size_t capacity{SIZE_MAX};
+	/// Number of tokens queued *and* available to execute. Serves as both the
+	/// capacity gate (see try_enqueue_one) and the token counter workers
+	/// CAS-decrement to claim work. Replaces the old mpmc_queue<uint8_t> inbox.
 	std::atomic<std::size_t> queued{0};
-	detail::mpmc_queue<uint8_t> inbox;
 	Overflow overflow{Overflow::Block};
 
 	Priority prio{Priority::Normal};
@@ -386,7 +403,6 @@ class TaskGraph {
 	while (cur < n.capacity) {
 	  if (n.queued.compare_exchange_weak(cur, cur + 1,
 										 std::memory_order_acq_rel)) {
-		n.inbox.push(uint8_t{1});
 		return true;
 	  }
 	}
@@ -396,8 +412,8 @@ class TaskGraph {
    * @brief Enqueue @p tokens for node @p i and schedule its worker if needed.
    */
   static void enqueue_tokens_and_maybe_dispatch(
-	  const std::shared_ptr<Core>& core, std::size_t i,
-	  const std::shared_ptr<Handle::Counter>& ctr, std::size_t tokens) {
+	  Core* core, std::size_t i,
+	  Handle::Counter* ctr, std::size_t tokens) {
 	auto& nodes = *core->nodes;
 	RunCtx& ctx = *core->ctx;
 	Node* n = nodes[i].get();
@@ -438,9 +454,9 @@ class TaskGraph {
   /**
    * @brief If under concurrency limit, schedule one worker to process a token.
    */
-  static void maybe_dispatch_node(const std::shared_ptr<Core>& core,
+  static void maybe_dispatch_node(Core* core,
 								  std::size_t i,
-								  const std::shared_ptr<Handle::Counter>& ctr) {
+								  Handle::Counter* ctr) {
 	auto& nodes = *core->nodes;
 	Node* n = nodes[i].get();
 
@@ -468,8 +484,8 @@ class TaskGraph {
    * body.
    */
   static void schedule_worker_once(
-	  const std::shared_ptr<Core>& core, std::size_t i,
-	  const std::shared_ptr<Handle::Counter>& ctr) {
+	  Core* core, std::size_t i,
+	  Handle::Counter* ctr) {
 	auto& nodes = *core->nodes;
 	RunCtx& ctx = *core->ctx;
 	Node* n = nodes[i].get();
@@ -477,6 +493,9 @@ class TaskGraph {
 	SubmitOptions opt;
 	opt.priority = n->prio;
 	opt.affinity = n->affinity;
+	// The TaskGraph owns completion tracking (via ctr); skip the
+	// redundant per-pool-task Handle::Counter allocation.
+	opt.skip_counter = true;
 
 	core->pool->submit(
 		[core, i, ctr] {
@@ -486,9 +505,20 @@ class TaskGraph {
 
 		  bool executed = false;
 
-		  auto tok = self->inbox.pop();
-		  if (tok.has_value()) {
-			self->queued.fetch_sub(1, std::memory_order_acq_rel);
+		  // Atomically claim one token (replaces MS-queue inbox.pop).
+		  {
+			std::size_t cur = self->queued.load(std::memory_order_acquire);
+			while (cur > 0) {
+			  if (self->queued.compare_exchange_weak(
+					cur, cur - 1, std::memory_order_acq_rel,
+					std::memory_order_relaxed)) {
+				executed = true;
+				break;
+			  }
+			}
+		  }
+
+		  if (executed) {
 			if (!ctx.cancel.load(std::memory_order_acquire)) {
 			  try {
 				if (self->fn) self->fn();
@@ -513,11 +543,11 @@ class TaskGraph {
 		  self->inflight.fetch_sub(1, std::memory_order_acq_rel);
 
 		  if (!ctx.cancel.load(std::memory_order_acquire) &&
-			  !self->inbox.empty()) {
+			  self->queued.load(std::memory_order_acquire) > 0) {
 			maybe_dispatch_node(core, i, ctr);
 		  }
 
-		  if (executed) complete_counter(ctr.get());
+		  if (executed) complete_counter(ctr);
 		},
 		opt);
   }
@@ -544,8 +574,15 @@ class TaskGraph {
   /// Active counter for the current run (if any).
   std::shared_ptr<Handle::Counter> active_ctr_;
 
+  /// Shared execution core for the current run; kept alive until destructor
+  /// wait completes so worker lambdas can use a raw Core* safely.
+  std::shared_ptr<Core> core_;
+
   /// Current graph state.
   State state_{State::Building};
+
+  /// Total number of edges added; enables O(1) seal() fast-path when 0.
+  std::size_t edge_count_{0};
 };
 
-}  // namespace tp
+}  // namespace dagflow

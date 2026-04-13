@@ -212,7 +212,7 @@ class TaskScope {
   template <class F>
   JobHandle when_all(std::initializer_list<JobHandle> deps, F&& f,
 					 const ScheduleOptions& opt = {}) {
-	return when_all(std::span<const JobHandle>(deps.begin(), deps.size()),
+	return when_all(std::span(deps.begin(), deps.size()),
 					std::forward<F>(f), opt);
   }
 
@@ -251,10 +251,10 @@ class TaskScope {
 	};
 	auto parts = std::make_shared<Parts>();
 
-	const std::size_t n = static_cast<std::size_t>(std::distance(begin, end));
+	const auto n = static_cast<std::size_t>(std::distance(begin, end));
 	if (n == 0) return submit([] {}, opt);
 
-	const std::size_t target = 1 << 14;
+	constexpr std::size_t target = 1 << 14;
 	const std::size_t chunks =
 		std::max<std::size_t>(1, (n + target - 1) / target);
 
@@ -292,7 +292,7 @@ class TaskScope {
   }
 
   template <class F>
-  inline Handle for_each_index_ws(Pool& p, std::size_t n, F f,
+  Handle for_each_index_ws(Pool& p, std::size_t n, F f,
 								  SubmitOptions opt = {},
 								  std::size_t min_grain = (1u << 14)) {
 	struct It {
@@ -441,4 +441,4 @@ class TaskScope {
   std::exception_ptr last_error_{};
 };
 
-}  // namespace tp
+}  // namespace dagflow

@@ -137,4 +137,4 @@ class small_function<void(), StorageSize> {
   OpFn destroy_ = nullptr;
 };
 
-}  // namespace tp
+}  // namespace dagflow
