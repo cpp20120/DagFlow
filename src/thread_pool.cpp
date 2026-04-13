@@ -75,15 +75,52 @@ Pool::~Pool() {
   for (auto& t : threads_)
 	if (t.joinable()) t.join();
 
-  // Drain per-worker task free-lists after all threads have exited.
-  for (auto& w : workers_) {
-    Task* tsk = w->task_pool;
-    while (tsk) {
+  // Drain per-worker free-lists after all threads have exited.
+  for (auto& wkr : workers_) {
+    Task* tsk = wkr->task_pool;
+    while (tsk != nullptr) {
       Task* nxt = tsk->pool_next;
       delete tsk;
       tsk = nxt;
     }
+    Handle::Counter* ctr = wkr->counter_pool;
+    while (ctr != nullptr) {
+      Handle::Counter* nxt = ctr->pool_next;
+      delete ctr;
+      ctr = nxt;
+    }
   }
+}
+
+std::shared_ptr<Handle::Counter> Pool::alloc_counter(int initial_count) {
+  Handle::Counter* from_pool = nullptr;
+  if (tls_in_pool_) {
+    auto& wkr = *workers_[tls_id_];
+    if (wkr.counter_pool != nullptr) {
+      from_pool = wkr.counter_pool;
+      wkr.counter_pool = from_pool->pool_next;
+      from_pool->pool_next = nullptr;
+      --wkr.counter_pool_sz;
+    }
+  }
+  // Pass new directly into shared_ptr so no owned allocation sits in a plain pointer.
+  // The deleter returns the counter to whichever worker is current at destruction time.
+  std::shared_ptr<Handle::Counter> ctr{
+      (from_pool != nullptr) ? from_pool : new Handle::Counter{},
+      [this](Handle::Counter* c) noexcept {
+        if (tls_in_pool_) {
+          auto& wkr = *workers_[tls_id_];
+          if (wkr.counter_pool_sz < Worker::kCounterPoolMax) {
+            c->pool_next = wkr.counter_pool;
+            wkr.counter_pool = c;
+            ++wkr.counter_pool_sz;
+            return;
+          }
+        }
+        std::unique_ptr<Handle::Counter>{c};
+      }};
+  ctr->count.store(initial_count, std::memory_order_relaxed);
+  return ctr;
 }
 
 Handle Pool::submit(Fn fn, void* arg, SubmitOptions opt) {
@@ -96,8 +133,7 @@ Handle Pool::submit_impl(small_function<void()> job, SubmitOptions opt) {
   // own shared counter, so we skip this allocation entirely.
   std::shared_ptr<Handle::Counter> ctr;
   if (!opt.skip_counter) {
-    ctr = std::make_shared<Handle::Counter>();
-    ctr->count.store(1, std::memory_order_relaxed);
+    ctr = alloc_counter(1);
   }
 
   // Prefer the per-worker free-list when called from a pool thread to avoid
@@ -192,8 +228,7 @@ void Pool::dispatch(Task* t, std::optional<uint32_t> affinity,
 
 Handle Pool::combine(std::span<const Handle> hs, SubmitOptions opt) {
   if (hs.empty()) return Handle{};
-  auto ctr = std::make_shared<Handle::Counter>();
-  ctr->count.store(static_cast<int>(hs.size()), std::memory_order_relaxed);
+  auto ctr = alloc_counter(static_cast<int>(hs.size()));
 
   for (auto& h : hs) {
 	auto dep = h.get();

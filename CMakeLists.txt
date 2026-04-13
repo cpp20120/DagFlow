@@ -65,6 +65,7 @@ target_include_directories(
         $<INSTALL_INTERFACE:include>)
 
 target_compile_features(dagflow_sources_shared PUBLIC cxx_std_23)
+set_property(TARGET dagflow_sources_shared PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 if(MSVC)
   target_compile_options(dagflow_sources_shared PRIVATE /W4 /WX)
