@@ -106,10 +106,19 @@ jobs:
   portability:
     name: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-14]
+        include:
+          - os: windows-latest
+            shell: pwsh
+            cmake_args: -A x64
+          - os: macos-14
+            shell: zsh -e {0}
+            cmake_args: -G Ninja
     steps:
       - uses: actions/checkout@v4
 
@@ -118,36 +127,19 @@ jobs:
         run: brew install ninja
 
       - name: Configure
-        shell: bash
-        run: |
-          common_args=(
-            -DCMAKE_BUILD_TYPE=RelWithDebInfo
-            -DDAGFLOW_BUILD_SHARED=ON -DDAGFLOW_BUILD_STATIC=OFF
-            -DDAGFLOW_BUILD_EXAMPLES=OFF -DDAGFLOW_BUILD_TESTS=ON
-            -DDAGFLOW_BUILD_RUNTIME_BENCH=OFF -DDAGFLOW_BUILD_RUNTIME_SUITE=OFF
-            -DDAGFLOW_BUILD_PUBLIC_API_BENCH=OFF -DDAGFLOW_BUILD_FUNCTION_BENCH=OFF
-            -DDAGFLOW_BUILD_STRESS_BENCH=OFF -DDAGFLOW_BUILD_BENCH=OFF
-            -DDAGFLOW_BUILD_GITHUB_BENCH=OFF -DDAGFLOW_ALLOCATOR=system
-            -DDAGFLOW_INSTALL=OFF -DDAGFLOW_COMPILER_CACHE=none
-          )
-          if [ "$RUNNER_OS" = "Windows" ]; then
-            cmake -S . -B build/portability -A x64 "${common_args[@]}"
-          else
-            cmake -S . -B build/portability -G Ninja "${common_args[@]}"
-          fi
+        run: >-
+          cmake -S . -B build/portability ${{ matrix.cmake_args }}
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          -DDAGFLOW_BUILD_SHARED=ON -DDAGFLOW_BUILD_STATIC=OFF
+          -DDAGFLOW_BUILD_EXAMPLES=OFF -DDAGFLOW_BUILD_TESTS=ON
+          -DDAGFLOW_BUILD_RUNTIME_BENCH=OFF -DDAGFLOW_BUILD_RUNTIME_SUITE=OFF
+          -DDAGFLOW_BUILD_PUBLIC_API_BENCH=OFF -DDAGFLOW_BUILD_FUNCTION_BENCH=OFF
+          -DDAGFLOW_BUILD_STRESS_BENCH=OFF -DDAGFLOW_BUILD_BENCH=OFF
+          -DDAGFLOW_BUILD_GITHUB_BENCH=OFF -DDAGFLOW_ALLOCATOR=system
+          -DDAGFLOW_INSTALL=OFF -DDAGFLOW_COMPILER_CACHE=none
 
       - name: Build
-        run: |
-          if [ "$RUNNER_OS" = "Windows" ]; then
-            cmake --build build/portability --config RelWithDebInfo --parallel 2
-          else
-            cmake --build build/portability --parallel 2
-          fi
+        run: cmake --build build/portability --config RelWithDebInfo --parallel 2
 
       - name: Test
-        run: |
-          if [ "$RUNNER_OS" = "Windows" ]; then
-            ctest --test-dir build/portability -C RelWithDebInfo --output-on-failure --no-tests=error
-          else
-            ctest --test-dir build/portability --output-on-failure --no-tests=error
-          fi
+        run: ctest --test-dir build/portability -C RelWithDebInfo --output-on-failure --no-tests=error

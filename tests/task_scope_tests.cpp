@@ -14,6 +14,7 @@ using Scope = dagflow::TaskScope;
 
 struct Payload {
   std::atomic<int>* destroyed;
+  explicit Payload(std::atomic<int>* counter) : destroyed(counter) {}
   ~Payload() { ++*destroyed; }
 };
 
@@ -191,6 +192,7 @@ void destructor_self_join(dagflow::Pool& pool) {
   struct Cleanup {
     Scope* scope;
     std::atomic<int>* rejected;
+    Cleanup(Scope* owner, std::atomic<int>* counter) : scope(owner), rejected(counter) {}
     ~Cleanup() {
       try { scope->wait(); }
       catch (const std::logic_error&) { ++*rejected; }

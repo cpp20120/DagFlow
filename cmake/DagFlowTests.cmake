@@ -56,7 +56,17 @@ dagflow_add_runtime_unit_test(dagflow_vector_allocation_tests tests/vector_alloc
 dagflow_add_runtime_unit_test(dagflow_function_allocation_tests tests/function_tests.cpp)
 target_compile_definitions(dagflow_function_allocation_tests PRIVATE DAGFLOW_FUNCTION_TEST_BACKEND)
 
-if(NOT MSVC)
+# These tests replace global new/delete for counting or failure injection.
+# TSan provides strong definitions of those operators and cannot interpose them.
+# Keep the tests in ordinary/ASan jobs; queue and runtime tests still run in TSan.
+set(_dagflow_test_allocation_interposition TRUE)
+if(MSVC OR DAGFLOW_SANITIZER STREQUAL "thread")
+  set(_dagflow_test_allocation_interposition FALSE)
+endif()
+if(DAGFLOW_SANITIZER STREQUAL "thread")
+  message(STATUS "TSan: allocation-interposition tests are covered by non-TSan configurations")
+endif()
+if(_dagflow_test_allocation_interposition)
   dagflow_add_runtime_unit_test(dagflow_queue_allocation_tests tests/queue_allocation_tests.cpp)
 endif()
 
@@ -106,7 +116,7 @@ if(DAGFLOW_TARGET)
   dagflow_add_runtime_unit_test(dagflow_graph_tests tests/graph_tests.cpp)
   target_link_libraries(dagflow_graph_tests PRIVATE ${DAGFLOW_TARGET})
 
-  if(NOT MSVC AND DAGFLOW_ALLOCATOR STREQUAL "system")
+  if(_dagflow_test_allocation_interposition AND DAGFLOW_ALLOCATOR STREQUAL "system")
     dagflow_add_runtime_unit_test(dagflow_runtime_failure_tests tests/runtime_failure_tests.cpp)
     target_link_libraries(dagflow_runtime_failure_tests PRIVATE ${DAGFLOW_TARGET})
   endif()

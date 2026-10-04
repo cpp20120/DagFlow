@@ -72,6 +72,8 @@ void destructor_publication() {
     std::atomic<bool>& started;
     std::atomic<bool>& release;
     int& result;
+    Payload(dagflow::Pool& p, std::atomic<bool>& s, std::atomic<bool>& r, int& value)
+        : pool(p), started(s), release(r), result(value) {}
     ~Payload() {
       pool.submit_detached([&started = started, &release = release, &result = result] {
         started.store(true);

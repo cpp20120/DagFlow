@@ -16,10 +16,23 @@
 // Optional instrumentation of ordinary operator new calls in this executable
 // and interposed library calls. This does not measure malloc, aligned new, or
 // retained memory. Keep disabled for timing comparisons.
+// TSan owns the global allocation operators; its interceptors must stay intact.
+#if defined(__has_feature)
+#if __has_feature(thread_sanitizer)
+#define DAGFLOW_BENCH_TSAN 1
+#endif
+#endif
+#if defined(__SANITIZE_THREAD__) || defined(DAGFLOW_BENCH_TSAN)
+#define DAGFLOW_BENCH_ALLOCATION_TRACKING 0
+#else
+#define DAGFLOW_BENCH_ALLOCATION_TRACKING 1
+#endif
+
 namespace {
 std::atomic<bool> count_allocations{false};
 std::atomic<std::size_t> allocations{0}, allocated_bytes{0};
 }  // namespace
+#if DAGFLOW_BENCH_ALLOCATION_TRACKING
 void* operator new(std::size_t size) {
   if (void* ptr = std::malloc(size ? size : 1)) {
     if (count_allocations.load(std::memory_order_relaxed)) {
@@ -35,6 +48,7 @@ void operator delete(void* ptr) noexcept { std::free(ptr); }
 void operator delete[](void* ptr) noexcept { std::free(ptr); }
 void operator delete(void* ptr, std::size_t) noexcept { std::free(ptr); }
 void operator delete[](void* ptr, std::size_t) noexcept { std::free(ptr); }
+#endif
 
 namespace {
 using Clock = std::chrono::steady_clock;
@@ -77,6 +91,8 @@ int main(int argc, char** argv) {
     const std::size_t tasks = argc > 2 ? std::stoull(argv[2]) : 10000;
     const unsigned repeats = argc > 3 ? std::stoul(argv[3]) : 7;
     const bool count = argc > 4 && std::string(argv[4]) == "--allocations";
+    if (count && !DAGFLOW_BENCH_ALLOCATION_TRACKING)
+      throw std::invalid_argument("--allocations is unavailable under ThreadSanitizer");
     if (!threads || !tasks || !repeats)
       throw std::invalid_argument(
           "threads, tasks, and repeats must be positive");
