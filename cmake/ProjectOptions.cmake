@@ -73,7 +73,9 @@ function(dagflow_apply_project_options target)
         NOT _PGO_MODE STREQUAL "none" OR NOT _LTO_MODE STREQUAL "none")
       message(FATAL_ERROR "Target ${target}: coverage requires GCC/Clang without LTO or PGO")
     endif()
-    target_compile_options(${target} PRIVATE --coverage -O0 -g)
+    # Runtime/library code can update coverage counters from several workers.
+    # Non-atomic updates can produce inconsistent (even negative) gcov counts.
+    target_compile_options(${target} PRIVATE --coverage -fprofile-update=atomic -O0 -g)
     target_link_options(${target} ${_link} --coverage)
   endif()
   if(_REPRODUCIBLE)

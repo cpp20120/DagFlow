@@ -20,6 +20,24 @@ option(DAGFLOW_INSTALL "Generate install targets" ${PROJECT_IS_TOP_LEVEL})
 
 
 option(DAGFLOW_BUILD_DOCS "Generate API documentation with Doxygen" OFF)
+# The public reference currently permits incomplete comments and links to
+# optional benchmark artifacts. The reusable module keeps strict defaults.
+option(DAGFLOW_DOC_WARN_IF_DOC_ERROR "Report invalid documentation and unresolved references" OFF)
+option(DAGFLOW_DOC_WARN_IF_UNDOCUMENTED "Warn about undocumented API symbols" OFF)
+option(DAGFLOW_DOC_WARN_NO_PARAMDOC "Warn about undocumented parameters and return values" OFF)
+set(DAGFLOW_DOC_MARKDOWN_ID_STYLE GITHUB CACHE STRING "Markdown heading IDs: DOXYGEN or GITHUB")
+set(DAGFLOW_DOC_INPUTS
+  "${PROJECT_SOURCE_DIR}/include;${PROJECT_SOURCE_DIR}/docs/api.md;"
+  "${PROJECT_SOURCE_DIR}/docs/how_it_works.md;${PROJECT_SOURCE_DIR}/docs/code_organization.md;"
+  "${PROJECT_SOURCE_DIR}/docs/concepts.md;${PROJECT_SOURCE_DIR}/docs/pool-lifecycle.md;"
+  "${PROJECT_SOURCE_DIR}/docs/scheduler-topology.md;${PROJECT_SOURCE_DIR}/docs/idle-accounting.md;"
+  "${PROJECT_SOURCE_DIR}/docs/explicit-ownership.md;${PROJECT_SOURCE_DIR}/docs/task-scope-lifetime.md;"
+  "${PROJECT_SOURCE_DIR}/docs/batch-submit.md;${PROJECT_SOURCE_DIR}/docs/cmake-capabilities-validation.md"
+  CACHE STRING "Public API headers and user documentation")
+set(DAGFLOW_DOC_EXCLUDE_SYMBOLS "dagflow::detail;dagflow::detail::*"
+  CACHE STRING "Internal symbols excluded from the documented API")
+set(DAGFLOW_DOC_MAINPAGE "${PROJECT_SOURCE_DIR}/docs/api.md" CACHE FILEPATH
+  "DagFlow documentation main page")
 option(DAGFLOW_ENABLE_PACKAGING "Generate CPack packages" OFF)
 option(DAGFLOW_BUILD_HARNESS "Enable framework benchmark campaigns (requires Python)" OFF)
 set(DAGFLOW_ALLOCATOR "mimalloc" CACHE STRING "Runtime allocator: mimalloc, tbbmalloc, or system")
@@ -39,7 +57,6 @@ if(NOT _dagflow_parent_project)
   set(_dagflow_caps ${DAGFLOW_PROJECT_CAPABILITIES})
   if(DAGFLOW_BUILD_DOCS)
     list(APPEND _dagflow_caps docs)
-    set(DAGFLOW_DOC_INPUTS "${PROJECT_SOURCE_DIR}/include;${PROJECT_SOURCE_DIR}/src;${PROJECT_SOURCE_DIR}/examples")
   endif()
   if(DAGFLOW_ENABLE_PACKAGING)
     list(APPEND _dagflow_caps packaging)

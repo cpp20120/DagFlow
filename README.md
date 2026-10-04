@@ -32,6 +32,9 @@ Mini-runtime for parallel tasks in C++23:
 container contracts and API changes. [Runtime architecture](docs/how_it_works.md)
 describes admission, errors, reusable runs, scheduler bypass, and task storage.
 
+[CMake capability validation](docs/cmake-capabilities-validation.md) records the
+DagFlow integration checks, remaining gaps, and commands to repeat them.
+
 ### [Design](https://github.com/cpp20120/DagFlow/blob/main/docs/how_it_works.md)
 * Scheduler: local deques (Chase–Lev) + central ring-buffer MPMC shards for external submissions; contiguous Local/Shard arrays; worker drains home ingress and steals within its domain before remote domains.
 

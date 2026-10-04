@@ -6,7 +6,7 @@ set(DAGFLOW_CPM_FILE "" CACHE FILEPATH "Optional CPM.cmake file used when DAGFLO
 # system/vcpkg consume installed CMake packages; fetchcontent/cpm first try the
 # installed package and then use the explicit pinned repository supplied by the caller.
 function(dagflow_require_dependency)
-  cmake_parse_arguments(PARSE_ARGV 0 ARG "" "NAME;PACKAGE;TARGET;VERSION;GIT_REPOSITORY;GIT_TAG" "COMPONENTS;OPTIONS")
+  cmake_parse_arguments(PARSE_ARGV 0 ARG "NO_SUBMODULES" "NAME;PACKAGE;TARGET;VERSION;GIT_REPOSITORY;GIT_TAG" "COMPONENTS;OPTIONS")
   if(ARG_UNPARSED_ARGUMENTS OR NOT ARG_NAME OR NOT ARG_PACKAGE OR NOT ARG_TARGET)
     message(FATAL_ERROR "dagflow_require_dependency requires NAME, PACKAGE and TARGET")
   endif()
@@ -49,10 +49,22 @@ function(dagflow_require_dependency)
 
   if(DAGFLOW_DEPENDENCY_PROVIDER STREQUAL "fetchcontent")
     include(FetchContent)
-    FetchContent_Declare(${ARG_NAME}
+    # A depth-one clone only contains branch tips and cannot check out an
+    # arbitrary pinned commit (RapidCheck uses a full commit hash).
+    set(_shallow TRUE)
+    string(LENGTH "${ARG_GIT_TAG}" _revision_length)
+    if(_revision_length EQUAL 40 AND ARG_GIT_TAG MATCHES "^[0-9a-fA-F]+$")
+      set(_shallow FALSE)
+    endif()
+    set(_download_args
       GIT_REPOSITORY "${ARG_GIT_REPOSITORY}"
       GIT_TAG "${ARG_GIT_TAG}"
-      GIT_SHALLOW TRUE)
+      GIT_SHALLOW ${_shallow})
+    if(ARG_NO_SUBMODULES)
+      FetchContent_Declare(${ARG_NAME} ${_download_args} GIT_SUBMODULES "")
+    else()
+      FetchContent_Declare(${ARG_NAME} ${_download_args})
+    endif()
     FetchContent_MakeAvailable(${ARG_NAME})
   elseif(DAGFLOW_DEPENDENCY_PROVIDER STREQUAL "cpm")
     if(NOT COMMAND CPMAddPackage)
@@ -106,6 +118,7 @@ function(dagflow_require_rapidcheck)
   else()
     dagflow_require_dependency(
       NAME rapidcheck PACKAGE rapidcheck TARGET rapidcheck
+      NO_SUBMODULES
       GIT_REPOSITORY https://github.com/emil-e/rapidcheck.git
       GIT_TAG "${DAGFLOW_RAPIDCHECK_TAG}"
       OPTIONS "RC_ENABLE_GTEST=ON" "RC_INSTALL_ALL_EXTRAS=ON" "RC_ENABLE_TESTS=OFF")

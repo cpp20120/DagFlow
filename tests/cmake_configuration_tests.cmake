@@ -1,3 +1,4 @@
+cmake_minimum_required(VERSION 3.26)
 # Configuration regressions: no workload measurements or profile generation.
 file(MAKE_DIRECTORY "${CHECK_DIR}")
 
@@ -58,3 +59,52 @@ foreach(source IN ITEMS main late)
   endif()
 endforeach()
 message(STATUS "CMake dependency and configuration regressions passed")
+
+# Every project capability must resolve its own executable. A stale cache from
+# older builds must not turn clang-tidy/coverage/etc. into the first tool found.
+include("${SOURCE_DIR}/cmake/ProjectCapabilities.cmake")
+set(_tool "${CMAKE_COMMAND}" CACHE FILEPATH "Legacy shared tool lookup" FORCE)
+dagflow_project_tool(_cmake "CMake regression probe" NAMES cmake)
+dagflow_project_tool(_ctest "CTest regression probe" NAMES ctest)
+dagflow_project_tool(_missing "Optional regression probe" NAMES dagflow-tool-that-does-not-exist)
+if(NOT _cmake OR NOT _ctest OR _cmake STREQUAL _ctest OR _missing)
+  message(FATAL_ERROR "Project tool lookups are not independent: ${_cmake};${_ctest};${_missing}")
+endif()
+message(STATUS "Independent project tool lookup regression passed")
+dagflow_list_project_capabilities(_capabilities)
+foreach(_cap IN ITEMS project-minimal compile-commands compiler-cache formatting static-analysis
+    testing property-testing fuzzing coverage-report docs packaging reproducible-build
+    build-info diagnostics cuda web-deployment developer quality distribution ci full)
+  if(NOT _cap IN_LIST _capabilities)
+    message(FATAL_ERROR "Missing project capability: ${_cap}")
+  endif()
+endforeach()
+get_property(_coverage_caps GLOBAL PROPERTY DAGFLOW_PROJECT_CAP_COVERAGE_REPORT_CLOSURE)
+if(NOT "testing" IN_LIST _coverage_caps)
+  message(FATAL_ERROR "coverage-report must inherit testing to build tests before collecting data")
+endif()
+
+# Disabled standalone sources must not be passed to analysis tools without a
+# compile command (notably optional fuzz/property fixtures and benchmarks).
+set(analysis_probe "${CHECK_DIR}/analysis-sources")
+file(MAKE_DIRECTORY "${analysis_probe}/src")
+file(WRITE "${analysis_probe}/src/main.cpp" "int main() { return 0; }\n")
+file(WRITE "${analysis_probe}/src/disabled.cpp" "#error not enabled in this build\n")
+file(WRITE "${analysis_probe}/CMakeLists.txt" "
+cmake_minimum_required(VERSION 3.26)
+project(AnalysisSources LANGUAGES CXX)
+include(\"${SOURCE_DIR}/cmake/DagFlow.cmake\")
+dagflow_project(CAPABILITIES static-analysis)
+add_executable(probe src/main.cpp)
+dagflow_finalize_project()
+")
+execute_process(COMMAND "${CMAKE_COMMAND}" -S "${analysis_probe}" -B "${analysis_probe}/build"
+  -G Ninja "-DCMAKE_CXX_COMPILER=${CXX}"
+  RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE error)
+if(NOT result EQUAL 0)
+  message(FATAL_ERROR "Analysis source configuration failed: ${output}\n${error}")
+endif()
+file(READ "${analysis_probe}/build/build.ninja" analysis_ninja)
+if(analysis_ninja MATCHES "COMMAND = [^\n]*disabled\\.cpp")
+  message(FATAL_ERROR "Static analysis includes a disabled source")
+endif()

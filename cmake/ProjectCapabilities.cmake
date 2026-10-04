@@ -12,7 +12,10 @@ endfunction()
 
 function(dagflow_project_tool output description)
   cmake_parse_arguments(PARSE_ARGV 2 ARG "" "" "NAMES")
-  find_program(_tool NAMES ${ARG_NAMES})
+  # Do not reuse a previous lookup (or the legacy shared cache entry): each
+  # caller asks for a different tool, including optional tools that are absent.
+  set(_tool _tool-NOTFOUND)
+  find_program(_tool NAMES ${ARG_NAMES} NO_CACHE)
   if(NOT _tool AND DAGFLOW_REQUIRE_PROJECT_TOOLS)
     message(FATAL_ERROR "${description} capability requires one of: ${ARG_NAMES}")
   elseif(NOT _tool)
@@ -116,7 +119,7 @@ function(dagflow_define_project_capability name)
   set_property(GLOBAL APPEND PROPERTY DAGFLOW_DEFINED_PROJECT_CAPABILITIES "${name}")
 endfunction()
 
-function(dagflow_project)
+function(_dagflow_project_configure)
   cmake_parse_arguments(PARSE_ARGV 0 ARG "" "MODE" "CAPABILITIES;TOP_LEVEL_CAPABILITIES;EMBEDDED_CAPABILITIES")
   if(ARG_UNPARSED_ARGUMENTS OR ARG_KEYWORDS_MISSING_VALUES)
     message(FATAL_ERROR "dagflow_project: invalid arguments: ${ARG_UNPARSED_ARGUMENTS};${ARG_KEYWORDS_MISSING_VALUES}")
@@ -189,6 +192,18 @@ function(dagflow_project)
   message(STATUS "DagFlow project: mode=${ARG_MODE}, capabilities=${_caps}")
 endfunction()
 
+macro(dagflow_project)
+  _dagflow_project_configure(${ARGV})
+  # enable_language() must run in the caller's directory scope. Compiler rules
+  # created inside a configure-hook function disappear when it returns.
+  get_property(_dagflow_project_languages GLOBAL PROPERTY DAGFLOW_PROJECT_LANGUAGES)
+  foreach(_dagflow_project_language IN LISTS _dagflow_project_languages)
+    enable_language(${_dagflow_project_language})
+  endforeach()
+  unset(_dagflow_project_language)
+  unset(_dagflow_project_languages)
+endmacro()
+
 function(dagflow_finalize_project)
   get_property(_configured GLOBAL PROPERTY DAGFLOW_PROJECT_CONFIGURED)
   if(NOT _configured)
@@ -254,7 +269,8 @@ dagflow_define_project_capability(property-testing
 dagflow_define_project_capability(fuzzing
   INHERITS testing
   FINALIZE_HOOKS _dagflow_project_fuzzing_finalize)
-dagflow_define_project_capability(coverage-report FINALIZE_HOOKS _dagflow_project_coverage_finalize)
+dagflow_define_project_capability(coverage-report INHERITS testing
+  FINALIZE_HOOKS _dagflow_project_coverage_finalize)
 dagflow_define_project_capability(docs FINALIZE_HOOKS _dagflow_project_docs_finalize)
 dagflow_define_project_capability(packaging FINALIZE_HOOKS _dagflow_project_packaging_finalize)
 dagflow_define_project_capability(reproducible-build CONFIGURE_HOOKS _dagflow_project_reproducible_configure)
