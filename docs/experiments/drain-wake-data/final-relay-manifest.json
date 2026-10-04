@@ -1,0 +1,438 @@
+{
+  "cases": [
+    {
+      "scenario": "external-contention",
+      "workers": 1,
+      "producers": 2,
+      "worker_cpus": "0",
+      "producer_cpus": "8,10"
+    },
+    {
+      "scenario": "external-contention",
+      "workers": 4,
+      "producers": 2,
+      "worker_cpus": "0,2,4,6",
+      "producer_cpus": "8,10"
+    },
+    {
+      "scenario": "external-batch",
+      "workers": 1,
+      "producers": 2,
+      "worker_cpus": "0",
+      "producer_cpus": "8,10"
+    },
+    {
+      "scenario": "external-batch",
+      "workers": 4,
+      "producers": 2,
+      "worker_cpus": "0,2,4,6",
+      "producer_cpus": "8,10"
+    },
+    {
+      "scenario": "hot-shard-skew",
+      "workers": 1,
+      "producers": 2,
+      "worker_cpus": "0",
+      "producer_cpus": "8,10"
+    },
+    {
+      "scenario": "hot-shard-skew",
+      "workers": 4,
+      "producers": 2,
+      "worker_cpus": "0,2,4,6",
+      "producer_cpus": "8,10"
+    },
+    {
+      "scenario": "local-overflow",
+      "workers": 1,
+      "producers": 2,
+      "worker_cpus": "0",
+      "producer_cpus": "8,10"
+    },
+    {
+      "scenario": "local-overflow",
+      "workers": 4,
+      "producers": 2,
+      "worker_cpus": "0,2,4,6",
+      "producer_cpus": "8,10"
+    },
+    {
+      "scenario": "nested-helping",
+      "workers": 1,
+      "producers": 2,
+      "worker_cpus": "0",
+      "producer_cpus": "8,10"
+    },
+    {
+      "scenario": "nested-helping",
+      "workers": 4,
+      "producers": 2,
+      "worker_cpus": "0,2,4,6",
+      "producer_cpus": "8,10"
+    },
+    {
+      "scenario": "mixed-chaos",
+      "workers": 1,
+      "producers": 2,
+      "worker_cpus": "0",
+      "producer_cpus": "8,10"
+    },
+    {
+      "scenario": "mixed-chaos",
+      "workers": 4,
+      "producers": 2,
+      "worker_cpus": "0,2,4,6",
+      "producer_cpus": "8,10"
+    },
+    {
+      "scenario": "idle-burst",
+      "workers": 1,
+      "producers": 2,
+      "worker_cpus": "0",
+      "producer_cpus": "8,10"
+    },
+    {
+      "scenario": "idle-burst",
+      "workers": 4,
+      "producers": 2,
+      "worker_cpus": "0,2,4,6",
+      "producer_cpus": "8,10"
+    },
+    {
+      "scenario": "external-contention",
+      "workers": 4,
+      "central_batch": 32,
+      "producers": 2,
+      "worker_cpus": "0,2,4,6",
+      "producer_cpus": "8,10"
+    },
+    {
+      "scenario": "external-batch",
+      "workers": 4,
+      "central_batch": 32,
+      "producers": 2,
+      "worker_cpus": "0,2,4,6",
+      "producer_cpus": "8,10"
+    },
+    {
+      "scenario": "external-contention",
+      "workers": 4,
+      "iterations": 64,
+      "producers": 2,
+      "worker_cpus": "0,2,4,6",
+      "producer_cpus": "8,10"
+    },
+    {
+      "scenario": "external-batch",
+      "workers": 4,
+      "iterations": 64,
+      "producers": 2,
+      "worker_cpus": "0,2,4,6",
+      "producer_cpus": "8,10"
+    },
+    {
+      "scenario": "external-contention",
+      "workers": 4,
+      "shards": 1,
+      "producers": 4,
+      "worker_cpus": "0,2,4,6",
+      "producer_cpus": "8,10"
+    }
+  ],
+  "cpu_topology": [
+    {
+      "cpu": 0,
+      "package": "0",
+      "core": "0",
+      "siblings": "0-1",
+      "governor": "powersave",
+      "frequency_khz": "1559975"
+    },
+    {
+      "cpu": 1,
+      "package": "0",
+      "core": "0",
+      "siblings": "0-1",
+      "governor": "powersave",
+      "frequency_khz": "1095838"
+    },
+    {
+      "cpu": 2,
+      "package": "0",
+      "core": "1",
+      "siblings": "2-3",
+      "governor": "powersave",
+      "frequency_khz": "1351632"
+    },
+    {
+      "cpu": 3,
+      "package": "0",
+      "core": "1",
+      "siblings": "2-3",
+      "governor": "powersave",
+      "frequency_khz": "1095838"
+    },
+    {
+      "cpu": 4,
+      "package": "0",
+      "core": "2",
+      "siblings": "4-5",
+      "governor": "powersave",
+      "frequency_khz": "1435837"
+    },
+    {
+      "cpu": 5,
+      "package": "0",
+      "core": "2",
+      "siblings": "4-5",
+      "governor": "powersave",
+      "frequency_khz": "2215752"
+    },
+    {
+      "cpu": 6,
+      "package": "0",
+      "core": "3",
+      "siblings": "6-7",
+      "governor": "powersave",
+      "frequency_khz": "3044219"
+    },
+    {
+      "cpu": 7,
+      "package": "0",
+      "core": "3",
+      "siblings": "6-7",
+      "governor": "powersave",
+      "frequency_khz": "1095838"
+    },
+    {
+      "cpu": 8,
+      "package": "0",
+      "core": "4",
+      "siblings": "8-9",
+      "governor": "powersave",
+      "frequency_khz": "1762676"
+    },
+    {
+      "cpu": 9,
+      "package": "0",
+      "core": "4",
+      "siblings": "8-9",
+      "governor": "powersave",
+      "frequency_khz": "2026939"
+    },
+    {
+      "cpu": 10,
+      "package": "0",
+      "core": "5",
+      "siblings": "10-11",
+      "governor": "powersave",
+      "frequency_khz": "1351611"
+    },
+    {
+      "cpu": 11,
+      "package": "0",
+      "core": "5",
+      "siblings": "10-11",
+      "governor": "powersave",
+      "frequency_khz": "1352916"
+    },
+    {
+      "cpu": 12,
+      "package": "0",
+      "core": "6",
+      "siblings": "12-13",
+      "governor": "powersave",
+      "frequency_khz": "1352676"
+    },
+    {
+      "cpu": 13,
+      "package": "0",
+      "core": "6",
+      "siblings": "12-13",
+      "governor": "powersave",
+      "frequency_khz": "1095838"
+    },
+    {
+      "cpu": 14,
+      "package": "0",
+      "core": "7",
+      "siblings": "14-15",
+      "governor": "powersave",
+      "frequency_khz": "1353091"
+    },
+    {
+      "cpu": 15,
+      "package": "0",
+      "core": "7",
+      "siblings": "14-15",
+      "governor": "powersave",
+      "frequency_khz": "1095838"
+    }
+  ],
+  "variants": [
+    "baseline",
+    "relay"
+  ],
+  "profiles": [
+    "o3",
+    "o3-lto"
+  ],
+  "rounds": 5,
+  "seed": 1729,
+  "source_sha256": {
+    "baseline": {
+      "CMakeLists.txt": "2c535bfcea0d19998d9881683967dc859cdaec8e25ab9231f5a8d7524a282d13",
+      "examples/task_scope.cpp": "29af7605552844f33df50b84494a8d1d0064d5ba0ac1db3c1ab06ddfe4f8837d",
+      "examples/batch.cpp": "75f599dd6acd69294300bcfcf044173af60958ef29d1e1e7dabd7705105c29ca",
+      "examples/parallel_for.cpp": "15a286f7161ee677ef3c40ddd7fc45c6bb17c355377285c936deb7cb5188cbdd",
+      "examples/graph.cpp": "d2639a54f8c7473bb47b0e450d39568a8439add59b3b97e3eb05210ee9eeb545",
+      "examples/cancellation.cpp": "5bb43dcf07981c518bc3f50caf85dee6e8cee1a91b881ae1e933fae8c92ca6ae",
+      "examples/README.md": "6fd1cadb631cb83a9c57a202a1faf38e2fa08d4b1001c3a726bcf726a52da8f1",
+      "src/task_scope.cpp": "f1ce2b4a701718594178ccdf260446495bf8bbd8b32dc51fc644545cafb9af44",
+      "src/task_graph.cpp": "0dd3aa3133e33d04304664cd936c585aa4ea1144ab38a8577aaf1a1bd2569dd5",
+      "src/scheduler.cpp": "718b198c3d3652a16b7b4f772052e41fc16a0afc1325bc8eea0071ccb555f723",
+      "src/thread_pool.cpp": "325ba2a9a9ef86b5a1f92f32665063f964e83c0d8d2e649e404f96289c9f0465",
+      "src/idle_accounting.cpp": "4fb0a102c3ebd1857697f2de09a03489752b42640b5e4ae5001977a009ed900f",
+      "src/runtime_memory.cpp": "1b23a95084246dd5cd74734d15bb612e0c130e8eb02afaf4a8046f8ac23b2331",
+      "src/main.cpp": "644c6d8554054ad0f759609d409ccee80d2999f524d2c03399d1c7e78e3ca315",
+      "src/parking_lot.cpp": "23eff95824d8126e36a60119fcf39640e3d76d0781e153f8cb12bb19833a6ed8",
+      "src/runtime_diagnostics.cpp": "13b773c65cd2425ea3194c6138a9c4cd9fc3f200fcae1bbc87488f5668927c3c",
+      "cmake/DagFlowConfig.cmake.in": "ff0a3b5ef4613ac154ff543583a80a7531483b213fa3539cb4c0a72b06777bd3",
+      "tests/pool_queue_tests.cpp": "839d2bd5b10c648b265f69dc312af0f321245d40e4b6294d700eea6901218a3c",
+      "tests/container_tests.cpp": "a45cb2505c3b8ae2f198d39b0bd9ec16033cbaad8d00db574f80c11be4756d79",
+      "tests/scheduler_topology_tests.cpp": "e528763e8ddeda80a72d667a21e5d5a9b9cbea878152fd9d7f1f75c5d3472491",
+      "tests/batch_submit_tests.cpp": "96665d80f264008db5280f58caea9de7b3d2185786204c124d58210a22f64426",
+      "tests/scheduler_fairness_tests.cpp": "8462f6628b9dcdb36c87809c812d9ae40bb96e89bb71acecf07b94919c383a2c",
+      "tests/support.hpp": "0c89be48fe1bf72ce79172a46a8217805a890df3ddc6287bad585558656bcb55",
+      "tests/benchmark_suite_tests.py": "7b8607d948af9765b2ae944d7dd259f4f035ae1eca5c17058fb0d8fe0656e492",
+      "tests/task_scope_tests.cpp": "34ecd317cffa3ab00e3b097837f7c536e6f2da1b72af40198921e8b9431eba7d",
+      "tests/topology_allocation_tests.cpp": "d29f38a6f3790ae46ef851fdde865d1d7536bd4022ddd2e9e1085287450b6c67",
+      "tests/pool_memory_tests.cpp": "05f0ab31be5649c052a32a7bff41462bf70880933066fc9baac1a7c74c10d0b4",
+      "tests/runtime_failure_tests.cpp": "1938dd1cb0ac2d9c560e5ce7bb9f00bbcc4d4ff3a25b9e8aa58b0ba34b95259a",
+      "tests/accounting_allocation_tests.cpp": "f1c078876e0644964587e4110bad83b29da41ffed92d9041983d64a8cd12f63e",
+      "tests/graph_tests.cpp": "03a1f0853438e5da0e9bd77599d732cd61999745a3de6468b1ea91847433675e",
+      "tests/runtime_memory_tests.cpp": "60d6c640b1d4f74e0dd7270a56bfb3987728493261a6899e8345f921309dd226",
+      "tests/function_tests.cpp": "7f9d53def0389d160866cdc5ec0a4120a457a3dfa59d6a84f4ba93dada7ac2ca",
+      "tests/queue_tests.cpp": "3eaa019e352f0b87781fe624c1c4ca95eca752450dcddc496a4a11daacdcde1c",
+      "tests/main_harness_tests.py": "fbf965d85a88bc602049c019e925f72cd30595f88e81f1c684ee53e0efe0d355",
+      "tests/idle_accounting_tests.cpp": "1ad87136177b14bb95c1494ab5780620d07a1ed23c15dd8e17cf81b8edcf76c7",
+      "tests/api_convenience_tests.cpp": "cd5ea7b71267da2e15fca653294f9b427b1f08c35e01483f4a0facc238dae3b7",
+      "tests/queue_allocation_tests.cpp": "2358235123fae62ba648d1ef2b50a0c8247e20c8ed2a73af67f7e65759514161",
+      "tests/vector_allocation_tests.cpp": "c01ffd50a9f5588e3e1475f275b091aa1280bd203987299b7c89a2669dd41392",
+      "tests/ownership_tests.cpp": "0fdeee8769227030b1c605b51722544747675a2287b8f65b9fcac7ea04088d18",
+      "tests/stl_allocation_tests.cpp": "aacffb959d2061e4d69bb3f784b334603750e1b77dfb56ebf2f1f1c0b3cbc07a",
+      "tests/__pycache__/main_harness_tests.cpython-314.pyc": "f5993b36fa1e25bb04801e9e1ee0bd3e7ea858b12bc34d582e4843a4dfa0260c",
+      "include/dagflow/handle.hpp": "f31bea406f2d88bd89efa81f8abee360a24ea40d85327bb2526a3d00d0e93478",
+      "include/dagflow/task_graph.hpp": "6694805ea0380caada074cc80c8598a0578940b1c018bd00c29af7e003d2bd34",
+      "include/dagflow/inplace_function.hpp": "03c6b4d14aa4afd46c75fdfeff47e60954f19e659d8b15ee01a98414c349104c",
+      "include/dagflow/task_scope.hpp": "5a4d127356004449b2df052b73b4b5c9a66d712abb3de5a9a8f79bf3dfdb4a50",
+      "include/dagflow/graph_scope.hpp": "dd2c4bffb2d6cc2f9bbba8d90b7b8d755592f51353fc8eb9b3b6e28c8cf49b89",
+      "include/dagflow/config.hpp": "a478e941f1a0de0ca0731db4b0c8c460fe49a51818b0face4c724468953a1ea4",
+      "include/dagflow/thread_pool.hpp": "dec07f7d6f350537cb5f0b227236723f579783969dd413753888ba9e6f325924",
+      "include/dagflow/dagflow.hpp": "6f3ba567771c4f5d717f6c210f9668ea7dddafea20a4a0a76726f33856e80e67",
+      "include/dagflow/detail/idle_accounting.hpp": "16baedee12db1d150ba1e2ca08170b0009f115abd16b1c311004cf0f9f53f8af",
+      "include/dagflow/detail/small_vector.hpp": "a523f80fcaec798e9f709db4869f6e69e284920244e92077b57d577408e0f700",
+      "include/dagflow/detail/ring_mpmc.hpp": "766e58575ca449f0014be8afdb7e4b789112f8cc1b986b8ec60fadf8bc48cc32",
+      "include/dagflow/detail/chase_lev_deque.hpp": "292e61a4775e08c011d21ece70e2872a6db34594ef294595b7b75158c657e118",
+      "include/dagflow/detail/small_function.hpp": "66abc1f2fb14ecde9a9b84026db35faa49c0ddd4d36aabc3987c5dabab9335dc",
+      "include/dagflow/detail/parking_lot.hpp": "97edd033a372d2ed72a1491dea0bb775a9befe0272007ddfb453a88b6f0de1c2",
+      "include/dagflow/detail/runtime_diagnostics.hpp": "09b63e93b43b831843dc75eb25f49c64e2cfcaad84bad3bcbd97c6aec54eff3f",
+      "include/dagflow/detail/scheduler.hpp": "8b9f3de695c45b6164a1013b14194479d9093a0db0f96bb066c7870e678558a8",
+      "include/dagflow/detail/runtime_memory.hpp": "f676ba615ae7749137fc521cec36e80ff622e71d426b5ec09dda6b0ec546d941"
+    },
+    "relay": {
+      "CMakeLists.txt": "2c535bfcea0d19998d9881683967dc859cdaec8e25ab9231f5a8d7524a282d13",
+      "examples/task_scope.cpp": "29af7605552844f33df50b84494a8d1d0064d5ba0ac1db3c1ab06ddfe4f8837d",
+      "examples/batch.cpp": "75f599dd6acd69294300bcfcf044173af60958ef29d1e1e7dabd7705105c29ca",
+      "examples/parallel_for.cpp": "15a286f7161ee677ef3c40ddd7fc45c6bb17c355377285c936deb7cb5188cbdd",
+      "examples/graph.cpp": "d2639a54f8c7473bb47b0e450d39568a8439add59b3b97e3eb05210ee9eeb545",
+      "examples/cancellation.cpp": "5bb43dcf07981c518bc3f50caf85dee6e8cee1a91b881ae1e933fae8c92ca6ae",
+      "examples/README.md": "6fd1cadb631cb83a9c57a202a1faf38e2fa08d4b1001c3a726bcf726a52da8f1",
+      "src/task_scope.cpp": "f1ce2b4a701718594178ccdf260446495bf8bbd8b32dc51fc644545cafb9af44",
+      "src/task_graph.cpp": "0dd3aa3133e33d04304664cd936c585aa4ea1144ab38a8577aaf1a1bd2569dd5",
+      "src/scheduler.cpp": "59e1062106d9463c94dbbd32d43e4f429ab8ae203b5f461be71982e8153aaa84",
+      "src/thread_pool.cpp": "3fce4acc4860ca150334f6345e190c1c68c08ff52531945f4d8c1723ea89a354",
+      "src/idle_accounting.cpp": "4fb0a102c3ebd1857697f2de09a03489752b42640b5e4ae5001977a009ed900f",
+      "src/runtime_memory.cpp": "1b23a95084246dd5cd74734d15bb612e0c130e8eb02afaf4a8046f8ac23b2331",
+      "src/main.cpp": "644c6d8554054ad0f759609d409ccee80d2999f524d2c03399d1c7e78e3ca315",
+      "src/parking_lot.cpp": "23eff95824d8126e36a60119fcf39640e3d76d0781e153f8cb12bb19833a6ed8",
+      "src/runtime_diagnostics.cpp": "13b773c65cd2425ea3194c6138a9c4cd9fc3f200fcae1bbc87488f5668927c3c",
+      "cmake/DagFlowConfig.cmake.in": "ff0a3b5ef4613ac154ff543583a80a7531483b213fa3539cb4c0a72b06777bd3",
+      "tests/pool_queue_tests.cpp": "839d2bd5b10c648b265f69dc312af0f321245d40e4b6294d700eea6901218a3c",
+      "tests/container_tests.cpp": "a45cb2505c3b8ae2f198d39b0bd9ec16033cbaad8d00db574f80c11be4756d79",
+      "tests/scheduler_topology_tests.cpp": "e528763e8ddeda80a72d667a21e5d5a9b9cbea878152fd9d7f1f75c5d3472491",
+      "tests/batch_submit_tests.cpp": "96665d80f264008db5280f58caea9de7b3d2185786204c124d58210a22f64426",
+      "tests/scheduler_fairness_tests.cpp": "8462f6628b9dcdb36c87809c812d9ae40bb96e89bb71acecf07b94919c383a2c",
+      "tests/support.hpp": "0c89be48fe1bf72ce79172a46a8217805a890df3ddc6287bad585558656bcb55",
+      "tests/benchmark_suite_tests.py": "7b8607d948af9765b2ae944d7dd259f4f035ae1eca5c17058fb0d8fe0656e492",
+      "tests/task_scope_tests.cpp": "34ecd317cffa3ab00e3b097837f7c536e6f2da1b72af40198921e8b9431eba7d",
+      "tests/topology_allocation_tests.cpp": "d29f38a6f3790ae46ef851fdde865d1d7536bd4022ddd2e9e1085287450b6c67",
+      "tests/pool_memory_tests.cpp": "05f0ab31be5649c052a32a7bff41462bf70880933066fc9baac1a7c74c10d0b4",
+      "tests/runtime_failure_tests.cpp": "1938dd1cb0ac2d9c560e5ce7bb9f00bbcc4d4ff3a25b9e8aa58b0ba34b95259a",
+      "tests/accounting_allocation_tests.cpp": "f1c078876e0644964587e4110bad83b29da41ffed92d9041983d64a8cd12f63e",
+      "tests/graph_tests.cpp": "03a1f0853438e5da0e9bd77599d732cd61999745a3de6468b1ea91847433675e",
+      "tests/runtime_memory_tests.cpp": "60d6c640b1d4f74e0dd7270a56bfb3987728493261a6899e8345f921309dd226",
+      "tests/function_tests.cpp": "7f9d53def0389d160866cdc5ec0a4120a457a3dfa59d6a84f4ba93dada7ac2ca",
+      "tests/queue_tests.cpp": "3eaa019e352f0b87781fe624c1c4ca95eca752450dcddc496a4a11daacdcde1c",
+      "tests/main_harness_tests.py": "fbf965d85a88bc602049c019e925f72cd30595f88e81f1c684ee53e0efe0d355",
+      "tests/idle_accounting_tests.cpp": "1ad87136177b14bb95c1494ab5780620d07a1ed23c15dd8e17cf81b8edcf76c7",
+      "tests/api_convenience_tests.cpp": "cd5ea7b71267da2e15fca653294f9b427b1f08c35e01483f4a0facc238dae3b7",
+      "tests/queue_allocation_tests.cpp": "2358235123fae62ba648d1ef2b50a0c8247e20c8ed2a73af67f7e65759514161",
+      "tests/vector_allocation_tests.cpp": "c01ffd50a9f5588e3e1475f275b091aa1280bd203987299b7c89a2669dd41392",
+      "tests/ownership_tests.cpp": "0fdeee8769227030b1c605b51722544747675a2287b8f65b9fcac7ea04088d18",
+      "tests/stl_allocation_tests.cpp": "aacffb959d2061e4d69bb3f784b334603750e1b77dfb56ebf2f1f1c0b3cbc07a",
+      "tests/__pycache__/main_harness_tests.cpython-314.pyc": "f5993b36fa1e25bb04801e9e1ee0bd3e7ea858b12bc34d582e4843a4dfa0260c",
+      "include/dagflow/handle.hpp": "f31bea406f2d88bd89efa81f8abee360a24ea40d85327bb2526a3d00d0e93478",
+      "include/dagflow/task_graph.hpp": "6694805ea0380caada074cc80c8598a0578940b1c018bd00c29af7e003d2bd34",
+      "include/dagflow/inplace_function.hpp": "03c6b4d14aa4afd46c75fdfeff47e60954f19e659d8b15ee01a98414c349104c",
+      "include/dagflow/task_scope.hpp": "5a4d127356004449b2df052b73b4b5c9a66d712abb3de5a9a8f79bf3dfdb4a50",
+      "include/dagflow/graph_scope.hpp": "dd2c4bffb2d6cc2f9bbba8d90b7b8d755592f51353fc8eb9b3b6e28c8cf49b89",
+      "include/dagflow/config.hpp": "a478e941f1a0de0ca0731db4b0c8c460fe49a51818b0face4c724468953a1ea4",
+      "include/dagflow/thread_pool.hpp": "dec07f7d6f350537cb5f0b227236723f579783969dd413753888ba9e6f325924",
+      "include/dagflow/dagflow.hpp": "6f3ba567771c4f5d717f6c210f9668ea7dddafea20a4a0a76726f33856e80e67",
+      "include/dagflow/detail/idle_accounting.hpp": "16baedee12db1d150ba1e2ca08170b0009f115abd16b1c311004cf0f9f53f8af",
+      "include/dagflow/detail/small_vector.hpp": "a523f80fcaec798e9f709db4869f6e69e284920244e92077b57d577408e0f700",
+      "include/dagflow/detail/ring_mpmc.hpp": "766e58575ca449f0014be8afdb7e4b789112f8cc1b986b8ec60fadf8bc48cc32",
+      "include/dagflow/detail/chase_lev_deque.hpp": "292e61a4775e08c011d21ece70e2872a6db34594ef294595b7b75158c657e118",
+      "include/dagflow/detail/small_function.hpp": "66abc1f2fb14ecde9a9b84026db35faa49c0ddd4d36aabc3987c5dabab9335dc",
+      "include/dagflow/detail/parking_lot.hpp": "97edd033a372d2ed72a1491dea0bb775a9befe0272007ddfb453a88b6f0de1c2",
+      "include/dagflow/detail/runtime_diagnostics.hpp": "09b63e93b43b831843dc75eb25f49c64e2cfcaad84bad3bcbd97c6aec54eff3f",
+      "include/dagflow/detail/scheduler.hpp": "45612ee3da0cfdb577dfaf4ef1433daab1de1f5bc0d69edffa77e3afbeb2e6b3",
+      "include/dagflow/detail/runtime_memory.hpp": "f676ba615ae7749137fc521cec36e80ff622e71d426b5ec09dda6b0ec546d941"
+    }
+  },
+  "binaries": {
+    "o3-baseline": {
+      "path": "/home/cppshizoid/Code/DagFlow/out/experiments/drain-wake/build/o3-baseline/dagflow-example",
+      "sha256": "d0c877f577a95dcf0740dd3f1f0e9f339272b755d17fcb5d928305f644e379c3"
+    },
+    "o3-baseline-diag": {
+      "path": "/home/cppshizoid/Code/DagFlow/out/experiments/drain-wake/build/o3-baseline-diag/dagflow-example",
+      "sha256": "11063c583a4070e3112046c21f328a5b138d975c4a7d6b2683c264558369b925"
+    },
+    "o3-relay": {
+      "path": "/home/cppshizoid/Code/DagFlow/out/experiments/drain-wake/build/o3-relay/dagflow-example",
+      "sha256": "b093ab1e4ef7ee5cb64b7221fbe89d5c22bf3835ae3e4c233adda3cb5af4504c"
+    },
+    "o3-relay-diag": {
+      "path": "/home/cppshizoid/Code/DagFlow/out/experiments/drain-wake/build/o3-relay-diag/dagflow-example",
+      "sha256": "e75f1eb75067d92e7aa5cf075c6d442ccf0b4faf1928d3caa1331aa4faddf413"
+    },
+    "o3-lto-baseline": {
+      "path": "/home/cppshizoid/Code/DagFlow/out/experiments/drain-wake/build/o3-lto-baseline/dagflow-example",
+      "sha256": "d1f827c5c756f6858659e6244ffd02834d589e3be65fdc7af50fcb8a001f6cbb"
+    },
+    "o3-lto-baseline-diag": {
+      "path": "/home/cppshizoid/Code/DagFlow/out/experiments/drain-wake/build/o3-lto-baseline-diag/dagflow-example",
+      "sha256": "7ff27048a46991028ee50b641ea9ec4bec6ec2881980ac46d37a2629d082a83e"
+    },
+    "o3-lto-relay": {
+      "path": "/home/cppshizoid/Code/DagFlow/out/experiments/drain-wake/build/o3-lto-relay/dagflow-example",
+      "sha256": "abd159f104c2e534f3980b5a99dba08e8c2da1795e108b7055566a2e4e22f699"
+    },
+    "o3-lto-relay-diag": {
+      "path": "/home/cppshizoid/Code/DagFlow/out/experiments/drain-wake/build/o3-lto-relay-diag/dagflow-example",
+      "sha256": "b790b3f5bf2b2fa50cdcb9d2a414ce5506ae527d595569bb5d78cb0c27f4474c"
+    }
+  }
+}

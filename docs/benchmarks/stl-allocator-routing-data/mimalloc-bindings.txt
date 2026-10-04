@@ -1,0 +1,13 @@
+         3:	binding file /usr/lib/libc.so.6 [0] to /usr/lib/libmimalloc.so.3 [0]: normal symbol `free' [GLIBC_2.2.5]
+         3:	binding file /usr/lib/libc.so.6 [0] to /usr/lib/libmimalloc.so.3 [0]: normal symbol `malloc' [GLIBC_2.2.5]
+         3:	binding file /usr/lib/libgcc_s.so.1 [0] to /usr/lib/libmimalloc.so.3 [0]: normal symbol `free' [GLIBC_2.2.5]
+         3:	binding file /usr/lib/libgcc_s.so.1 [0] to /usr/lib/libmimalloc.so.3 [0]: normal symbol `malloc' [GLIBC_2.2.5]
+         3:	binding file /usr/lib/libm.so.6 [0] to /usr/lib/libmimalloc.so.3 [0]: normal symbol `free' [GLIBC_2.2.5]
+         3:	binding file /usr/lib/libm.so.6 [0] to /usr/lib/libmimalloc.so.3 [0]: normal symbol `malloc' [GLIBC_2.2.5]
+         3:	binding file /usr/lib/libstdc++.so.6 [0] to /usr/lib/libmimalloc.so.3 [0]: normal symbol `_Znwm' [GLIBCXX_3.4]
+         3:	binding file /usr/lib/libstdc++.so.6 [0] to /usr/lib/libmimalloc.so.3 [0]: normal symbol `malloc' [GLIBC_2.2.5]
+         3:	binding file /usr/lib/libstdc++.so.6 [0] to /usr/lib/libmimalloc.so.3 [0]: normal symbol `free' [GLIBC_2.2.5]
+         3:	binding file /usr/lib/libstdc++.so.6 [0] to /usr/lib/libmimalloc.so.3 [0]: normal symbol `_ZnwmSt11align_val_t' [CXXABI_1.3.11]
+         3:	binding file out/benchmarks/stl-allocator-routing/build/mimalloc-before/dagflow-runtime-suite [0] to /usr/lib/libmimalloc.so.3 [0]: normal symbol `free' [GLIBC_2.2.5]
+         3:	binding file out/benchmarks/stl-allocator-routing/build/mimalloc-before/dagflow-runtime-suite [0] to /usr/lib/libmimalloc.so.3 [0]: normal symbol `malloc' [GLIBC_2.2.5]
+         3:	binding file out/benchmarks/stl-allocator-routing/build/mimalloc-before/dagflow-runtime-suite [0] to /usr/lib/libmimalloc.so.3 [0]: normal symbol `_Znwm'

@@ -1,0 +1,117 @@
+{
+  "started_utc": "2026-09-30T07:39:45.147450+00:00",
+  "trials": 5,
+  "repeats": 31,
+  "warmup": 5,
+  "physical_core_representatives": [
+    0,
+    2,
+    4,
+    6,
+    8,
+    10,
+    12,
+    14
+  ],
+  "frequency_locked": false,
+  "placement": "workers+1 distinct physical cores, no per-thread pinning",
+  "baseline": "current snapshot with only 10 STL allocator uses reverted",
+  "source_sha256": {
+    "before": {
+      "CMakeLists.txt": "30a80be5e3fac08e4c6c92585bf8f910fde41581dcc9fc361bafe5478060a9e1",
+      "bench/function_bench.cpp": "e596c397ab0ad6c347d6d7edfcc6c02d80c2a05f408a1ec4092d1aa6e7ff447e",
+      "bench/runtime_bench.cpp": "e8e84d3fd9eb188dbfe5412efbcc6cec50e1495c9d79aeaef40a2755cb950245",
+      "bench/runtime_suite.cpp": "788c5c42a9a835119a04cf4c49bcc07efcc1e871ade92aece35dbdb8be22d554",
+      "bench/tbb_bench.cpp": "87bb7b30aba7b355a9e00e031ed939a6165afb2283147411a6f35fae43031f77",
+      "bench/tbb_results.md": "b5e8b2eeff65382e714e061229492f3bafd27c75bdc633ad42277484ddc1e1f2",
+      "cmake/DagFlowConfig.cmake.in": "ff0a3b5ef4613ac154ff543583a80a7531483b213fa3539cb4c0a72b06777bd3",
+      "include/dagflow/config.hpp": "a478e941f1a0de0ca0731db4b0c8c460fe49a51818b0face4c724468953a1ea4",
+      "include/dagflow/dagflow.hpp": "6f3ba567771c4f5d717f6c210f9668ea7dddafea20a4a0a76726f33856e80e67",
+      "include/dagflow/detail/chase_lev_deque.hpp": "0fb9a3702e7b8337cf030ea2c7909664aa773fa18dd48894f985396ed4e18483",
+      "include/dagflow/detail/idle_accounting.hpp": "16baedee12db1d150ba1e2ca08170b0009f115abd16b1c311004cf0f9f53f8af",
+      "include/dagflow/detail/parking_lot.hpp": "97edd033a372d2ed72a1491dea0bb775a9befe0272007ddfb453a88b6f0de1c2",
+      "include/dagflow/detail/ring_mpmc.hpp": "766e58575ca449f0014be8afdb7e4b789112f8cc1b986b8ec60fadf8bc48cc32",
+      "include/dagflow/detail/runtime_memory.hpp": "f676ba615ae7749137fc521cec36e80ff622e71d426b5ec09dda6b0ec546d941",
+      "include/dagflow/detail/scheduler.hpp": "b8e33992742d70714527c40f3cd1950fba2643d9f50a8d701d443fb942f64db6",
+      "include/dagflow/detail/small_function.hpp": "66abc1f2fb14ecde9a9b84026db35faa49c0ddd4d36aabc3987c5dabab9335dc",
+      "include/dagflow/detail/small_vector.hpp": "a523f80fcaec798e9f709db4869f6e69e284920244e92077b57d577408e0f700",
+      "include/dagflow/graph_scope.hpp": "c4c79ff715ef8473effdeffb45d16fc2d11ae3bd2252357590de971192b069fb",
+      "include/dagflow/handle.hpp": "c1b2437dd015c99d161e6eda5761cae3eaf0893e8d4d097455950bd3133b4d16",
+      "include/dagflow/inplace_function.hpp": "03c6b4d14aa4afd46c75fdfeff47e60954f19e659d8b15ee01a98414c349104c",
+      "include/dagflow/task_graph.hpp": "e620c4ab598d9d80a3f17893a17e91d6a0949a7d46e8349a1d4e2f13c378b9fc",
+      "include/dagflow/task_scope.hpp": "01f3f608cd7d7bc0da19db2c660f2e5bbb107ac50b28a6c1c12d51a4690199da",
+      "include/dagflow/thread_pool.hpp": "e79350e21d28c1b271709a51fc665ac384dc5ca7e58357e3041250f9c2cae453",
+      "src/idle_accounting.cpp": "4fb0a102c3ebd1857697f2de09a03489752b42640b5e4ae5001977a009ed900f",
+      "src/main.cpp": "4dee73bc110b74bef3fba9cd6646ed38c74cf8d4f99658d603b4840c9f2aafb1",
+      "src/parking_lot.cpp": "3183ec53bfc3b939c42e555a5ecc5893734e27c928bc08fcab5b832cf2b18eb9",
+      "src/runtime_memory.cpp": "1b23a95084246dd5cd74734d15bb612e0c130e8eb02afaf4a8046f8ac23b2331",
+      "src/scheduler.cpp": "4c40d51f0d38f99256fa88e1dc12cd059705c908f150d02b462fe636f1c1e4e9",
+      "src/task_graph.cpp": "4a23349987484ddd9c49423d4d6b9fa4558eeb8667c169e0c42f9061fffc96df",
+      "src/task_scope.cpp": "f1ce2b4a701718594178ccdf260446495bf8bbd8b32dc51fc644545cafb9af44",
+      "src/thread_pool.cpp": "9c6765b3fd444486c5e4a8bf52b477d14451c83b77a0e674c769387428a9aa03"
+    },
+    "after": {
+      "CMakeLists.txt": "30a80be5e3fac08e4c6c92585bf8f910fde41581dcc9fc361bafe5478060a9e1",
+      "bench/function_bench.cpp": "e596c397ab0ad6c347d6d7edfcc6c02d80c2a05f408a1ec4092d1aa6e7ff447e",
+      "bench/runtime_bench.cpp": "e8e84d3fd9eb188dbfe5412efbcc6cec50e1495c9d79aeaef40a2755cb950245",
+      "bench/runtime_suite.cpp": "788c5c42a9a835119a04cf4c49bcc07efcc1e871ade92aece35dbdb8be22d554",
+      "bench/tbb_bench.cpp": "87bb7b30aba7b355a9e00e031ed939a6165afb2283147411a6f35fae43031f77",
+      "bench/tbb_results.md": "b5e8b2eeff65382e714e061229492f3bafd27c75bdc633ad42277484ddc1e1f2",
+      "cmake/DagFlowConfig.cmake.in": "ff0a3b5ef4613ac154ff543583a80a7531483b213fa3539cb4c0a72b06777bd3",
+      "include/dagflow/config.hpp": "a478e941f1a0de0ca0731db4b0c8c460fe49a51818b0face4c724468953a1ea4",
+      "include/dagflow/dagflow.hpp": "6f3ba567771c4f5d717f6c210f9668ea7dddafea20a4a0a76726f33856e80e67",
+      "include/dagflow/detail/chase_lev_deque.hpp": "0fb9a3702e7b8337cf030ea2c7909664aa773fa18dd48894f985396ed4e18483",
+      "include/dagflow/detail/idle_accounting.hpp": "16baedee12db1d150ba1e2ca08170b0009f115abd16b1c311004cf0f9f53f8af",
+      "include/dagflow/detail/parking_lot.hpp": "97edd033a372d2ed72a1491dea0bb775a9befe0272007ddfb453a88b6f0de1c2",
+      "include/dagflow/detail/ring_mpmc.hpp": "766e58575ca449f0014be8afdb7e4b789112f8cc1b986b8ec60fadf8bc48cc32",
+      "include/dagflow/detail/runtime_memory.hpp": "f676ba615ae7749137fc521cec36e80ff622e71d426b5ec09dda6b0ec546d941",
+      "include/dagflow/detail/scheduler.hpp": "b8e33992742d70714527c40f3cd1950fba2643d9f50a8d701d443fb942f64db6",
+      "include/dagflow/detail/small_function.hpp": "66abc1f2fb14ecde9a9b84026db35faa49c0ddd4d36aabc3987c5dabab9335dc",
+      "include/dagflow/detail/small_vector.hpp": "a523f80fcaec798e9f709db4869f6e69e284920244e92077b57d577408e0f700",
+      "include/dagflow/graph_scope.hpp": "c7aeaa15bef6d2decd5c3f5b42dda19cd3854e083260767f6942bb8db684d188",
+      "include/dagflow/handle.hpp": "64448c2c4c98a630ea1ffe6c852d875c78cb6c70f1456dca33a1dbafb092ddfe",
+      "include/dagflow/inplace_function.hpp": "03c6b4d14aa4afd46c75fdfeff47e60954f19e659d8b15ee01a98414c349104c",
+      "include/dagflow/task_graph.hpp": "6694805ea0380caada074cc80c8598a0578940b1c018bd00c29af7e003d2bd34",
+      "include/dagflow/task_scope.hpp": "01f3f608cd7d7bc0da19db2c660f2e5bbb107ac50b28a6c1c12d51a4690199da",
+      "include/dagflow/thread_pool.hpp": "d7689210d3d4fc76cad13fc14f4c9ea0438de89d87cb1d72423c8cec1a80cf39",
+      "src/idle_accounting.cpp": "4fb0a102c3ebd1857697f2de09a03489752b42640b5e4ae5001977a009ed900f",
+      "src/main.cpp": "4dee73bc110b74bef3fba9cd6646ed38c74cf8d4f99658d603b4840c9f2aafb1",
+      "src/parking_lot.cpp": "3183ec53bfc3b939c42e555a5ecc5893734e27c928bc08fcab5b832cf2b18eb9",
+      "src/runtime_memory.cpp": "1b23a95084246dd5cd74734d15bb612e0c130e8eb02afaf4a8046f8ac23b2331",
+      "src/scheduler.cpp": "4c40d51f0d38f99256fa88e1dc12cd059705c908f150d02b462fe636f1c1e4e9",
+      "src/task_graph.cpp": "e799e2fd781fbcd4297f11acfbf0e4cc3d5ba3164554c4fe868044a3f1ca3ef9",
+      "src/task_scope.cpp": "f1ce2b4a701718594178ccdf260446495bf8bbd8b32dc51fc644545cafb9af44",
+      "src/thread_pool.cpp": "3f235ac5b4a7252bd25bf3700743c4808f28ef5b38006853800cf983fd7ff1f6"
+    }
+  },
+  "compiler": "clang version 22.1.8\nTarget: x86_64-pc-linux-gnu\nThread model: posix\nInstalledDir: /usr/bin\n",
+  "cpu": "Architecture:                            x86_64\nCPU op-mode(s):                          32-bit, 64-bit\nAddress sizes:                           48 bits physical, 48 bits virtual\nByte Order:                              Little Endian\nCPU(s):                                  16\nOn-line CPU(s) list:                     0-15\nVendor ID:                               AuthenticAMD\nModel name:                              AMD Ryzen 7 6800H with Radeon Graphics\nCPU family:                              25\nModel:                                   68\nThread(s) per core:                      2\nCore(s) per socket:                      8\nSocket(s):                               1\nStepping:                                1\nMicrocode version:                       0xa404108\nFrequency boost:                         enabled\nCPU(s) scaling MHz:                      32%\nCPU max MHz:                             4787.0820\nCPU min MHz:                             403.7300\nBogoMIPS:                                6387.94\nFlags:                                   fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid aperfmperf rapl pni pclmulqdq monitor ssse3 fma cx16 sse4_1 sse4_2 x2apic movbe popcnt aes xsave avx f16c rdrand lahf_lm cmp_legacy svm extapic cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw ibs skinit wdt tce topoext perfctr_core perfctr_nb bpext perfctr_llc mwaitx cpb cat_l3 cdp_l3 hw_pstate ssbd mba ibrs ibpb stibp vmmcall fsgsbase bmi1 avx2 smep bmi2 erms invpcid cqm rdt_a rdseed adx smap clflushopt clwb sha_ni xsaveopt xsavec xgetbv1 xsaves cqm_llc cqm_occup_llc cqm_mbm_total cqm_mbm_local user_shstk clzero irperf xsaveerptr rdpru wbnoinvd cppc arat npt lbrv svm_lock nrip_save tsc_scale vmcb_clean flushbyasid decodeassists pausefilter pfthreshold avic v_vmsave_vmload vgif v_spec_ctrl umip pku ospke vaes vpclmulqdq rdpid overflow_recov succor smca fsrm debug_swap\nVirtualization:                          AMD-V\nL1d cache:                               256 KiB (8 instances)\nL1i cache:                               256 KiB (8 instances)\nL2 cache:                                4 MiB (8 instances)\nL3 cache:                                16 MiB (1 instance)\nNUMA node(s):                            1\nNUMA node0 CPU(s):                       0-15\nVulnerability Gather data sampling:      Not affected\nVulnerability Ghostwrite:                Not affected\nVulnerability Indirect target selection: Not affected\nVulnerability Itlb multihit:             Not affected\nVulnerability L1tf:                      Not affected\nVulnerability Mds:                       Not affected\nVulnerability Meltdown:                  Not affected\nVulnerability Mmio stale data:           Not affected\nVulnerability Old microcode:             Not affected\nVulnerability Reg file data sampling:    Not affected\nVulnerability Retbleed:                  Not affected\nVulnerability Spec rstack overflow:      Mitigation; Safe RET\nVulnerability Spec store bypass:         Mitigation; Speculative Store Bypass disabled via prctl\nVulnerability Spectre v1:                Mitigation; usercopy/swapgs barriers and __user pointer sanitization\nVulnerability Spectre v2:                Mitigation; Retpolines; IBPB conditional; IBRS_FW; STIBP always-on; RSB filling; PBRSB-eIBRS Not affected; BHI Not affected\nVulnerability Srbds:                     Not affected\nVulnerability Tsa:                       Mitigation; Clear CPU buffers\nVulnerability Tsx async abort:           Not affected\nVulnerability Vmscape:                   Mitigation; IBPB before exit to userspace\n",
+  "git_head": "2d46e866d066b21961f23e14afbd6d457f3c22da",
+  "git_status": " M .clang-format\n M .clang-tidy\n M CMakeLists.txt\n M CMakePresets.json\n M README.md\n M bench/tbb_bench.cpp\n M cmake/DagFlowConfig.cmake.in\n M docs/Doxyfile.in\n M docs/generate_docs.py\n M docs/how_it_works.md\nA  docs/noop_fix.md\n D include/chase_lev_deque.hpp\n D include/config.hpp\n D include/dagflow.hpp\n D include/qsbr_domain.hpp\n D include/ring_mpmc.hpp\n D include/small_function.hpp\n D include/small_vec.hpp\n D include/task.hpp\n D include/task_graph.hpp\n D include/thread_pool.hpp\n M src/main.cpp\n M src/thread_pool.cpp\n?? bench/function_bench.cpp\n?? bench/runtime_bench.cpp\n?? bench/runtime_suite.cpp\n?? build_all.sh\n?? dagflow-lifetime-invariants-current-fixed.md\n?? dagflow-release-listings.zip\n?? docs/__pycache__/\n?? docs/batch-submit.md\n?? docs/benchmarks/\n?? docs/code_organization.md\n?? docs/dagflow-lifetime-invariants-current.md\n?? docs/dagflow_api_adr.md\n?? docs/experiments/\n?? docs/explicit-ownership.md\n?? \"docs/goals to finish runtime.md\"\n?? docs/idle-accounting.md\n?? docs/noop-hotpath-investigation.md\n?? docs/runtime-benchmark-results.md\n?? docs/runtime-improvement-plan.md\n?? docs/scheduler-topology.md\n?? docs/smth_useful.md\n?? docs/task-scope-lifetime.md\n?? include/dagflow/\n?? release_build/\n?? scripts/\n?? src/idle_accounting.cpp\n?? src/parking_lot.cpp\n?? src/runtime_memory.cpp\n?? src/scheduler.cpp\n?? src/task_graph.cpp\n?? src/task_scope.cpp\n?? tests/\n",
+  "binaries": {
+    "system-before": {
+      "path": "/home/cppshizoid/Code/DagFlow/out/benchmarks/stl-allocator-routing/build/system-before/dagflow-runtime-suite",
+      "sha256": "1df138a3aabed4d7e226907509430488a2edbe469270c571e94ef6af851f53cd"
+    },
+    "system-after": {
+      "path": "/home/cppshizoid/Code/DagFlow/out/benchmarks/stl-allocator-routing/build/system-after/dagflow-runtime-suite",
+      "sha256": "5593dbaedfb5ed0205cc0f9243ef95a021efccccea013f609c36b9ada9889c10"
+    },
+    "mimalloc-before": {
+      "path": "/home/cppshizoid/Code/DagFlow/out/benchmarks/stl-allocator-routing/build/mimalloc-before/dagflow-runtime-suite",
+      "sha256": "15e1ca6724378e4a5b8eb3fcc0983e5366729c462cafd14b017951f41cd13983"
+    },
+    "mimalloc-after": {
+      "path": "/home/cppshizoid/Code/DagFlow/out/benchmarks/stl-allocator-routing/build/mimalloc-after/dagflow-runtime-suite",
+      "sha256": "99821aca621085ac6ad18133c503216f9de617a5389c588d897735c35db24831"
+    },
+    "tbbmalloc-before": {
+      "path": "/home/cppshizoid/Code/DagFlow/out/benchmarks/stl-allocator-routing/build/tbbmalloc-before/dagflow-runtime-suite",
+      "sha256": "25f5d5f671862aaaca2980c97a98bceceede543c4d80bc0276131d9debaa7711"
+    },
+    "tbbmalloc-after": {
+      "path": "/home/cppshizoid/Code/DagFlow/out/benchmarks/stl-allocator-routing/build/tbbmalloc-after/dagflow-runtime-suite",
+      "sha256": "8243ba701b39a2c1074b98f5a7f165e32c72143572f89131f34b8dd752dcc317"
+    }
+  }
+}

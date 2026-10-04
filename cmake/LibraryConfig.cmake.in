@@ -1,0 +1,9 @@
+@PACKAGE_INIT@
+include(CMakeFindDependencyMacro)
+# Use PACKAGE_CONFIG to supply a template with find_dependency() calls when needed.
+include("${CMAKE_CURRENT_LIST_DIR}/@DAGFLOW_PACKAGE_NAME@Targets.cmake")
+if(NOT TARGET @DAGFLOW_PACKAGE_NAME@::@DAGFLOW_PACKAGE_NAME@)
+  add_library(@DAGFLOW_PACKAGE_NAME@::@DAGFLOW_PACKAGE_NAME@
+    ALIAS @DAGFLOW_PACKAGE_NAME@::@DAGFLOW_PACKAGE_PREFERRED@)
+endif()
+check_required_components(@DAGFLOW_PACKAGE_NAME@)

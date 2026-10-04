@@ -1,0 +1,12 @@
+{
+  "baseline": {
+    "exit_code": 2,
+    "stdout": "",
+    "stderr": "wake relay stopped at round 0\n"
+  },
+  "relay": {
+    "exit_code": 0,
+    "stdout": "20 rounds passed\n",
+    "stderr": ""
+  }
+}

@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 6,
   "cmakeMinimumRequired": {
     "major": 3,
     "minor": 26,
@@ -7,27 +7,380 @@
   },
   "configurePresets": [
     {
-      "name": "debug",
-      "displayName": "Debug",
+      "name": "base",
+      "hidden": true,
       "generator": "Ninja",
+      "cacheVariables": {
+        "DAGFLOW_BUILD_EXAMPLES": "ON",
+        "DAGFLOW_BUILD_BENCH": "OFF",
+        "DAGFLOW_BUILD_RUNTIME_BENCH": "ON",
+        "DAGFLOW_BUILD_TESTS": "ON",
+        "DAGFLOW_INSTALL": "ON",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "DAGFLOW_BUILD_PUBLIC_API_BENCH": "ON",
+        "DAGFLOW_ALLOCATOR": "system",
+        "DAGFLOW_COMPILER_CACHE": "none"
+      }
+    },
+    {
+      "name": "shared-base",
+      "hidden": true,
+      "inherits": "base",
+      "cacheVariables": {
+        "DAGFLOW_BUILD_SHARED": "ON",
+        "DAGFLOW_BUILD_STATIC": "OFF"
+      }
+    },
+    {
+      "name": "static-base",
+      "hidden": true,
+      "inherits": "base",
+      "cacheVariables": {
+        "DAGFLOW_BUILD_SHARED": "OFF",
+        "DAGFLOW_BUILD_STATIC": "ON"
+      }
+    },
+    {
+      "name": "aggressive-shared",
+      "hidden": true,
+      "inherits": "shared-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "DAGFLOW_ENABLE_NO_SEMANTIC_INTERPOSITION": "ON",
+        "DAGFLOW_ENABLE_GC_SECTIONS": "ON",
+        "DAGFLOW_ENABLE_NO_PLT": "ON"
+      }
+    },
+    {
+      "name": "aggressive-static",
+      "hidden": true,
+      "inherits": "static-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "DAGFLOW_ENABLE_GC_SECTIONS": "ON",
+        "DAGFLOW_ENABLE_NO_PLT": "ON"
+      }
+    },
+    {
+      "name": "debug",
+      "displayName": "Debug shared",
+      "inherits": "shared-base",
       "binaryDir": "${sourceDir}/out/build/debug",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "TP_BUILD_SHARED": "ON",
-        "TP_BUILD_EXAMPLES": "ON",
-        "TP_BUILD_BENCH": "ON"
+        "DAGFLOW_ARTIFACT_SUFFIX": "-debug",
+        "DAGFLOW_BUILD_TESTS": "ON"
+      }
+    },
+    {
+      "name": "relwithdebinfo",
+      "displayName": "RelWithDebInfo shared",
+      "inherits": "shared-base",
+      "binaryDir": "${sourceDir}/out/build/relwithdebinfo",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "DAGFLOW_ARTIFACT_SUFFIX": "-relwithdebinfo"
       }
     },
     {
       "name": "release",
-      "displayName": "Release",
-      "generator": "Ninja",
+      "displayName": "Release shared",
+      "inherits": "aggressive-shared",
       "binaryDir": "${sourceDir}/out/build/release",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
-        "TP_BUILD_SHARED": "ON",
-        "TP_BUILD_EXAMPLES": "ON",
-        "TP_BUILD_BENCH": "ON"
+        "DAGFLOW_ARTIFACT_SUFFIX": "-release"
+      }
+    },
+    {
+      "name": "release-thinlto",
+      "displayName": "Release shared + ThinLTO",
+      "inherits": "aggressive-shared",
+      "binaryDir": "${sourceDir}/out/build/release-thinlto",
+      "cacheVariables": {
+        "DAGFLOW_ARTIFACT_SUFFIX": "-release-thinlto",
+        "DAGFLOW_LTO_MODE": "thin",
+        "DAGFLOW_USE_LLD": "ON",
+        "DAGFLOW_ENABLE_ICF": "ON"
+      }
+    },
+    {
+      "name": "release-fulllto",
+      "displayName": "Release shared + Full LTO",
+      "inherits": "aggressive-shared",
+      "binaryDir": "${sourceDir}/out/build/release-fulllto",
+      "cacheVariables": {
+        "DAGFLOW_ARTIFACT_SUFFIX": "-release-fulllto",
+        "DAGFLOW_LTO_MODE": "full",
+        "DAGFLOW_USE_LLD": "ON",
+        "DAGFLOW_ENABLE_ICF": "ON"
+      }
+    },
+    {
+      "name": "release-native-thinlto",
+      "displayName": "Release shared + native + ThinLTO",
+      "inherits": "release-thinlto",
+      "binaryDir": "${sourceDir}/out/build/release-native-thinlto",
+      "cacheVariables": {
+        "DAGFLOW_ARTIFACT_SUFFIX": "-release-native-thinlto",
+        "DAGFLOW_ENABLE_NATIVE": "ON"
+      }
+    },
+    {
+      "name": "release-native-fulllto",
+      "displayName": "Release shared + native + Full LTO",
+      "inherits": "release-fulllto",
+      "binaryDir": "${sourceDir}/out/build/release-native-fulllto",
+      "cacheVariables": {
+        "DAGFLOW_ARTIFACT_SUFFIX": "-release-native-fulllto",
+        "DAGFLOW_ENABLE_NATIVE": "ON"
+      }
+    },
+    {
+      "name": "static-release",
+      "displayName": "Static Release",
+      "inherits": "aggressive-static",
+      "binaryDir": "${sourceDir}/out/build/static-release",
+      "cacheVariables": {
+        "DAGFLOW_ARTIFACT_SUFFIX": "-static-release"
+      }
+    },
+    {
+      "name": "static-thinlto",
+      "displayName": "Static Release + ThinLTO",
+      "inherits": "aggressive-static",
+      "binaryDir": "${sourceDir}/out/build/static-thinlto",
+      "cacheVariables": {
+        "DAGFLOW_ARTIFACT_SUFFIX": "-static-thinlto",
+        "DAGFLOW_LTO_MODE": "thin",
+        "DAGFLOW_USE_LLD": "ON",
+        "DAGFLOW_ENABLE_ICF": "ON"
+      }
+    },
+    {
+      "name": "static-fulllto",
+      "displayName": "Static Release + Full LTO",
+      "inherits": "aggressive-static",
+      "binaryDir": "${sourceDir}/out/build/static-fulllto",
+      "cacheVariables": {
+        "DAGFLOW_ARTIFACT_SUFFIX": "-static-fulllto",
+        "DAGFLOW_LTO_MODE": "full",
+        "DAGFLOW_USE_LLD": "ON",
+        "DAGFLOW_ENABLE_ICF": "ON"
+      }
+    },
+    {
+      "name": "static-native-thinlto",
+      "displayName": "Static native + ThinLTO",
+      "inherits": "static-thinlto",
+      "binaryDir": "${sourceDir}/out/build/static-native-thinlto",
+      "cacheVariables": {
+        "DAGFLOW_ARTIFACT_SUFFIX": "-static-native-thinlto",
+        "DAGFLOW_ENABLE_NATIVE": "ON"
+      }
+    },
+    {
+      "name": "static-native-fulllto",
+      "displayName": "Static native + Full LTO (maximum whole-program-ish build)",
+      "inherits": "static-fulllto",
+      "binaryDir": "${sourceDir}/out/build/static-native-fulllto",
+      "cacheVariables": {
+        "DAGFLOW_ARTIFACT_SUFFIX": "-static-native-fulllto",
+        "DAGFLOW_ENABLE_NATIVE": "ON"
+      }
+    },
+    {
+      "name": "pgo-generate",
+      "displayName": "PGO instrumented trainer (static/native/full-LTO)",
+      "inherits": "static-native-fulllto",
+      "binaryDir": "${sourceDir}/out/build/pgo-generate",
+      "cacheVariables": {
+        "DAGFLOW_ARTIFACT_SUFFIX": "-pgo-gen",
+        "DAGFLOW_PGO_MODE": "generate",
+        "DAGFLOW_PGO_DIR": "${sourceDir}/out/pgo/raw",
+        "DAGFLOW_PGO_MERGED_PROFILE": "${sourceDir}/out/pgo/dagflow.profdata"
+      }
+    },
+    {
+      "name": "pgo-use-shared",
+      "displayName": "Shared native + Full LTO + PGO",
+      "inherits": "release-native-fulllto",
+      "binaryDir": "${sourceDir}/out/build/pgo-use-shared",
+      "cacheVariables": {
+        "DAGFLOW_ARTIFACT_SUFFIX": "-pgo-shared",
+        "DAGFLOW_PGO_MODE": "use",
+        "DAGFLOW_PGO_DIR": "${sourceDir}/out/pgo/raw",
+        "DAGFLOW_PGO_PROFILE": "${sourceDir}/out/pgo/dagflow.profdata"
+      }
+    },
+    {
+      "name": "pgo-use-static",
+      "displayName": "Static native + Full LTO + PGO",
+      "inherits": "static-native-fulllto",
+      "binaryDir": "${sourceDir}/out/build/pgo-use-static",
+      "cacheVariables": {
+        "DAGFLOW_ARTIFACT_SUFFIX": "-pgo-static",
+        "DAGFLOW_PGO_MODE": "use",
+        "DAGFLOW_PGO_DIR": "${sourceDir}/out/pgo/raw",
+        "DAGFLOW_PGO_PROFILE": "${sourceDir}/out/pgo/dagflow.profdata"
+      }
+    },
+    {
+      "name": "bench-base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "clang++",
+        "DAGFLOW_ALLOCATOR": "system",
+        "DAGFLOW_USE_LLD": "ON",
+        "DAGFLOW_BUILD_STATIC": "ON",
+        "DAGFLOW_BUILD_SHARED": "OFF",
+        "DAGFLOW_INSTALL": "OFF",
+        "DAGFLOW_BUILD_EXAMPLES": "OFF",
+        "DAGFLOW_BUILD_TESTS": "OFF",
+        "DAGFLOW_BUILD_RUNTIME_BENCH": "ON",
+        "DAGFLOW_BUILD_RUNTIME_SUITE": "ON",
+        "DAGFLOW_BUILD_PUBLIC_API_BENCH": "ON",
+        "DAGFLOW_BUILD_STRESS_BENCH": "ON",
+        "DAGFLOW_BUILD_FUNCTION_BENCH": "ON",
+        "DAGFLOW_BUILD_BENCH": "OFF",
+        "DAGFLOW_COMPILER_CACHE": "none"
+      }
+    },
+    {
+      "name": "bench-release",
+      "inherits": "bench-base",
+      "cacheVariables": {
+        "DAGFLOW_PROFILE": "release"
+      }
+    },
+    {
+      "name": "bench-lto",
+      "inherits": "bench-base",
+      "cacheVariables": {
+        "DAGFLOW_PROFILE": "lto"
+      }
+    },
+    {
+      "name": "bench-full-lto",
+      "inherits": "bench-base",
+      "cacheVariables": {
+        "DAGFLOW_PROFILE": "full-lto"
+      }
+    },
+    {
+      "name": "bench-native-thinlto",
+      "inherits": "bench-base",
+      "cacheVariables": {
+        "DAGFLOW_PROFILE": "native-thinlto"
+      }
+    },
+    {
+      "name": "bench-native-full-lto",
+      "inherits": "bench-base",
+      "cacheVariables": {
+        "DAGFLOW_PROFILE": "native-full-lto"
+      }
+    },
+    {
+      "name": "bench-o3",
+      "inherits": "bench-base",
+      "cacheVariables": {
+        "DAGFLOW_PROFILE": "o3"
+      }
+    },
+    {
+      "name": "bench-o3-lto",
+      "inherits": "bench-base",
+      "cacheVariables": {
+        "DAGFLOW_PROFILE": "o3-lto"
+      }
+    },
+    {
+      "name": "bench-all",
+      "inherits": "bench-release",
+      "cacheVariables": {
+        "DAGFLOW_BUILD_BENCH": "ON"
+      }
+    },
+    {
+      "name": "bench-github",
+      "inherits": "bench-release",
+      "cacheVariables": {
+        "DAGFLOW_BUILD_GITHUB_BENCH": "ON"
+      }
+    },
+    {
+      "name": "bench-diagnostics",
+      "inherits": "bench-o3",
+      "cacheVariables": {
+        "DAGFLOW_RUNTIME_DIAGNOSTICS": "ON"
+      }
+    },
+    {
+      "name": "bench-check",
+      "inherits": "bench-all",
+      "cacheVariables": {
+        "DAGFLOW_BUILD_TESTS": "ON"
+      }
+    },
+    {
+      "name": "check-asan",
+      "inherits": "bench-check",
+      "cacheVariables": {
+        "DAGFLOW_PROFILE": "debug",
+        "DAGFLOW_SANITIZER": "address-undefined"
+      }
+    },
+    {
+      "name": "check-tsan",
+      "inherits": "bench-check",
+      "cacheVariables": {
+        "DAGFLOW_PROFILE": "debug",
+        "DAGFLOW_SANITIZER": "thread"
+      }
+    },
+    {
+      "name": "bench-pgo-generate",
+      "inherits": "bench-base",
+      "cacheVariables": {
+        "DAGFLOW_PROFILE": "pgo-generate",
+        "DAGFLOW_PGO_DIR": "${sourceDir}/out/pgo/bench-pgo/raw",
+        "DAGFLOW_PGO_MERGED_PROFILE": "${sourceDir}/out/pgo/bench-pgo/dagflow.profdata"
+      }
+    },
+    {
+      "name": "bench-pgo-use",
+      "inherits": "bench-base",
+      "cacheVariables": {
+        "DAGFLOW_PROFILE": "pgo-use",
+        "DAGFLOW_PGO_DIR": "${sourceDir}/out/pgo/bench-pgo/raw",
+        "DAGFLOW_PGO_PROFILE": "${sourceDir}/out/pgo/bench-pgo/dagflow.profdata"
+      }
+    },
+    {
+      "name": "bench-lto-pgo-generate",
+      "inherits": "bench-base",
+      "cacheVariables": {
+        "DAGFLOW_PROFILE": "lto-pgo-generate",
+        "DAGFLOW_PGO_DIR": "${sourceDir}/out/pgo/bench-lto-pgo/raw",
+        "DAGFLOW_PGO_MERGED_PROFILE": "${sourceDir}/out/pgo/bench-lto-pgo/dagflow.profdata"
+      }
+    },
+    {
+      "name": "bench-lto-pgo-use",
+      "inherits": "bench-base",
+      "cacheVariables": {
+        "DAGFLOW_PROFILE": "lto-pgo-use",
+        "DAGFLOW_PGO_DIR": "${sourceDir}/out/pgo/bench-lto-pgo/raw",
+        "DAGFLOW_PGO_PROFILE": "${sourceDir}/out/pgo/bench-lto-pgo/dagflow.profdata"
+      }
+    },
+    {
+      "name": "runtime-campaign",
+      "inherits": "bench-release",
+      "cacheVariables": {
+        "DAGFLOW_BUILD_HARNESS": "ON"
       }
     }
   ],
@@ -37,14 +390,365 @@
       "configurePreset": "debug"
     },
     {
+      "name": "relwithdebinfo",
+      "configurePreset": "relwithdebinfo"
+    },
+    {
       "name": "release",
       "configurePreset": "release"
+    },
+    {
+      "name": "release-thinlto",
+      "configurePreset": "release-thinlto"
+    },
+    {
+      "name": "release-fulllto",
+      "configurePreset": "release-fulllto"
+    },
+    {
+      "name": "release-native-thinlto",
+      "configurePreset": "release-native-thinlto"
+    },
+    {
+      "name": "release-native-fulllto",
+      "configurePreset": "release-native-fulllto"
+    },
+    {
+      "name": "static-release",
+      "configurePreset": "static-release"
+    },
+    {
+      "name": "static-thinlto",
+      "configurePreset": "static-thinlto"
+    },
+    {
+      "name": "static-fulllto",
+      "configurePreset": "static-fulllto"
+    },
+    {
+      "name": "static-native-thinlto",
+      "configurePreset": "static-native-thinlto"
+    },
+    {
+      "name": "static-native-fulllto",
+      "configurePreset": "static-native-fulllto"
+    },
+    {
+      "name": "pgo-generate",
+      "configurePreset": "pgo-generate"
+    },
+    {
+      "name": "pgo-use-shared",
+      "configurePreset": "pgo-use-shared"
+    },
+    {
+      "name": "pgo-use-static",
+      "configurePreset": "pgo-use-static"
+    },
+    {
+      "name": "bench-release",
+      "configurePreset": "bench-release"
+    },
+    {
+      "name": "bench-lto",
+      "configurePreset": "bench-lto"
+    },
+    {
+      "name": "bench-full-lto",
+      "configurePreset": "bench-full-lto"
+    },
+    {
+      "name": "bench-native-thinlto",
+      "configurePreset": "bench-native-thinlto"
+    },
+    {
+      "name": "bench-native-full-lto",
+      "configurePreset": "bench-native-full-lto"
+    },
+    {
+      "name": "bench-o3",
+      "configurePreset": "bench-o3"
+    },
+    {
+      "name": "bench-o3-lto",
+      "configurePreset": "bench-o3-lto"
+    },
+    {
+      "name": "bench-all",
+      "configurePreset": "bench-all"
+    },
+    {
+      "name": "bench-github",
+      "configurePreset": "bench-github"
+    },
+    {
+      "name": "bench-diagnostics",
+      "configurePreset": "bench-diagnostics"
+    },
+    {
+      "name": "bench-check",
+      "configurePreset": "bench-check"
+    },
+    {
+      "name": "check-asan",
+      "configurePreset": "check-asan"
+    },
+    {
+      "name": "check-tsan",
+      "configurePreset": "check-tsan"
+    },
+    {
+      "name": "bench-pgo-generate",
+      "configurePreset": "bench-pgo-generate"
+    },
+    {
+      "name": "bench-pgo-use",
+      "configurePreset": "bench-pgo-use"
+    },
+    {
+      "name": "bench-lto-pgo-generate",
+      "configurePreset": "bench-lto-pgo-generate"
+    },
+    {
+      "name": "bench-lto-pgo-use",
+      "configurePreset": "bench-lto-pgo-use"
+    },
+    {
+      "name": "runtime-campaign",
+      "configurePreset": "runtime-campaign",
+      "targets": [
+        "run_dagflow_runtime_campaign"
+      ]
     }
   ],
   "testPresets": [
     {
       "name": "all",
       "configurePreset": "debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "bench-check",
+      "configurePreset": "bench-check",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "check-asan",
+      "configurePreset": "check-asan",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "check-tsan",
+      "configurePreset": "check-tsan",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "debug",
+      "configurePreset": "debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "relwithdebinfo",
+      "configurePreset": "relwithdebinfo",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "release",
+      "configurePreset": "release",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "release-thinlto",
+      "configurePreset": "release-thinlto",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "release-fulllto",
+      "configurePreset": "release-fulllto",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "release-native-thinlto",
+      "configurePreset": "release-native-thinlto",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "release-native-fulllto",
+      "configurePreset": "release-native-fulllto",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "static-release",
+      "configurePreset": "static-release",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "static-thinlto",
+      "configurePreset": "static-thinlto",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "static-fulllto",
+      "configurePreset": "static-fulllto",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "static-native-thinlto",
+      "configurePreset": "static-native-thinlto",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "static-native-fulllto",
+      "configurePreset": "static-native-fulllto",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "pgo-generate",
+      "configurePreset": "pgo-generate",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "pgo-use-shared",
+      "configurePreset": "pgo-use-shared",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "pgo-use-static",
+      "configurePreset": "pgo-use-static",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "bench-release",
+      "configurePreset": "bench-release",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "bench-lto",
+      "configurePreset": "bench-lto",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "bench-full-lto",
+      "configurePreset": "bench-full-lto",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "bench-native-thinlto",
+      "configurePreset": "bench-native-thinlto",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "bench-native-full-lto",
+      "configurePreset": "bench-native-full-lto",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "bench-o3",
+      "configurePreset": "bench-o3",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "bench-o3-lto",
+      "configurePreset": "bench-o3-lto",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "bench-all",
+      "configurePreset": "bench-all",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "bench-github",
+      "configurePreset": "bench-github",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "bench-diagnostics",
+      "configurePreset": "bench-diagnostics",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "bench-pgo-generate",
+      "configurePreset": "bench-pgo-generate",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "bench-pgo-use",
+      "configurePreset": "bench-pgo-use",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "bench-lto-pgo-generate",
+      "configurePreset": "bench-lto-pgo-generate",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "bench-lto-pgo-use",
+      "configurePreset": "bench-lto-pgo-use",
       "output": {
         "outputOnFailure": true
       }

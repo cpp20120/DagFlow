@@ -1,0 +1,153 @@
+name: DagFlow CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dagflow-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CMAKE_BUILD_PARALLEL_LEVEL: 2
+
+jobs:
+  linux:
+    name: Linux / ${{ matrix.preset }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        preset: [debug, release, static-release]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang lld ninja-build libtbb-dev
+
+      - name: Configure
+        run: cmake --preset "${{ matrix.preset }}" -DCMAKE_CXX_COMPILER=clang++
+
+      - name: Build
+        run: cmake --build --preset "${{ matrix.preset }}" --parallel 2
+
+      - name: Test
+        run: ctest --preset "${{ matrix.preset }}" --output-on-failure --no-tests=error
+
+      - name: Install and compile package consumer
+        if: matrix.preset == 'release'
+        shell: bash
+        run: |
+          install_root="$RUNNER_TEMP/dagflow-install"
+          consumer_build="$RUNNER_TEMP/dagflow-consumer"
+          cmake --install "out/build/${{ matrix.preset }}" --prefix "$install_root"
+          cmake -S tests/install_consumer -B "$consumer_build" -G Ninja \
+            -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_PREFIX_PATH="$install_root"
+          cmake --build "$consumer_build" --parallel 2
+          LD_LIBRARY_PATH="$install_root/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
+            "$consumer_build/dagflow_install_consumer"
+
+  benchmarks:
+    name: Linux / benchmark-check
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang lld ninja-build libtbb-dev
+
+      - name: Configure
+        run: cmake --preset bench-check -DCMAKE_CXX_COMPILER=clang++
+
+      - name: Build benchmark and correctness targets
+        run: cmake --build --preset bench-check --parallel 2
+
+      - name: Run benchmark smoke and correctness tests
+        run: ctest --preset bench-check --output-on-failure --no-tests=error
+
+  sanitizers:
+    name: Linux / ${{ matrix.preset }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        preset: [check-asan, check-tsan]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang lld ninja-build libtbb-dev
+
+      - name: Configure
+        run: cmake --preset "${{ matrix.preset }}" -DCMAKE_CXX_COMPILER=clang++
+
+      - name: Build
+        run: cmake --build --preset "${{ matrix.preset }}" --parallel 2
+
+      - name: Test
+        env:
+          ASAN_OPTIONS: detect_leaks=0:halt_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+          TSAN_OPTIONS: halt_on_error=1
+        run: ctest --preset "${{ matrix.preset }}" --output-on-failure --no-tests=error
+
+  portability:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-14]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Ninja (macOS)
+        if: runner.os == 'macOS'
+        run: brew install ninja
+
+      - name: Configure
+        shell: bash
+        run: |
+          common_args=(
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo
+            -DDAGFLOW_BUILD_SHARED=ON -DDAGFLOW_BUILD_STATIC=OFF
+            -DDAGFLOW_BUILD_EXAMPLES=OFF -DDAGFLOW_BUILD_TESTS=ON
+            -DDAGFLOW_BUILD_RUNTIME_BENCH=OFF -DDAGFLOW_BUILD_RUNTIME_SUITE=OFF
+            -DDAGFLOW_BUILD_PUBLIC_API_BENCH=OFF -DDAGFLOW_BUILD_FUNCTION_BENCH=OFF
+            -DDAGFLOW_BUILD_STRESS_BENCH=OFF -DDAGFLOW_BUILD_BENCH=OFF
+            -DDAGFLOW_BUILD_GITHUB_BENCH=OFF -DDAGFLOW_ALLOCATOR=system
+            -DDAGFLOW_INSTALL=OFF -DDAGFLOW_COMPILER_CACHE=none
+          )
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            cmake -S . -B build/portability -A x64 "${common_args[@]}"
+          else
+            cmake -S . -B build/portability -G Ninja "${common_args[@]}"
+          fi
+
+      - name: Build
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            cmake --build build/portability --config RelWithDebInfo --parallel 2
+          else
+            cmake --build build/portability --parallel 2
+          fi
+
+      - name: Test
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            ctest --test-dir build/portability -C RelWithDebInfo --output-on-failure --no-tests=error
+          else
+            ctest --test-dir build/portability --output-on-failure --no-tests=error
+          fi

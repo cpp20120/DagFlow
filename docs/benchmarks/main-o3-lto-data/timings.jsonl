@@ -1,0 +1,120 @@
+{"profile": "o3-lto", "workers": 4, "scenario": "local-overflow", "trial": 0, "time_us": 6808.0, "min_us": 2751.0, "max_us": 7861.0, "mtasks_s": 9.626}
+{"profile": "o3", "workers": 4, "scenario": "local-overflow", "trial": 0, "time_us": 8394.0, "min_us": 7729.0, "max_us": 8744.0, "mtasks_s": 7.807}
+{"profile": "o3-lto", "workers": 4, "scenario": "nested-helping", "trial": 0, "time_us": 1721.0, "min_us": 1632.0, "max_us": 2264.0, "mtasks_s": 19.042}
+{"profile": "o3", "workers": 4, "scenario": "nested-helping", "trial": 0, "time_us": 2142.0, "min_us": 1926.0, "max_us": 2723.0, "mtasks_s": 15.301}
+{"profile": "o3", "workers": 1, "scenario": "hot-shard-skew", "trial": 0, "time_us": 13860.0, "min_us": 13773.0, "max_us": 14673.0, "mtasks_s": 4.728}
+{"profile": "o3-lto", "workers": 1, "scenario": "hot-shard-skew", "trial": 0, "time_us": 13841.0, "min_us": 13766.0, "max_us": 13983.0, "mtasks_s": 4.735}
+{"profile": "o3-lto", "workers": 1, "scenario": "local-overflow", "trial": 0, "time_us": 1406.0, "min_us": 1387.0, "max_us": 1481.0, "mtasks_s": 46.604}
+{"profile": "o3", "workers": 1, "scenario": "local-overflow", "trial": 0, "time_us": 1630.0, "min_us": 1615.0, "max_us": 1647.0, "mtasks_s": 40.202}
+{"profile": "o3-lto", "workers": 1, "scenario": "idle-burst", "trial": 0, "time_us": 46.8, "p99_us": 279.52, "max_us": 460.52}
+{"profile": "o3", "workers": 1, "scenario": "idle-burst", "trial": 0, "time_us": 35.92, "p99_us": 95.93, "max_us": 145.19}
+{"profile": "o3", "workers": 1, "scenario": "external-contention", "trial": 0, "time_us": 8966.0, "min_us": 8519.0, "max_us": 9142.0, "mtasks_s": 14.619}
+{"profile": "o3-lto", "workers": 1, "scenario": "external-contention", "trial": 0, "time_us": 8572.0, "min_us": 8491.0, "max_us": 9078.0, "mtasks_s": 15.29}
+{"profile": "o3-lto", "workers": 4, "scenario": "idle-burst", "trial": 0, "time_us": 46.74, "p99_us": 185.63, "max_us": 248.62}
+{"profile": "o3", "workers": 4, "scenario": "idle-burst", "trial": 0, "time_us": 48.59, "p99_us": 239.44, "max_us": 260.98}
+{"profile": "o3", "workers": 4, "scenario": "mixed-chaos", "trial": 0, "time_us": 5192.0, "min_us": 4995.0, "max_us": 5276.0, "mtasks_s": 19.722}
+{"profile": "o3-lto", "workers": 4, "scenario": "mixed-chaos", "trial": 0, "time_us": 5403.0, "min_us": 5069.0, "max_us": 6021.0, "mtasks_s": 18.952}
+{"profile": "o3", "workers": 1, "scenario": "mixed-chaos", "trial": 0, "time_us": 19254.0, "min_us": 17853.0, "max_us": 19596.0, "mtasks_s": 5.318}
+{"profile": "o3-lto", "workers": 1, "scenario": "mixed-chaos", "trial": 0, "time_us": 16792.0, "min_us": 15430.0, "max_us": 17430.0, "mtasks_s": 6.098}
+{"profile": "o3-lto", "workers": 1, "scenario": "nested-helping", "trial": 0, "time_us": 5530.0, "min_us": 5061.0, "max_us": 6282.0, "mtasks_s": 5.926}
+{"profile": "o3", "workers": 1, "scenario": "nested-helping", "trial": 0, "time_us": 6217.0, "min_us": 5371.0, "max_us": 6719.0, "mtasks_s": 5.27}
+{"profile": "o3", "workers": 4, "scenario": "external-contention", "trial": 0, "time_us": 4995.0, "min_us": 4630.0, "max_us": 8543.0, "mtasks_s": 26.239}
+{"profile": "o3-lto", "workers": 4, "scenario": "external-contention", "trial": 0, "time_us": 3673.0, "min_us": 3368.0, "max_us": 5756.0, "mtasks_s": 35.683}
+{"profile": "o3-lto", "workers": 4, "scenario": "hot-shard-skew", "trial": 0, "time_us": 5508.0, "min_us": 5275.0, "max_us": 5768.0, "mtasks_s": 11.897}
+{"profile": "o3", "workers": 4, "scenario": "hot-shard-skew", "trial": 0, "time_us": 4886.0, "min_us": 4681.0, "max_us": 5515.0, "mtasks_s": 13.413}
+{"profile": "o3", "workers": 4, "scenario": "nested-helping", "trial": 1, "time_us": 2287.0, "min_us": 2219.0, "max_us": 2464.0, "mtasks_s": 14.328}
+{"profile": "o3-lto", "workers": 4, "scenario": "nested-helping", "trial": 1, "time_us": 2242.0, "min_us": 1669.0, "max_us": 2530.0, "mtasks_s": 14.616}
+{"profile": "o3", "workers": 1, "scenario": "hot-shard-skew", "trial": 1, "time_us": 13989.0, "min_us": 13884.0, "max_us": 15146.0, "mtasks_s": 4.685}
+{"profile": "o3-lto", "workers": 1, "scenario": "hot-shard-skew", "trial": 1, "time_us": 13889.0, "min_us": 13821.0, "max_us": 13995.0, "mtasks_s": 4.719}
+{"profile": "o3", "workers": 4, "scenario": "hot-shard-skew", "trial": 1, "time_us": 4315.0, "min_us": 4139.0, "max_us": 4763.0, "mtasks_s": 15.187}
+{"profile": "o3-lto", "workers": 4, "scenario": "hot-shard-skew", "trial": 1, "time_us": 4551.0, "min_us": 4204.0, "max_us": 5196.0, "mtasks_s": 14.399}
+{"profile": "o3", "workers": 4, "scenario": "external-contention", "trial": 1, "time_us": 3049.0, "min_us": 2878.0, "max_us": 3323.0, "mtasks_s": 42.984}
+{"profile": "o3-lto", "workers": 4, "scenario": "external-contention", "trial": 1, "time_us": 3153.0, "min_us": 2808.0, "max_us": 3321.0, "mtasks_s": 41.567}
+{"profile": "o3-lto", "workers": 1, "scenario": "external-contention", "trial": 1, "time_us": 8223.0, "min_us": 7858.0, "max_us": 8288.0, "mtasks_s": 15.94}
+{"profile": "o3", "workers": 1, "scenario": "external-contention", "trial": 1, "time_us": 8222.0, "min_us": 7933.0, "max_us": 8616.0, "mtasks_s": 15.941}
+{"profile": "o3-lto", "workers": 1, "scenario": "nested-helping", "trial": 1, "time_us": 2738.0, "min_us": 2713.0, "max_us": 2761.0, "mtasks_s": 11.968}
+{"profile": "o3", "workers": 1, "scenario": "nested-helping", "trial": 1, "time_us": 2883.0, "min_us": 2873.0, "max_us": 2906.0, "mtasks_s": 11.366}
+{"profile": "o3-lto", "workers": 4, "scenario": "idle-burst", "trial": 1, "time_us": 50.43, "p99_us": 237.69, "max_us": 253.63}
+{"profile": "o3", "workers": 4, "scenario": "idle-burst", "trial": 1, "time_us": 53.08, "p99_us": 160.55, "max_us": 194.17}
+{"profile": "o3", "workers": 4, "scenario": "mixed-chaos", "trial": 1, "time_us": 5768.0, "min_us": 5196.0, "max_us": 6297.0, "mtasks_s": 17.754}
+{"profile": "o3-lto", "workers": 4, "scenario": "mixed-chaos", "trial": 1, "time_us": 5554.0, "min_us": 5363.0, "max_us": 6171.0, "mtasks_s": 18.438}
+{"profile": "o3-lto", "workers": 1, "scenario": "idle-burst", "trial": 1, "time_us": 46.59, "p99_us": 204.93, "max_us": 217.36}
+{"profile": "o3", "workers": 1, "scenario": "idle-burst", "trial": 1, "time_us": 36.75, "p99_us": 137.03, "max_us": 140.09}
+{"profile": "o3", "workers": 1, "scenario": "mixed-chaos", "trial": 1, "time_us": 16773.0, "min_us": 16523.0, "max_us": 18270.0, "mtasks_s": 6.105}
+{"profile": "o3-lto", "workers": 1, "scenario": "mixed-chaos", "trial": 1, "time_us": 16571.0, "min_us": 16277.000000000002, "max_us": 17254.0, "mtasks_s": 6.179}
+{"profile": "o3", "workers": 4, "scenario": "local-overflow", "trial": 1, "time_us": 17975.0, "min_us": 16341.000000000002, "max_us": 19583.0, "mtasks_s": 3.646}
+{"profile": "o3-lto", "workers": 4, "scenario": "local-overflow", "trial": 1, "time_us": 14074.0, "min_us": 12187.0, "max_us": 14840.0, "mtasks_s": 4.657}
+{"profile": "o3", "workers": 1, "scenario": "local-overflow", "trial": 1, "time_us": 3333.0, "min_us": 3301.0, "max_us": 3640.0, "mtasks_s": 19.664}
+{"profile": "o3-lto", "workers": 1, "scenario": "local-overflow", "trial": 1, "time_us": 3053.0, "min_us": 3027.0, "max_us": 3192.0, "mtasks_s": 21.463}
+{"profile": "o3-lto", "workers": 1, "scenario": "hot-shard-skew", "trial": 2, "time_us": 27410.0, "min_us": 27298.0, "max_us": 27903.0, "mtasks_s": 2.391}
+{"profile": "o3", "workers": 1, "scenario": "hot-shard-skew", "trial": 2, "time_us": 28185.0, "min_us": 27589.0, "max_us": 29941.0, "mtasks_s": 2.325}
+{"profile": "o3", "workers": 4, "scenario": "mixed-chaos", "trial": 2, "time_us": 5539.0, "min_us": 5259.0, "max_us": 6430.0, "mtasks_s": 18.489}
+{"profile": "o3-lto", "workers": 4, "scenario": "mixed-chaos", "trial": 2, "time_us": 6189.0, "min_us": 5552.0, "max_us": 6451.0, "mtasks_s": 16.546}
+{"profile": "o3", "workers": 4, "scenario": "local-overflow", "trial": 2, "time_us": 17376.0, "min_us": 14021.0, "max_us": 18919.0, "mtasks_s": 3.772}
+{"profile": "o3-lto", "workers": 4, "scenario": "local-overflow", "trial": 2, "time_us": 8619.0, "min_us": 7244.0, "max_us": 10161.0, "mtasks_s": 7.604}
+{"profile": "o3", "workers": 1, "scenario": "external-contention", "trial": 2, "time_us": 8191.000000000001, "min_us": 7969.0, "max_us": 8633.0, "mtasks_s": 16.002}
+{"profile": "o3-lto", "workers": 1, "scenario": "external-contention", "trial": 2, "time_us": 7846.0, "min_us": 7558.0, "max_us": 8449.0, "mtasks_s": 16.706}
+{"profile": "o3", "workers": 4, "scenario": "idle-burst", "trial": 2, "time_us": 50.38, "p99_us": 216.44, "max_us": 247.5}
+{"profile": "o3-lto", "workers": 4, "scenario": "idle-burst", "trial": 2, "time_us": 52.89, "p99_us": 259.16, "max_us": 267.02}
+{"profile": "o3", "workers": 1, "scenario": "mixed-chaos", "trial": 2, "time_us": 18080.0, "min_us": 17627.0, "max_us": 18341.0, "mtasks_s": 5.664}
+{"profile": "o3-lto", "workers": 1, "scenario": "mixed-chaos", "trial": 2, "time_us": 18129.0, "min_us": 17769.0, "max_us": 18907.0, "mtasks_s": 5.649}
+{"profile": "o3", "workers": 4, "scenario": "hot-shard-skew", "trial": 2, "time_us": 8647.0, "min_us": 8253.0, "max_us": 9319.0, "mtasks_s": 7.579}
+{"profile": "o3-lto", "workers": 4, "scenario": "hot-shard-skew", "trial": 2, "time_us": 7974.0, "min_us": 7790.0, "max_us": 9142.0, "mtasks_s": 8.219}
+{"profile": "o3", "workers": 4, "scenario": "external-contention", "trial": 2, "time_us": 4435.0, "min_us": 4306.0, "max_us": 4776.0, "mtasks_s": 29.551}
+{"profile": "o3-lto", "workers": 4, "scenario": "external-contention", "trial": 2, "time_us": 4524.0, "min_us": 4098.0, "max_us": 5345.0, "mtasks_s": 28.974}
+{"profile": "o3-lto", "workers": 1, "scenario": "nested-helping", "trial": 2, "time_us": 6295.0, "min_us": 5284.0, "max_us": 6712.0, "mtasks_s": 5.205}
+{"profile": "o3", "workers": 1, "scenario": "nested-helping", "trial": 2, "time_us": 6364.0, "min_us": 5424.0, "max_us": 6586.0, "mtasks_s": 5.149}
+{"profile": "o3", "workers": 1, "scenario": "idle-burst", "trial": 2, "time_us": 61.98, "p99_us": 215.68, "max_us": 363.09}
+{"profile": "o3-lto", "workers": 1, "scenario": "idle-burst", "trial": 2, "time_us": 39.88, "p99_us": 142.5, "max_us": 186.83}
+{"profile": "o3", "workers": 4, "scenario": "nested-helping", "trial": 2, "time_us": 3830.0, "min_us": 3572.0, "max_us": 3982.0, "mtasks_s": 8.556}
+{"profile": "o3-lto", "workers": 4, "scenario": "nested-helping", "trial": 2, "time_us": 3779.0, "min_us": 3503.0, "max_us": 4003.9999999999995, "mtasks_s": 8.672}
+{"profile": "o3-lto", "workers": 1, "scenario": "local-overflow", "trial": 2, "time_us": 2846.0, "min_us": 2700.0, "max_us": 3151.0, "mtasks_s": 23.031}
+{"profile": "o3", "workers": 1, "scenario": "local-overflow", "trial": 2, "time_us": 3468.0, "min_us": 3338.0, "max_us": 3646.0, "mtasks_s": 18.898}
+{"profile": "o3", "workers": 1, "scenario": "idle-burst", "trial": 3, "time_us": 54.68, "p99_us": 140.83, "max_us": 178.94}
+{"profile": "o3-lto", "workers": 1, "scenario": "idle-burst", "trial": 3, "time_us": 39.45, "p99_us": 135.4, "max_us": 188.94}
+{"profile": "o3", "workers": 4, "scenario": "external-contention", "trial": 3, "time_us": 4603.0, "min_us": 4291.0, "max_us": 5083.0, "mtasks_s": 28.475}
+{"profile": "o3-lto", "workers": 4, "scenario": "external-contention", "trial": 3, "time_us": 4476.0, "min_us": 4128.0, "max_us": 5022.0, "mtasks_s": 29.283}
+{"profile": "o3-lto", "workers": 4, "scenario": "mixed-chaos", "trial": 3, "time_us": 5845.0, "min_us": 5119.0, "max_us": 6125.0, "mtasks_s": 17.52}
+{"profile": "o3", "workers": 4, "scenario": "mixed-chaos", "trial": 3, "time_us": 5578.0, "min_us": 5109.0, "max_us": 6559.0, "mtasks_s": 18.359}
+{"profile": "o3-lto", "workers": 1, "scenario": "nested-helping", "trial": 3, "time_us": 5397.0, "min_us": 5379.0, "max_us": 5511.0, "mtasks_s": 6.071}
+{"profile": "o3", "workers": 1, "scenario": "nested-helping", "trial": 3, "time_us": 5749.0, "min_us": 5702.0, "max_us": 6223.0, "mtasks_s": 5.7}
+{"profile": "o3-lto", "workers": 1, "scenario": "local-overflow", "trial": 3, "time_us": 3040.0, "min_us": 3021.0, "max_us": 3129.0, "mtasks_s": 21.559}
+{"profile": "o3", "workers": 1, "scenario": "local-overflow", "trial": 3, "time_us": 3390.0, "min_us": 3319.0, "max_us": 3755.0, "mtasks_s": 19.332}
+{"profile": "o3-lto", "workers": 1, "scenario": "mixed-chaos", "trial": 3, "time_us": 16722.0, "min_us": 16347.000000000002, "max_us": 17909.0, "mtasks_s": 6.124}
+{"profile": "o3", "workers": 1, "scenario": "mixed-chaos", "trial": 3, "time_us": 16849.0, "min_us": 16590.0, "max_us": 17335.0, "mtasks_s": 6.078}
+{"profile": "o3-lto", "workers": 1, "scenario": "external-contention", "trial": 3, "time_us": 15001.0, "min_us": 14675.0, "max_us": 15204.0, "mtasks_s": 8.738}
+{"profile": "o3", "workers": 1, "scenario": "external-contention", "trial": 3, "time_us": 15367.0, "min_us": 14880.0, "max_us": 15600.0, "mtasks_s": 8.529}
+{"profile": "o3", "workers": 4, "scenario": "hot-shard-skew", "trial": 3, "time_us": 8333.0, "min_us": 7966.0, "max_us": 9177.0, "mtasks_s": 7.865}
+{"profile": "o3-lto", "workers": 4, "scenario": "hot-shard-skew", "trial": 3, "time_us": 7955.0, "min_us": 7633.0, "max_us": 8319.0, "mtasks_s": 8.238}
+{"profile": "o3", "workers": 4, "scenario": "nested-helping", "trial": 3, "time_us": 3929.0, "min_us": 3663.0, "max_us": 4126.0, "mtasks_s": 8.339}
+{"profile": "o3-lto", "workers": 4, "scenario": "nested-helping", "trial": 3, "time_us": 3864.0, "min_us": 3065.0, "max_us": 4158.0, "mtasks_s": 8.481}
+{"profile": "o3", "workers": 4, "scenario": "local-overflow", "trial": 3, "time_us": 17572.0, "min_us": 14145.0, "max_us": 18021.0, "mtasks_s": 3.73}
+{"profile": "o3-lto", "workers": 4, "scenario": "local-overflow", "trial": 3, "time_us": 14329.0, "min_us": 12743.0, "max_us": 15921.0, "mtasks_s": 4.574}
+{"profile": "o3", "workers": 4, "scenario": "idle-burst", "trial": 3, "time_us": 60.28, "p99_us": 251.54, "max_us": 267.26}
+{"profile": "o3-lto", "workers": 4, "scenario": "idle-burst", "trial": 3, "time_us": 56.19, "p99_us": 250.08, "max_us": 263.43}
+{"profile": "o3-lto", "workers": 1, "scenario": "hot-shard-skew", "trial": 3, "time_us": 27405.0, "min_us": 27345.0, "max_us": 31207.0, "mtasks_s": 2.391}
+{"profile": "o3", "workers": 1, "scenario": "hot-shard-skew", "trial": 3, "time_us": 28006.0, "min_us": 27530.0, "max_us": 30239.0, "mtasks_s": 2.34}
+{"profile": "o3", "workers": 4, "scenario": "external-contention", "trial": 4, "time_us": 4646.0, "min_us": 4189.0, "max_us": 4872.0, "mtasks_s": 28.211}
+{"profile": "o3-lto", "workers": 4, "scenario": "external-contention", "trial": 4, "time_us": 4734.0, "min_us": 4179.0, "max_us": 5026.0, "mtasks_s": 27.689}
+{"profile": "o3-lto", "workers": 1, "scenario": "nested-helping", "trial": 4, "time_us": 5795.0, "min_us": 5540.0, "max_us": 6380.0, "mtasks_s": 5.654}
+{"profile": "o3", "workers": 1, "scenario": "nested-helping", "trial": 4, "time_us": 6253.0, "min_us": 5934.0, "max_us": 7253.0, "mtasks_s": 5.24}
+{"profile": "o3", "workers": 1, "scenario": "hot-shard-skew", "trial": 4, "time_us": 27551.0, "min_us": 27462.0, "max_us": 28003.0, "mtasks_s": 2.379}
+{"profile": "o3-lto", "workers": 1, "scenario": "hot-shard-skew", "trial": 4, "time_us": 29848.0, "min_us": 27218.0, "max_us": 31691.0, "mtasks_s": 2.196}
+{"profile": "o3-lto", "workers": 4, "scenario": "nested-helping", "trial": 4, "time_us": 2596.0, "min_us": 2176.0, "max_us": 3333.0, "mtasks_s": 12.622}
+{"profile": "o3", "workers": 4, "scenario": "nested-helping", "trial": 4, "time_us": 3802.0, "min_us": 3567.0, "max_us": 4013.0, "mtasks_s": 8.618}
+{"profile": "o3", "workers": 1, "scenario": "external-contention", "trial": 4, "time_us": 15205.0, "min_us": 13779.0, "max_us": 16018.0, "mtasks_s": 8.62}
+{"profile": "o3-lto", "workers": 1, "scenario": "external-contention", "trial": 4, "time_us": 9639.0, "min_us": 9033.0, "max_us": 11460.0, "mtasks_s": 13.599}
+{"profile": "o3-lto", "workers": 4, "scenario": "mixed-chaos", "trial": 4, "time_us": 3983.0, "min_us": 3792.0, "max_us": 4613.0, "mtasks_s": 25.708}
+{"profile": "o3", "workers": 4, "scenario": "mixed-chaos", "trial": 4, "time_us": 4187.0, "min_us": 3750.0, "max_us": 5215.0, "mtasks_s": 24.459}
+{"profile": "o3", "workers": 4, "scenario": "hot-shard-skew", "trial": 4, "time_us": 4422.0, "min_us": 4289.0, "max_us": 5135.0, "mtasks_s": 14.82}
+{"profile": "o3-lto", "workers": 4, "scenario": "hot-shard-skew", "trial": 4, "time_us": 4322.0, "min_us": 4220.0, "max_us": 4366.0, "mtasks_s": 15.162}
+{"profile": "o3-lto", "workers": 4, "scenario": "idle-burst", "trial": 4, "time_us": 42.13, "p99_us": 233.75, "max_us": 238.26}
+{"profile": "o3", "workers": 4, "scenario": "idle-burst", "trial": 4, "time_us": 55.66, "p99_us": 245.07, "max_us": 252.07}
+{"profile": "o3-lto", "workers": 1, "scenario": "idle-burst", "trial": 4, "time_us": 43.38, "p99_us": 306.63, "max_us": 340.39}
+{"profile": "o3", "workers": 1, "scenario": "idle-burst", "trial": 4, "time_us": 36.24, "p99_us": 223.65, "max_us": 225.94}
+{"profile": "o3-lto", "workers": 4, "scenario": "local-overflow", "trial": 4, "time_us": 14824.0, "min_us": 11948.0, "max_us": 16100.000000000002, "mtasks_s": 4.421}
+{"profile": "o3", "workers": 4, "scenario": "local-overflow", "trial": 4, "time_us": 17997.0, "min_us": 13234.0, "max_us": 19728.0, "mtasks_s": 3.642}
+{"profile": "o3", "workers": 1, "scenario": "mixed-chaos", "trial": 4, "time_us": 17164.0, "min_us": 16752.0, "max_us": 18550.0, "mtasks_s": 5.966}
+{"profile": "o3-lto", "workers": 1, "scenario": "mixed-chaos", "trial": 4, "time_us": 16508.0, "min_us": 16303.999999999998, "max_us": 16669.0, "mtasks_s": 6.203}
+{"profile": "o3-lto", "workers": 1, "scenario": "local-overflow", "trial": 4, "time_us": 2724.0, "min_us": 2685.0, "max_us": 2904.0, "mtasks_s": 24.058}
+{"profile": "o3", "workers": 1, "scenario": "local-overflow", "trial": 4, "time_us": 3215.0, "min_us": 3180.0, "max_us": 3689.0, "mtasks_s": 20.384}

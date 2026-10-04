@@ -1,0 +1,91 @@
+--- before/include/dagflow/thread_pool.hpp
++++ after/include/dagflow/thread_pool.hpp
+@@ -43,7 +43,7 @@
+   /// shard ID per worker; shards=0 still means one shard per worker.
+   /// Storage uses the runtime backend. Copy another allocator's vector with
+   /// assign(begin, end); initializer-list assignment is supported directly.
+-  std::vector<uint32_t> worker_shards;
++  std::vector<uint32_t, detail::RuntimeAllocator<uint32_t>> worker_shards;
+ };
+ 
+ struct SubmitOptions {
+@@ -271,7 +271,7 @@
+   Config cfg_;
+ 
+   /// Worker threads.
+-  std::vector<std::thread> threads_;
++  std::vector<std::thread, detail::RuntimeAllocator<std::thread>> threads_;
+ 
+   /// Queue placement, batching, and work stealing, independent of threads.
+   detail::OwnedObject<detail::Scheduler> scheduler_;
+--- before/include/dagflow/task_graph.hpp
++++ after/include/dagflow/task_graph.hpp
+@@ -104,10 +104,10 @@
+     std::size_t initial_tokens{1};
+   };
+   struct BuilderTopology {
+-    std::vector<BuilderNode> nodes;
++    std::vector<BuilderNode, detail::RuntimeAllocator<BuilderNode>> nodes;
+     // Existing callables stay in compiled storage until the next successful
+     // seal. Only newly added nodes own pending callables here.
+-    std::vector<Work> pending_work;
++    std::vector<Work, detail::RuntimeAllocator<Work>> pending_work;
+     index_type edge_count{0};
+   };
+   struct NodeDef {
+--- before/include/dagflow/graph_scope.hpp
++++ after/include/dagflow/graph_scope.hpp
+@@ -100,7 +100,7 @@
+       FnType fn;
+     };
+     struct Parts {
+-      std::vector<Block> blocks;
++      std::vector<Block, detail::RuntimeAllocator<Block>> blocks;
+     };
+     auto parts = detail::make_owned<Parts>();
+ 
+--- before/include/dagflow/handle.hpp
++++ after/include/dagflow/handle.hpp
+@@ -75,7 +75,7 @@
+   std::mutex mutex;
+   std::condition_variable cv;
+   std::exception_ptr error;
+-  std::vector<CompletionCredit> dependents;
++  std::vector<CompletionCredit, RuntimeAllocator<CompletionCredit>> dependents;
+   // A terminal worklist carries the retiring credit's storage reference.
+   CompletionState* next_terminal{};
+   void* payload{};
+--- before/src/thread_pool.cpp
++++ after/src/thread_pool.cpp
+@@ -334,7 +334,7 @@
+       auto destroy = std::exchange(current->destroy_payload, nullptr);
+       destroy(payload);
+     }
+-    std::vector<CompletionCredit> edges;
++    std::vector<CompletionCredit, RuntimeAllocator<CompletionCredit>> edges;
+     std::exception_ptr failure;
+     {
+       std::lock_guard lock(current->mutex);
+--- before/src/task_graph.cpp
++++ after/src/task_graph.cpp
+@@ -31,9 +31,9 @@
+   if (run_state_ && !run_state_->completion.ready()) return false;
+   if (sealed_) return true;
+   const auto count = static_cast<index_type>(builder_.nodes.size());
+-  std::vector<index_type> indegree;
++  std::vector<index_type, detail::RuntimeAllocator<index_type>> indegree;
+   indegree.reserve(count);
+-  std::vector<index_type> ready;
++  std::vector<index_type, detail::RuntimeAllocator<index_type>> ready;
+   ready.reserve(count);
+   for (index_type i = 0; i < count; ++i) {
+     indegree.push_back(builder_.nodes[i].predecessor_count);
+@@ -94,7 +94,7 @@
+         std::move(builder_.pending_work[i]);
+   compiled_ = std::move(next);
+   // Do not retain a second array of empty inline callable buffers after seal.
+-  std::vector<Work>{}.swap(builder_.pending_work);
++  std::vector<Work, detail::RuntimeAllocator<Work>>{}.swap(builder_.pending_work);
+   if (grown_runtime) {
+     runtime_ = std::move(grown_runtime);
+     runtime_capacity_ = count;

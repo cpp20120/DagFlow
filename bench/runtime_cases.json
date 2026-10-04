@@ -1,0 +1,62 @@
+[
+  {
+    "name": "external-handles-1",
+    "args": [
+      "--scenario",
+      "external_handles",
+      "--workers",
+      "1",
+      "--tasks",
+      "512",
+      "--iterations",
+      "3",
+      "--repeats",
+      "3",
+      "--warmup",
+      "1"
+    ],
+    "metadata": {
+      "workers": 1
+    }
+  },
+  {
+    "name": "external-handles-2",
+    "args": [
+      "--scenario",
+      "external_handles",
+      "--workers",
+      "2",
+      "--tasks",
+      "512",
+      "--iterations",
+      "3",
+      "--repeats",
+      "3",
+      "--warmup",
+      "1"
+    ],
+    "metadata": {
+      "workers": 2
+    }
+  },
+  {
+    "name": "external-handles-4",
+    "args": [
+      "--scenario",
+      "external_handles",
+      "--workers",
+      "4",
+      "--tasks",
+      "512",
+      "--iterations",
+      "3",
+      "--repeats",
+      "3",
+      "--warmup",
+      "1"
+    ],
+    "metadata": {
+      "workers": 4
+    }
+  }
+]

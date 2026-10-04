@@ -1,0 +1,10 @@
+{
+  "checkpoint": "out/experiments/graph-allocations/checkpoint",
+  "manifest": "out/experiments/graph-allocations/checkpoint-manifest.json",
+  "manifest_sha256": "f37bd4e09261d4cc4c3aba3f740feb5def16d01236f2212e9a9eacda2ce2cb63",
+  "retained_before_experiment": "scalar drain, wake relay, single-invocation graph path",
+  "previous_reports": [
+    "docs/experiments/graph-execution.md",
+    "docs/experiments/graph-execution-data/recheck-report.md"
+  ]
+}

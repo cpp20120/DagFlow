@@ -1,0 +1,51 @@
+--- a/src/task_graph.cpp
++++ b/src/task_graph.cpp
+@@ -121,18 +121,36 @@
+ 
+ void TaskGraph::reset() {
+   ensure_not_running();
+-  run_state_.reset();
++  // Completion readiness already ends every borrowed graph access. Preserve
++  // the allocation, but reconstruct the state (including once_flag and error)
++  // rather than trying to reset synchronization primitives piecemeal. Old
++  // Handles retain their own immutable completion allocation.
++  if (run_state_) {
++    static_assert(std::is_nothrow_default_constructible_v<RunState>);
++    std::destroy_at(run_state_.get());
++    std::construct_at(run_state_.get());
++  }
+ }
+ 
+ Handle TaskGraph::run() {
+   ensure_not_running();
+   if (empty()) return {};
+   if (!seal()) throw std::logic_error("TaskGraph: cycle detected in run()");
+-  auto owner = detail::make_owned<RunState>();
+-  detail::runtime_count(detail::RuntimeEvent::graph_run_state_allocations);
++  detail::OwnedObject<RunState> owner;
++  if (!run_state_) {
++    owner = detail::make_owned<RunState>();
++    detail::runtime_count(detail::RuntimeEvent::graph_run_state_allocations);
++  }
+   auto publication = detail::CompletionCredit::create();
+   auto result = publication.handle();
+-  auto* state = owner.get();
++  // Allocate the new completion first: failure preserves the previous result.
++  // Never recycle CompletionState itself, since old Handles can outlive this
++  // run and even the graph. Only the exclusively graph-owned RunState is reused.
++  if (run_state_)
++    reset();
++  else
++    run_state_ = std::move(owner);
++  auto* state = run_state_.get();
+   state->nodes = {compiled_.nodes.get(), compiled_.node_count};
+   state->edges = {compiled_.edges.get(), compiled_.edge_count};
+   state->pool = &pool_;
+@@ -146,7 +164,6 @@
+       state->runtime[i].predecessors.store(state->nodes[i].predecessor_count,
+                                            std::memory_order_relaxed);
+   }
+-  run_state_ = std::move(owner);
+   for (index_type root = 0; root < compiled_.root_count; ++root) {
+     if (state->cancel.load(std::memory_order_acquire)) break;
+     const auto i = compiled_.roots[root];

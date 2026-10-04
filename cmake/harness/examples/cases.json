@@ -1,0 +1,14 @@
+[
+  {
+    "name": "single-worker",
+    "args": ["--workers", "1", "--scenario", "noop"],
+    "cpu_count": 1,
+    "metadata": {"workers": 1, "scenario": "noop"}
+  },
+  {
+    "name": "four-workers",
+    "args": ["--workers", "4", "--scenario", "noop"],
+    "cpu_count": 4,
+    "metadata": {"workers": 4, "scenario": "noop"}
+  }
+]

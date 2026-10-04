@@ -1,0 +1,1994 @@
+{
+  "o3-1-external-contention": {
+    "samples": 1423,
+    "sampled_cycles": 731155899,
+    "missing_callchain_samples": 0,
+    "max_depth": 14,
+    "top_self": [
+      {
+        "symbol": "bool dagflow::detail::ring_mpmc<dagflow::detail::ScheduledTask*, 16384ul>::push_impl<dagflow::detail::ScheduledTask* const&>(dagflow::detail::ScheduledTask* const&)",
+        "sampled_cycles": 117663177,
+        "pct": 16.092761770906534
+      },
+      {
+        "symbol": "std::__atomic_base<long>::load(std::memory_order) const",
+        "sampled_cycles": 106873104,
+        "pct": 14.617006324666198
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::select_shard(std::optional<unsigned int>)",
+        "sampled_cycles": 71420007,
+        "pct": 9.768095572733662
+      },
+      {
+        "symbol": "std::__atomic_base<unsigned long>::compare_exchange_weak(unsigned long&, unsigned long, std::memory_order, std::memory_order)",
+        "sampled_cycles": 70392381,
+        "pct": 9.627547434996487
+      },
+      {
+        "symbol": "[unknown in libmimalloc.so.3.5]",
+        "sampled_cycles": 59602308,
+        "pct": 8.151791988756148
+      },
+      {
+        "symbol": "std::atomic_thread_fence(std::memory_order)",
+        "sampled_cycles": 58574682,
+        "pct": 8.011243851018975
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::try_acquire(unsigned int)",
+        "sampled_cycles": 37508349,
+        "pct": 5.1300070274068865
+      },
+      {
+        "symbol": "dagflow::Pool::worker_loop(unsigned int)",
+        "sampled_cycles": 27745902,
+        "pct": 3.7947997189037244
+      },
+      {
+        "symbol": "operator delete[](void*)",
+        "sampled_cycles": 20552520,
+        "pct": 2.8109627547434997
+      },
+      {
+        "symbol": "dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>::basic_function()",
+        "sampled_cycles": 14900577,
+        "pct": 2.037947997189037
+      },
+      {
+        "symbol": "dagflow::Pool::execute_task(unsigned int, dagflow::detail::ScheduledTask*)",
+        "sampled_cycles": 14900577,
+        "pct": 2.037947997189037
+      },
+      {
+        "symbol": "mi_malloc_small",
+        "sampled_cycles": 13872951,
+        "pct": 1.8973998594518622
+      },
+      {
+        "symbol": "dagflow::detail::ParkingLot::wake_one(unsigned int)",
+        "sampled_cycles": 10790073,
+        "pct": 1.4757554462403373
+      },
+      {
+        "symbol": "std::thread::_State_impl<std::thread::_Invoker<std::tuple<(anonymous namespace)::external_contention(dagflow::Pool&, unsigned int)::$_0::operator()() const::{lambda()#1}> > >::_M_run()",
+        "sampled_cycles": 10276260,
+        "pct": 1.4054813773717498
+      },
+      {
+        "symbol": "dagflow::detail::ring_mpmc<dagflow::detail::ScheduledTask*, 16384ul>::try_pop(dagflow::detail::ScheduledTask*&)",
+        "sampled_cycles": 9762447,
+        "pct": 1.3352073085031624
+      }
+    ]
+  },
+  "o3-1-hot-shard-skew": {
+    "samples": 1486,
+    "sampled_cycles": 629903512,
+    "missing_callchain_samples": 0,
+    "max_depth": 16,
+    "top_self": [
+      {
+        "symbol": "(anonymous namespace)::work(unsigned long, unsigned int)",
+        "sampled_cycles": 480693528,
+        "pct": 76.31224764468371
+      },
+      {
+        "symbol": "[unknown in [unknown]]",
+        "sampled_cycles": 19499032,
+        "pct": 3.095558546433378
+      },
+      {
+        "symbol": "std::__atomic_base<long>::load(std::memory_order) const",
+        "sampled_cycles": 12292868,
+        "pct": 1.9515477792732168
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::select_shard(std::optional<unsigned int>)",
+        "sampled_cycles": 10597300,
+        "pct": 1.6823687752355316
+      },
+      {
+        "symbol": "[unknown in libmimalloc.so.3.5]",
+        "sampled_cycles": 10173408,
+        "pct": 1.6150740242261103
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::try_acquire(unsigned int)",
+        "sampled_cycles": 10173408,
+        "pct": 1.6150740242261103
+      },
+      {
+        "symbol": "std::__atomic_base<unsigned long>::compare_exchange_weak(unsigned long&, unsigned long, std::memory_order, std::memory_order)",
+        "sampled_cycles": 9749516,
+        "pct": 1.547779273216689
+      },
+      {
+        "symbol": "bool dagflow::detail::ring_mpmc<dagflow::detail::ScheduledTask*, 16384ul>::push_impl<dagflow::detail::ScheduledTask* const&>(dagflow::detail::ScheduledTask* const&)",
+        "sampled_cycles": 9749516,
+        "pct": 1.547779273216689
+      },
+      {
+        "symbol": "std::atomic_thread_fence(std::memory_order)",
+        "sampled_cycles": 7630056,
+        "pct": 1.2113055181695829
+      },
+      {
+        "symbol": "dagflow::detail::ring_mpmc<dagflow::detail::ScheduledTask*, 16384ul>::try_pop(dagflow::detail::ScheduledTask*&)",
+        "sampled_cycles": 5934488,
+        "pct": 0.9421265141318977
+      },
+      {
+        "symbol": "operator delete[](void*)",
+        "sampled_cycles": 5934488,
+        "pct": 0.9421265141318977
+      },
+      {
+        "symbol": "dagflow::Pool::execute_task(unsigned int, dagflow::detail::ScheduledTask*)",
+        "sampled_cycles": 5086704,
+        "pct": 0.8075370121130552
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::try_submit_external(unsigned int, dagflow::detail::ScheduledTask*)",
+        "sampled_cycles": 3391136,
+        "pct": 0.5383580080753702
+      },
+      {
+        "symbol": "dagflow::Pool::enqueue(dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>, dagflow::SubmitOptions, dagflow::detail::CompletionCredit)",
+        "sampled_cycles": 3391136,
+        "pct": 0.5383580080753702
+      },
+      {
+        "symbol": "std::__uniq_ptr_impl<dagflow::detail::Scheduler::Local, dagflow::detail::ArrayDeleter<dagflow::detail::Scheduler::Local> >::_M_ptr() const",
+        "sampled_cycles": 2967244,
+        "pct": 0.47106325706594887
+      }
+    ]
+  },
+  "o3-1-local-overflow": {
+    "samples": 836,
+    "sampled_cycles": 38308864,
+    "missing_callchain_samples": 0,
+    "max_depth": 19,
+    "top_self": [
+      {
+        "symbol": "bool dagflow::detail::ring_mpmc<dagflow::detail::ScheduledTask*, 16384ul>::push_impl<dagflow::detail::ScheduledTask* const&>(dagflow::detail::ScheduledTask* const&)",
+        "sampled_cycles": 6323712,
+        "pct": 16.507177033492823
+      },
+      {
+        "symbol": "mi_malloc_small",
+        "sampled_cycles": 4490752,
+        "pct": 11.722488038277511
+      },
+      {
+        "symbol": "dagflow::Pool::enqueue(dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>, dagflow::SubmitOptions, dagflow::detail::CompletionCredit)",
+        "sampled_cycles": 2245376,
+        "pct": 5.861244019138756
+      },
+      {
+        "symbol": "dagflow::Pool::execute_task(unsigned int, dagflow::detail::ScheduledTask*)",
+        "sampled_cycles": 2153728,
+        "pct": 5.62200956937799
+      },
+      {
+        "symbol": "dagflow::detail::CompletionState* std::__exchange<dagflow::detail::CompletionState*, decltype(nullptr)>(dagflow::detail::CompletionState*&, decltype(nullptr)&&)",
+        "sampled_cycles": 1741312,
+        "pct": 4.545454545454546
+      },
+      {
+        "symbol": "[unknown in ld-linux-x86-64.so.2]",
+        "sampled_cycles": 1603840,
+        "pct": 4.186602870813397
+      },
+      {
+        "symbol": "[unknown in libmimalloc.so.3.5]",
+        "sampled_cycles": 1558016,
+        "pct": 4.0669856459330145
+      },
+      {
+        "symbol": "(anonymous namespace)::work(unsigned long, unsigned int)",
+        "sampled_cycles": 1558016,
+        "pct": 4.0669856459330145
+      },
+      {
+        "symbol": "std::atomic_thread_fence(std::memory_order)",
+        "sampled_cycles": 1466368,
+        "pct": 3.827751196172249
+      },
+      {
+        "symbol": "dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>::basic_function()",
+        "sampled_cycles": 1237248,
+        "pct": 3.229665071770335
+      },
+      {
+        "symbol": "void dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>::move<dagflow::Pool::submit_detached<(anonymous namespace)::local_overflow_pressure(dagflow::Pool&)::$_0::operator()() const::{lambda()#1}::operator()() const::{lambda()#1}>((anonymous namespace)::local_overflow_pressure(dagflow::Pool&)::$_0::operator()() const::{lambda()#1}::operator()() const::{lambda()#1}, dagflow::SubmitOptions)::{lambda(dagflow::detail::CompletionCredit&)#1}>(void*, void*)",
+        "sampled_cycles": 1145600,
+        "pct": 2.9904306220095696
+      },
+      {
+        "symbol": "std::__atomic_base<unsigned long>::compare_exchange_weak(unsigned long&, unsigned long, std::memory_order, std::memory_order)",
+        "sampled_cycles": 1053952,
+        "pct": 2.751196172248804
+      },
+      {
+        "symbol": "dagflow::Pool::dispatch(dagflow::detail::ScheduledTask*, dagflow::SubmitOptions const&)",
+        "sampled_cycles": 1008128,
+        "pct": 2.6315789473684212
+      },
+      {
+        "symbol": "operator delete[](void*)",
+        "sampled_cycles": 870656,
+        "pct": 2.272727272727273
+      },
+      {
+        "symbol": "std::__atomic_base<long>::load(std::memory_order) const",
+        "sampled_cycles": 870656,
+        "pct": 2.272727272727273
+      }
+    ]
+  },
+  "o3-1-nested-helping": {
+    "samples": 1178,
+    "sampled_cycles": 104862026,
+    "missing_callchain_samples": 0,
+    "max_depth": 14,
+    "top_self": [
+      {
+        "symbol": "(anonymous namespace)::work(unsigned long, unsigned int)",
+        "sampled_cycles": 47535078,
+        "pct": 45.33106960950764
+      },
+      {
+        "symbol": "std::__atomic_base<long>::load(std::memory_order) const",
+        "sampled_cycles": 3471663,
+        "pct": 3.3106960950764006
+      },
+      {
+        "symbol": "[unknown in libmimalloc.so.3.5]",
+        "sampled_cycles": 3382646,
+        "pct": 3.225806451612903
+      },
+      {
+        "symbol": "std::__atomic_base<unsigned long>::compare_exchange_weak(unsigned long&, unsigned long, std::memory_order, std::memory_order)",
+        "sampled_cycles": 2937561,
+        "pct": 2.801358234295416
+      },
+      {
+        "symbol": "std::atomic_thread_fence(std::memory_order)",
+        "sampled_cycles": 2759527,
+        "pct": 2.6315789473684212
+      },
+      {
+        "symbol": "operator delete[](void*)",
+        "sampled_cycles": 2403459,
+        "pct": 2.2920203735144313
+      },
+      {
+        "symbol": "_ZSt12construct_atIZN7dagflow4Pool15submit_detachedIZZN12_GLOBAL__N_114nested_helpingERS1_ENK3$_0clEvEUlvE_EEvT_NS0_13SubmitOptionsEEUlRNS0_6detail16CompletionCreditEE_JSC_EQaant20is_unbounded_array_vIS7_ErqXgsnwcvPvLi0E_S7_pispclsr3stdE7declvalIT0_EEEEEPS7_SF_DpOSE_",
+        "sampled_cycles": 2403459,
+        "pct": 2.2920203735144313
+      },
+      {
+        "symbol": "dagflow::Pool::execute_task(unsigned int, dagflow::detail::ScheduledTask*)",
+        "sampled_cycles": 2136408,
+        "pct": 2.037351443123939
+      },
+      {
+        "symbol": "[unknown in ld-linux-x86-64.so.2]",
+        "sampled_cycles": 1958374,
+        "pct": 1.867572156196944
+      },
+      {
+        "symbol": "mi_malloc_small",
+        "sampled_cycles": 1869357,
+        "pct": 1.7826825127334465
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::try_acquire(unsigned int)",
+        "sampled_cycles": 1780340,
+        "pct": 1.697792869269949
+      },
+      {
+        "symbol": "dagflow::Pool::enqueue(dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>, dagflow::SubmitOptions, dagflow::detail::CompletionCredit)",
+        "sampled_cycles": 1691323,
+        "pct": 1.6129032258064515
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::select_shard(std::optional<unsigned int>)",
+        "sampled_cycles": 1602306,
+        "pct": 1.5280135823429541
+      },
+      {
+        "symbol": "dagflow::detail::CompletionState* std::__exchange<dagflow::detail::CompletionState*, decltype(nullptr)>(dagflow::detail::CompletionState*&, decltype(nullptr)&&)",
+        "sampled_cycles": 1424272,
+        "pct": 1.3582342954159592
+      },
+      {
+        "symbol": "dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>::Ops const* std::__exchange<dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>::Ops const*, decltype(nullptr)>(dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>::Ops const*&, decltype(nullptr)&&)",
+        "sampled_cycles": 1335255,
+        "pct": 1.2733446519524618
+      }
+    ]
+  },
+  "o3-1-mixed-chaos": {
+    "samples": 1426,
+    "sampled_cycles": 520699622,
+    "missing_callchain_samples": 1263,
+    "max_depth": 11,
+    "top_self": [
+      {
+        "symbol": "void dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>::call<dagflow::Pool::submit_detached<(anonymous namespace)::mixed_chaos(dagflow::Pool&, unsigned int)::$_0::operator()() const::{lambda()#1}::operator()() const::{lambda()#1}>((anonymous namespace)::mixed_chaos(dagflow::Pool&, unsigned int)::$_0::operator()() const::{lambda()#1}::operator()() const::{lambda()#1}, dagflow::SubmitOptions)::{lambda(dagflow::detail::CompletionCredit&)#1}>(void*, dagflow::detail::CompletionCredit&)",
+        "sampled_cycles": 140581595,
+        "pct": 26.99859747545582
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::try_submit_external(unsigned int, dagflow::detail::ScheduledTask*)",
+        "sampled_cycles": 91651897,
+        "pct": 17.601683029453014
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::try_acquire(unsigned int)",
+        "sampled_cycles": 54406903,
+        "pct": 10.448807854137447
+      },
+      {
+        "symbol": "dagflow::detail::ParkingLot::wake_one(unsigned int)",
+        "sampled_cycles": 28481466,
+        "pct": 5.46984572230014
+      },
+      {
+        "symbol": "void dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>::call<dagflow::Pool::submit<(anonymous namespace)::mixed_chaos(dagflow::Pool&, unsigned int)::$_0::operator()() const::{lambda()#1}::operator()() const::{lambda()#1}::operator()() const::{lambda()#2}>((anonymous namespace)::mixed_chaos(dagflow::Pool&, unsigned int)::$_0::operator()() const::{lambda()#1}::operator()() const::{lambda()#1}::operator()() const::{lambda()#2}, dagflow::SubmitOptions)::{lambda(dagflow::detail::CompletionCredit&)#1}>(void*, dagflow::detail::CompletionCredit&)",
+        "sampled_cycles": 25560290,
+        "pct": 4.908835904628331
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::select_shard(std::optional<unsigned int>)",
+        "sampled_cycles": 22639114,
+        "pct": 4.3478260869565215
+      },
+      {
+        "symbol": "[unknown in libmimalloc.so.3.5]",
+        "sampled_cycles": 16796762,
+        "pct": 3.225806451612903
+      },
+      {
+        "symbol": "dagflow::Pool::enqueue(dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>, dagflow::SubmitOptions, dagflow::detail::CompletionCredit)",
+        "sampled_cycles": 16431615,
+        "pct": 3.1556802244039273
+      },
+      {
+        "symbol": "void dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>::call<dagflow::Pool::submit_detached<(anonymous namespace)::mixed_chaos(dagflow::Pool&, unsigned int)::$_0::operator()() const::{lambda()#1}::operator()() const::{lambda()#1}::operator()() const::{lambda()#1}>((anonymous namespace)::mixed_chaos(dagflow::Pool&, unsigned int)::$_0::operator()() const::{lambda()#1}::operator()() const::{lambda()#1}::operator()() const::{lambda()#1}, dagflow::SubmitOptions)::{lambda(dagflow::detail::CompletionCredit&)#1}>(void*, dagflow::detail::CompletionCredit&)",
+        "sampled_cycles": 13510439,
+        "pct": 2.594670406732118
+      },
+      {
+        "symbol": "dagflow::Pool::execute_task(unsigned int, dagflow::detail::ScheduledTask*)",
+        "sampled_cycles": 13145292,
+        "pct": 2.524544179523142
+      },
+      {
+        "symbol": "[unknown in [unknown]]",
+        "sampled_cycles": 12414998,
+        "pct": 2.3842917251051894
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::drain(unsigned int, unsigned int, dagflow::Priority)",
+        "sampled_cycles": 10224116,
+        "pct": 1.9635343618513323
+      },
+      {
+        "symbol": "operator delete[](void*)",
+        "sampled_cycles": 8398381,
+        "pct": 1.6129032258064515
+      },
+      {
+        "symbol": "mi_malloc_small",
+        "sampled_cycles": 7668087,
+        "pct": 1.4726507713884993
+      },
+      {
+        "symbol": "dagflow::Pool::worker_loop(unsigned int)",
+        "sampled_cycles": 7668087,
+        "pct": 1.4726507713884993
+      }
+    ]
+  },
+  "o3-1-idle-burst": {
+    "samples": 708,
+    "sampled_cycles": 7714368,
+    "missing_callchain_samples": 0,
+    "max_depth": 18,
+    "top_self": [
+      {
+        "symbol": "[unknown in [unknown]]",
+        "sampled_cycles": 4009728,
+        "pct": 51.9774011299435
+      },
+      {
+        "symbol": "[unknown in ld-linux-x86-64.so.2]",
+        "sampled_cycles": 446736,
+        "pct": 5.790960451977401
+      },
+      {
+        "symbol": "(anonymous namespace)::work(unsigned long, unsigned int)",
+        "sampled_cycles": 315984,
+        "pct": 4.096045197740113
+      },
+      {
+        "symbol": "[unknown in libc.so.6]",
+        "sampled_cycles": 272400,
+        "pct": 3.531073446327684
+      },
+      {
+        "symbol": "mi_malloc_small",
+        "sampled_cycles": 207024,
+        "pct": 2.6836158192090394
+      },
+      {
+        "symbol": "[unknown in libmimalloc.so.3.5]",
+        "sampled_cycles": 152544,
+        "pct": 1.9774011299435028
+      },
+      {
+        "symbol": "std::atomic_thread_fence(std::memory_order)",
+        "sampled_cycles": 152544,
+        "pct": 1.9774011299435028
+      },
+      {
+        "symbol": "__vdso_clock_gettime",
+        "sampled_cycles": 130752,
+        "pct": 1.694915254237288
+      },
+      {
+        "symbol": "bool dagflow::detail::ring_mpmc<dagflow::detail::ScheduledTask*, 16384ul>::push_impl<dagflow::detail::ScheduledTask* const&>(dagflow::detail::ScheduledTask* const&)",
+        "sampled_cycles": 108960,
+        "pct": 1.4124293785310735
+      },
+      {
+        "symbol": "dagflow::Pool::execute_task(unsigned int, dagflow::detail::ScheduledTask*)",
+        "sampled_cycles": 108960,
+        "pct": 1.4124293785310735
+      },
+      {
+        "symbol": "clock_gettime",
+        "sampled_cycles": 98064,
+        "pct": 1.271186440677966
+      },
+      {
+        "symbol": "dagflow::detail::ParkingLot::wait(unsigned int, unsigned long, unsigned int, std::atomic<bool> const&)::$_0::operator()() const",
+        "sampled_cycles": 98064,
+        "pct": 1.271186440677966
+      },
+      {
+        "symbol": "std::__atomic_base<long>::load(std::memory_order) const",
+        "sampled_cycles": 87168,
+        "pct": 1.1299435028248588
+      },
+      {
+        "symbol": "std::__atomic_base<unsigned long>::compare_exchange_weak(unsigned long&, unsigned long, std::memory_order, std::memory_order)",
+        "sampled_cycles": 76272,
+        "pct": 0.9887005649717514
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::try_acquire(unsigned int)",
+        "sampled_cycles": 76272,
+        "pct": 0.9887005649717514
+      }
+    ]
+  },
+  "o3-4-external-contention": {
+    "samples": 1407,
+    "sampled_cycles": 823514286,
+    "missing_callchain_samples": 0,
+    "max_depth": 12,
+    "top_self": [
+      {
+        "symbol": "bool dagflow::detail::ring_mpmc<dagflow::detail::ScheduledTask*, 16384ul>::push_impl<dagflow::detail::ScheduledTask* const&>(dagflow::detail::ScheduledTask* const&)",
+        "sampled_cycles": 117059600,
+        "pct": 14.214641080312722
+      },
+      {
+        "symbol": "std::__atomic_base<unsigned long>::compare_exchange_weak(unsigned long&, unsigned long, std::memory_order, std::memory_order)",
+        "sampled_cycles": 77844634,
+        "pct": 9.45273631840796
+      },
+      {
+        "symbol": "std::__atomic_base<long>::load(std::memory_order) const",
+        "sampled_cycles": 76088740,
+        "pct": 9.23951670220327
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::select_shard(std::optional<unsigned int>)",
+        "sampled_cycles": 63797482,
+        "pct": 7.746979388770433
+      },
+      {
+        "symbol": "operator delete[](void*)",
+        "sampled_cycles": 62041588,
+        "pct": 7.533759772565743
+      },
+      {
+        "symbol": "[unknown in libmimalloc.so.3.5]",
+        "sampled_cycles": 56773906,
+        "pct": 6.894100923951671
+      },
+      {
+        "symbol": "std::atomic_thread_fence(std::memory_order)",
+        "sampled_cycles": 52091522,
+        "pct": 6.325515280739161
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::try_acquire(unsigned int)",
+        "sampled_cycles": 45067946,
+        "pct": 5.472636815920398
+      },
+      {
+        "symbol": "mi_malloc_small",
+        "sampled_cycles": 31606092,
+        "pct": 3.837953091684435
+      },
+      {
+        "symbol": "std::__uniq_ptr_impl<dagflow::detail::ScheduledTask, dagflow::detail::ObjectDeleter<dagflow::detail::ScheduledTask> >::release()",
+        "sampled_cycles": 23997218,
+        "pct": 2.914001421464108
+      },
+      {
+        "symbol": "dagflow::detail::ring_mpmc<dagflow::detail::ScheduledTask*, 16384ul>::try_pop(dagflow::detail::ScheduledTask*&)",
+        "sampled_cycles": 23997218,
+        "pct": 2.914001421464108
+      },
+      {
+        "symbol": "dagflow::Pool::execute_task(unsigned int, dagflow::detail::ScheduledTask*)",
+        "sampled_cycles": 21656026,
+        "pct": 2.6297085998578535
+      },
+      {
+        "symbol": "dagflow::Pool::worker_loop(unsigned int)",
+        "sampled_cycles": 14047152,
+        "pct": 1.7057569296375266
+      },
+      {
+        "symbol": "dagflow::Pool::enqueue(dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>, dagflow::SubmitOptions, dagflow::detail::CompletionCredit)",
+        "sampled_cycles": 10535364,
+        "pct": 1.279317697228145
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::poll_external(unsigned int, dagflow::Priority)",
+        "sampled_cycles": 10535364,
+        "pct": 1.279317697228145
+      }
+    ]
+  },
+  "o3-4-hot-shard-skew": {
+    "samples": 1450,
+    "sampled_cycles": 693332000,
+    "missing_callchain_samples": 0,
+    "max_depth": 13,
+    "top_self": [
+      {
+        "symbol": "(anonymous namespace)::work(unsigned long, unsigned int)",
+        "sampled_cycles": 486766880,
+        "pct": 70.20689655172414
+      },
+      {
+        "symbol": "std::__atomic_base<unsigned long>::compare_exchange_weak(unsigned long&, unsigned long, std::memory_order, std::memory_order)",
+        "sampled_cycles": 37296480,
+        "pct": 5.379310344827586
+      },
+      {
+        "symbol": "[unknown in libmimalloc.so.3.5]",
+        "sampled_cycles": 28211440,
+        "pct": 4.068965517241379
+      },
+      {
+        "symbol": "operator delete[](void*)",
+        "sampled_cycles": 13866640,
+        "pct": 2.0
+      },
+      {
+        "symbol": "dagflow::detail::ring_mpmc<dagflow::detail::ScheduledTask*, 16384ul>::try_pop(dagflow::detail::ScheduledTask*&)",
+        "sampled_cycles": 13388480,
+        "pct": 1.9310344827586208
+      },
+      {
+        "symbol": "std::__atomic_base<long>::load(std::memory_order) const",
+        "sampled_cycles": 11954000,
+        "pct": 1.7241379310344827
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::try_acquire(unsigned int)",
+        "sampled_cycles": 10519520,
+        "pct": 1.5172413793103448
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::select_shard(std::optional<unsigned int>)",
+        "sampled_cycles": 10041360,
+        "pct": 1.4482758620689655
+      },
+      {
+        "symbol": "mi_malloc_small",
+        "sampled_cycles": 8606880,
+        "pct": 1.2413793103448276
+      },
+      {
+        "symbol": "bool dagflow::detail::ring_mpmc<dagflow::detail::ScheduledTask*, 16384ul>::push_impl<dagflow::detail::ScheduledTask* const&>(dagflow::detail::ScheduledTask* const&)",
+        "sampled_cycles": 8128720,
+        "pct": 1.1724137931034482
+      },
+      {
+        "symbol": "dagflow::Pool::execute_task(unsigned int, dagflow::detail::ScheduledTask*)",
+        "sampled_cycles": 8128720,
+        "pct": 1.1724137931034482
+      },
+      {
+        "symbol": "std::atomic_thread_fence(std::memory_order)",
+        "sampled_cycles": 7650560,
+        "pct": 1.103448275862069
+      },
+      {
+        "symbol": "[unknown in [unknown]]",
+        "sampled_cycles": 4303440,
+        "pct": 0.6206896551724138
+      },
+      {
+        "symbol": "dagflow::Pool::worker_loop(unsigned int)",
+        "sampled_cycles": 3347120,
+        "pct": 0.4827586206896552
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::has_local_work(unsigned int) const",
+        "sampled_cycles": 2868960,
+        "pct": 0.41379310344827586
+      }
+    ]
+  },
+  "o3-4-local-overflow": {
+    "samples": 1618,
+    "sampled_cycles": 834438196,
+    "missing_callchain_samples": 0,
+    "max_depth": 13,
+    "top_self": [
+      {
+        "symbol": "dagflow::detail::Scheduler::steal(unsigned int, unsigned int)",
+        "sampled_cycles": 230527734,
+        "pct": 27.626699629171817
+      },
+      {
+        "symbol": "operator delete[](void*)",
+        "sampled_cycles": 168641094,
+        "pct": 20.210135970333745
+      },
+      {
+        "symbol": "std::atomic_thread_fence(std::memory_order)",
+        "sampled_cycles": 70653914,
+        "pct": 8.4672435105068
+      },
+      {
+        "symbol": "std::__atomic_base<long>::load(std::memory_order) const",
+        "sampled_cycles": 69622470,
+        "pct": 8.343634116192831
+      },
+      {
+        "symbol": "[unknown in libmimalloc.so.3.5]",
+        "sampled_cycles": 38679150,
+        "pct": 4.635352286773795
+      },
+      {
+        "symbol": "mi_malloc_small",
+        "sampled_cycles": 27848988,
+        "pct": 3.3374536464771323
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::try_acquire(unsigned int)",
+        "sampled_cycles": 27848988,
+        "pct": 3.3374536464771323
+      },
+      {
+        "symbol": "dagflow::detail::chase_lev_deque<dagflow::detail::ScheduledTask*, 1024ul>::try_push(dagflow::detail::ScheduledTask*)",
+        "sampled_cycles": 26301822,
+        "pct": 3.1520395550061804
+      },
+      {
+        "symbol": "dagflow::detail::ParkingLot::wake_one(unsigned int)",
+        "sampled_cycles": 25786100,
+        "pct": 3.0902348578491967
+      },
+      {
+        "symbol": "[unknown in [unknown]]",
+        "sampled_cycles": 20113158,
+        "pct": 2.4103831891223733
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::random_below(dagflow::detail::Scheduler::Local&, unsigned int)",
+        "sampled_cycles": 11861606,
+        "pct": 1.4215080346106304
+      },
+      {
+        "symbol": "dagflow::detail::CompletionState* std::__exchange<dagflow::detail::CompletionState*, decltype(nullptr)>(dagflow::detail::CompletionState*&, decltype(nullptr)&&)",
+        "sampled_cycles": 8767274,
+        "pct": 1.0506798516687268
+      },
+      {
+        "symbol": "std::__atomic_base<long>::store(long, std::memory_order)",
+        "sampled_cycles": 8767274,
+        "pct": 1.0506798516687268
+      },
+      {
+        "symbol": "std::__atomic_base<unsigned long>::compare_exchange_weak(unsigned long&, unsigned long, std::memory_order, std::memory_order)",
+        "sampled_cycles": 8251552,
+        "pct": 0.9888751545117429
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::drain(unsigned int, unsigned int, dagflow::Priority)",
+        "sampled_cycles": 8251552,
+        "pct": 0.9888751545117429
+      }
+    ]
+  },
+  "o3-4-nested-helping": {
+    "samples": 1376,
+    "sampled_cycles": 208364928,
+    "missing_callchain_samples": 723,
+    "max_depth": 16,
+    "top_self": [
+      {
+        "symbol": "void dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>::call<dagflow::Pool::submit<(anonymous namespace)::nested_helping(dagflow::Pool&)::$_0::operator()() const::{lambda()#1}::operator()() const::{lambda()#1}>((anonymous namespace)::nested_helping(dagflow::Pool&)::$_0::operator()() const::{lambda()#1}::operator()() const::{lambda()#1}, dagflow::SubmitOptions)::{lambda(dagflow::detail::CompletionCredit&)#1}>(void*, dagflow::detail::CompletionCredit&)",
+        "sampled_cycles": 32557020,
+        "pct": 15.625
+      },
+      {
+        "symbol": "operator delete[](void*)",
+        "sampled_cycles": 22714200,
+        "pct": 10.901162790697674
+      },
+      {
+        "symbol": "(anonymous namespace)::work(unsigned long, unsigned int)",
+        "sampled_cycles": 18322788,
+        "pct": 8.793604651162791
+      },
+      {
+        "symbol": "void dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>::call<dagflow::Pool::submit_detached<(anonymous namespace)::nested_helping(dagflow::Pool&)::$_0::operator()() const::{lambda()#1}>((anonymous namespace)::nested_helping(dagflow::Pool&)::$_0::operator()() const::{lambda()#1}, dagflow::SubmitOptions)::{lambda(dagflow::detail::CompletionCredit&)#1}>(void*, dagflow::detail::CompletionCredit&)",
+        "sampled_cycles": 13174236,
+        "pct": 6.3226744186046515
+      },
+      {
+        "symbol": "[unknown in libmimalloc.so.3.5]",
+        "sampled_cycles": 11962812,
+        "pct": 5.741279069767442
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::try_acquire(unsigned int)",
+        "sampled_cycles": 10751388,
+        "pct": 5.159883720930233
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::try_submit_external(unsigned int, dagflow::detail::ScheduledTask*)",
+        "sampled_cycles": 9994248,
+        "pct": 4.796511627906977
+      },
+      {
+        "symbol": "mi_malloc_small",
+        "sampled_cycles": 8328540,
+        "pct": 3.997093023255814
+      },
+      {
+        "symbol": "dagflow::Pool::execute_task(unsigned int, dagflow::detail::ScheduledTask*)",
+        "sampled_cycles": 7571400,
+        "pct": 3.633720930232558
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::select_shard(std::optional<unsigned int>)",
+        "sampled_cycles": 6814260,
+        "pct": 3.270348837209302
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::drain(unsigned int, unsigned int, dagflow::Priority)",
+        "sampled_cycles": 5905692,
+        "pct": 2.8343023255813953
+      },
+      {
+        "symbol": "dagflow::Pool::enqueue(dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>, dagflow::SubmitOptions, dagflow::detail::CompletionCredit)",
+        "sampled_cycles": 5451408,
+        "pct": 2.616279069767442
+      },
+      {
+        "symbol": "dagflow::detail::ParkingLot::wake_one(unsigned int)",
+        "sampled_cycles": 4997124,
+        "pct": 2.3982558139534884
+      },
+      {
+        "symbol": "[unknown in [unknown]]",
+        "sampled_cycles": 3634272,
+        "pct": 1.744186046511628
+      },
+      {
+        "symbol": "dagflow::detail::CompletionState::retire(dagflow::detail::CompletionState*)",
+        "sampled_cycles": 3028560,
+        "pct": 1.4534883720930232
+      }
+    ]
+  },
+  "o3-4-mixed-chaos": {
+    "samples": 1358,
+    "sampled_cycles": 664339032,
+    "missing_callchain_samples": 1146,
+    "max_depth": 13,
+    "top_self": [
+      {
+        "symbol": "void dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>::call<dagflow::Pool::submit_detached<(anonymous namespace)::mixed_chaos(dagflow::Pool&, unsigned int)::$_0::operator()() const::{lambda()#1}::operator()() const::{lambda()#1}>((anonymous namespace)::mixed_chaos(dagflow::Pool&, unsigned int)::$_0::operator()() const::{lambda()#1}::operator()() const::{lambda()#1}, dagflow::SubmitOptions)::{lambda(dagflow::detail::CompletionCredit&)#1}>(void*, dagflow::detail::CompletionCredit&)",
+        "sampled_cycles": 133552692,
+        "pct": 20.103092783505154
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::try_submit_external(unsigned int, dagflow::detail::ScheduledTask*)",
+        "sampled_cycles": 106646472,
+        "pct": 16.05301914580265
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::try_acquire(unsigned int)",
+        "sampled_cycles": 58215276,
+        "pct": 8.762886597938145
+      },
+      {
+        "symbol": "dagflow::detail::ParkingLot::wake_one(unsigned int)",
+        "sampled_cycles": 45495972,
+        "pct": 6.848306332842415
+      },
+      {
+        "symbol": "[unknown in libmimalloc.so.3.5]",
+        "sampled_cycles": 35711892,
+        "pct": 5.375552282768778
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::select_shard(std::optional<unsigned int>)",
+        "sampled_cycles": 33755076,
+        "pct": 5.08100147275405
+      },
+      {
+        "symbol": "operator delete[](void*)",
+        "sampled_cycles": 30819852,
+        "pct": 4.639175257731959
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::drain(unsigned int, unsigned int, dagflow::Priority)",
+        "sampled_cycles": 28863036,
+        "pct": 4.344624447717231
+      },
+      {
+        "symbol": "dagflow::Pool::enqueue(dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>, dagflow::SubmitOptions, dagflow::detail::CompletionCredit)",
+        "sampled_cycles": 26906220,
+        "pct": 4.0500736377025035
+      },
+      {
+        "symbol": "void dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>::call<dagflow::Pool::submit<(anonymous namespace)::mixed_chaos(dagflow::Pool&, unsigned int)::$_0::operator()() const::{lambda()#1}::operator()() const::{lambda()#1}::operator()() const::{lambda()#2}>((anonymous namespace)::mixed_chaos(dagflow::Pool&, unsigned int)::$_0::operator()() const::{lambda()#1}::operator()() const::{lambda()#1}::operator()() const::{lambda()#2}, dagflow::SubmitOptions)::{lambda(dagflow::detail::CompletionCredit&)#1}>(void*, dagflow::detail::CompletionCredit&)",
+        "sampled_cycles": 24949404,
+        "pct": 3.755522827687776
+      },
+      {
+        "symbol": "void dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>::call<dagflow::Pool::submit_detached<(anonymous namespace)::mixed_chaos(dagflow::Pool&, unsigned int)::$_0::operator()() const::{lambda()#1}::operator()() const::{lambda()#1}::operator()() const::{lambda()#1}>((anonymous namespace)::mixed_chaos(dagflow::Pool&, unsigned int)::$_0::operator()() const::{lambda()#1}::operator()() const::{lambda()#1}::operator()() const::{lambda()#1}, dagflow::SubmitOptions)::{lambda(dagflow::detail::CompletionCredit&)#1}>(void*, dagflow::detail::CompletionCredit&)",
+        "sampled_cycles": 19568160,
+        "pct": 2.9455081001472756
+      },
+      {
+        "symbol": "dagflow::Pool::execute_task(unsigned int, dagflow::detail::ScheduledTask*)",
+        "sampled_cycles": 11740896,
+        "pct": 1.7673048600883652
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::try_submit_local(unsigned int, dagflow::detail::ScheduledTask*)",
+        "sampled_cycles": 11251692,
+        "pct": 1.6936671575846833
+      },
+      {
+        "symbol": "mi_malloc_small",
+        "sampled_cycles": 10273284,
+        "pct": 1.5463917525773196
+      },
+      {
+        "symbol": "dagflow::detail::allocate_bytes(unsigned long, unsigned long)",
+        "sampled_cycles": 7338060,
+        "pct": 1.1045655375552283
+      }
+    ]
+  },
+  "o3-4-idle-burst": {
+    "samples": 1271,
+    "sampled_cycles": 44408740,
+    "missing_callchain_samples": 0,
+    "max_depth": 19,
+    "top_self": [
+      {
+        "symbol": "[unknown in [unknown]]",
+        "sampled_cycles": 20859180,
+        "pct": 46.970889063729345
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::steal(unsigned int, unsigned int)",
+        "sampled_cycles": 3214480,
+        "pct": 7.238394964594807
+      },
+      {
+        "symbol": "[unknown in ld-linux-x86-64.so.2]",
+        "sampled_cycles": 1747000,
+        "pct": 3.933910306845004
+      },
+      {
+        "symbol": "dagflow::detail::ring_mpmc<dagflow::detail::ScheduledTask*, 16384ul>::try_pop(dagflow::detail::ScheduledTask*&)",
+        "sampled_cycles": 1607240,
+        "pct": 3.6191974822974036
+      },
+      {
+        "symbol": "(anonymous namespace)::work(unsigned long, unsigned int)",
+        "sampled_cycles": 1118080,
+        "pct": 2.5177025963808024
+      },
+      {
+        "symbol": "__vdso_clock_gettime",
+        "sampled_cycles": 1083140,
+        "pct": 2.4390243902439024
+      },
+      {
+        "symbol": "std::__atomic_base<unsigned long>::compare_exchange_weak(unsigned long&, unsigned long, std::memory_order, std::memory_order)",
+        "sampled_cycles": 1013260,
+        "pct": 2.2816679779701023
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::try_acquire(unsigned int)",
+        "sampled_cycles": 1013260,
+        "pct": 2.2816679779701023
+      },
+      {
+        "symbol": "std::__atomic_base<long>::load(std::memory_order) const",
+        "sampled_cycles": 978320,
+        "pct": 2.2029897718332023
+      },
+      {
+        "symbol": "std::atomic_thread_fence(std::memory_order)",
+        "sampled_cycles": 873500,
+        "pct": 1.966955153422502
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::random_below(dagflow::detail::Scheduler::Local&, unsigned int)",
+        "sampled_cycles": 838560,
+        "pct": 1.8882769472856018
+      },
+      {
+        "symbol": "operator delete[](void*)",
+        "sampled_cycles": 733740,
+        "pct": 1.6522423288749017
+      },
+      {
+        "symbol": "[unknown in libmimalloc.so.3.5]",
+        "sampled_cycles": 663860,
+        "pct": 1.4948859166011015
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::drain(unsigned int, unsigned int, dagflow::Priority)",
+        "sampled_cycles": 663860,
+        "pct": 1.4948859166011015
+      },
+      {
+        "symbol": "[unknown in libc.so.6]",
+        "sampled_cycles": 628920,
+        "pct": 1.4162077104642015
+      }
+    ]
+  },
+  "o3-lto-1-external-contention": {
+    "samples": 1444,
+    "sampled_cycles": 735488404,
+    "missing_callchain_samples": 0,
+    "max_depth": 13,
+    "top_self": [
+      {
+        "symbol": "dagflow::Pool::enqueue(dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>, dagflow::SubmitOptions, dagflow::detail::CompletionCredit)",
+        "sampled_cycles": 225638063,
+        "pct": 30.678670360110804
+      },
+      {
+        "symbol": "std::__atomic_base<long>::load(std::memory_order) const",
+        "sampled_cycles": 103396223,
+        "pct": 14.058171745152354
+      },
+      {
+        "symbol": "dagflow::detail::ParkingLot::wake_one(unsigned int)",
+        "sampled_cycles": 85059947,
+        "pct": 11.565096952908588
+      },
+      {
+        "symbol": "std::__atomic_base<unsigned long>::compare_exchange_weak(unsigned long&, unsigned long, std::memory_order, std::memory_order)",
+        "sampled_cycles": 65704989,
+        "pct": 8.933518005540167
+      },
+      {
+        "symbol": "[unknown in libmimalloc.so.3.5]",
+        "sampled_cycles": 56027510,
+        "pct": 7.617728531855955
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::try_acquire(unsigned int)",
+        "sampled_cycles": 34125847,
+        "pct": 4.639889196675901
+      },
+      {
+        "symbol": "operator delete[](void*)",
+        "sampled_cycles": 26485732,
+        "pct": 3.601108033240997
+      },
+      {
+        "symbol": "std::thread::_State_impl<std::thread::_Invoker<std::tuple<dagflow::Pool::Pool(dagflow::Config const&)::$_0> > >::_M_run()",
+        "sampled_cycles": 22411004,
+        "pct": 3.0470914127423825
+      },
+      {
+        "symbol": "dagflow::Pool::execute_task(unsigned int, dagflow::detail::ScheduledTask*)",
+        "sampled_cycles": 12733525,
+        "pct": 1.7313019390581716
+      },
+      {
+        "symbol": "mi_malloc_small",
+        "sampled_cycles": 12224184,
+        "pct": 1.6620498614958448
+      },
+      {
+        "symbol": "std::thread::_State_impl<std::thread::_Invoker<std::tuple<(anonymous namespace)::external_contention(dagflow::Pool&, unsigned int)::$_0::operator()() const::{lambda()#1}> > >::_M_run()",
+        "sampled_cycles": 10696161,
+        "pct": 1.4542936288088644
+      },
+      {
+        "symbol": "dagflow::detail::ring_mpmc<dagflow::detail::ScheduledTask*, 16384ul>::try_pop(dagflow::detail::ScheduledTask*&)",
+        "sampled_cycles": 9168138,
+        "pct": 1.2465373961218837
+      },
+      {
+        "symbol": "dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>::basic_function()",
+        "sampled_cycles": 8658797,
+        "pct": 1.1772853185595569
+      },
+      {
+        "symbol": "dagflow::detail::CompletionState* std::__exchange<dagflow::detail::CompletionState*, decltype(nullptr)>(dagflow::detail::CompletionState*&, decltype(nullptr)&&)",
+        "sampled_cycles": 6112092,
+        "pct": 0.8310249307479224
+      },
+      {
+        "symbol": "(anonymous namespace)::work(unsigned long, unsigned int)",
+        "sampled_cycles": 5093410,
+        "pct": 0.6925207756232687
+      }
+    ]
+  },
+  "o3-lto-1-hot-shard-skew": {
+    "samples": 1490,
+    "sampled_cycles": 619044340,
+    "missing_callchain_samples": 0,
+    "max_depth": 17,
+    "top_self": [
+      {
+        "symbol": "(anonymous namespace)::work(unsigned long, unsigned int)",
+        "sampled_cycles": 484848822,
+        "pct": 78.32214765100672
+      },
+      {
+        "symbol": "dagflow::Pool::enqueue(dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>, dagflow::SubmitOptions, dagflow::detail::CompletionCredit)",
+        "sampled_cycles": 26589824,
+        "pct": 4.295302013422819
+      },
+      {
+        "symbol": "[unknown in [unknown]]",
+        "sampled_cycles": 17865038,
+        "pct": 2.8859060402684564
+      },
+      {
+        "symbol": "[unknown in libmimalloc.so.3.5]",
+        "sampled_cycles": 14956776,
+        "pct": 2.4161073825503356
+      },
+      {
+        "symbol": "std::__atomic_base<unsigned long>::compare_exchange_weak(unsigned long&, unsigned long, std::memory_order, std::memory_order)",
+        "sampled_cycles": 10386650,
+        "pct": 1.6778523489932886
+      },
+      {
+        "symbol": "std::__atomic_base<long>::load(std::memory_order) const",
+        "sampled_cycles": 9971184,
+        "pct": 1.610738255033557
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::try_acquire(unsigned int)",
+        "sampled_cycles": 9140252,
+        "pct": 1.476510067114094
+      },
+      {
+        "symbol": "operator delete[](void*)",
+        "sampled_cycles": 7062922,
+        "pct": 1.1409395973154361
+      },
+      {
+        "symbol": "dagflow::Pool::execute_task(unsigned int, dagflow::detail::ScheduledTask*)",
+        "sampled_cycles": 4985592,
+        "pct": 0.8053691275167785
+      },
+      {
+        "symbol": "dagflow::detail::ParkingLot::wake_one(unsigned int)",
+        "sampled_cycles": 4570126,
+        "pct": 0.738255033557047
+      },
+      {
+        "symbol": "std::__uniq_ptr_impl<dagflow::detail::Scheduler::Local, dagflow::detail::ArrayDeleter<dagflow::detail::Scheduler::Local> >::_M_ptr() const",
+        "sampled_cycles": 3739194,
+        "pct": 0.6040268456375839
+      },
+      {
+        "symbol": "dagflow::detail::ring_mpmc<dagflow::detail::ScheduledTask*, 16384ul>::try_pop(dagflow::detail::ScheduledTask*&)",
+        "sampled_cycles": 3739194,
+        "pct": 0.6040268456375839
+      },
+      {
+        "symbol": "dagflow::detail::IdleAccounting::publish(dagflow::detail::IdleAccounting::Lane&)",
+        "sampled_cycles": 2077330,
+        "pct": 0.33557046979865773
+      },
+      {
+        "symbol": "[unknown in ld-linux-x86-64.so.2]",
+        "sampled_cycles": 1661864,
+        "pct": 0.2684563758389262
+      },
+      {
+        "symbol": "mi_malloc_small",
+        "sampled_cycles": 1661864,
+        "pct": 0.2684563758389262
+      }
+    ]
+  },
+  "o3-lto-1-local-overflow": {
+    "samples": 676,
+    "sampled_cycles": 28894268,
+    "missing_callchain_samples": 0,
+    "max_depth": 17,
+    "top_self": [
+      {
+        "symbol": "bool dagflow::detail::ring_mpmc<dagflow::detail::ScheduledTask*, 16384ul>::push_impl<dagflow::detail::ScheduledTask* const&>(dagflow::detail::ScheduledTask* const&)",
+        "sampled_cycles": 4231557,
+        "pct": 14.644970414201184
+      },
+      {
+        "symbol": "dagflow::detail::ParkingLot::wake_one(unsigned int)",
+        "sampled_cycles": 2179893,
+        "pct": 7.544378698224852
+      },
+      {
+        "symbol": "mi_malloc_small",
+        "sampled_cycles": 2094407,
+        "pct": 7.2485207100591715
+      },
+      {
+        "symbol": "dagflow::Pool::enqueue(dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>, dagflow::SubmitOptions, dagflow::detail::CompletionCredit)",
+        "sampled_cycles": 1795206,
+        "pct": 6.21301775147929
+      },
+      {
+        "symbol": "[unknown in libmimalloc.so.3.5]",
+        "sampled_cycles": 1666977,
+        "pct": 5.769230769230769
+      },
+      {
+        "symbol": "std::__atomic_base<long>::load(std::memory_order) const",
+        "sampled_cycles": 1496005,
+        "pct": 5.177514792899408
+      },
+      {
+        "symbol": "(anonymous namespace)::work(unsigned long, unsigned int)",
+        "sampled_cycles": 1410519,
+        "pct": 4.881656804733728
+      },
+      {
+        "symbol": "[unknown in ld-linux-x86-64.so.2]",
+        "sampled_cycles": 1367776,
+        "pct": 4.733727810650888
+      },
+      {
+        "symbol": "dagflow::Pool::execute_task(unsigned int, dagflow::detail::ScheduledTask*)",
+        "sampled_cycles": 1367776,
+        "pct": 4.733727810650888
+      },
+      {
+        "symbol": "std::__atomic_base<unsigned long>::compare_exchange_weak(unsigned long&, unsigned long, std::memory_order, std::memory_order)",
+        "sampled_cycles": 1111318,
+        "pct": 3.8461538461538463
+      },
+      {
+        "symbol": "operator delete[](void*)",
+        "sampled_cycles": 769374,
+        "pct": 2.662721893491124
+      },
+      {
+        "symbol": "dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>::basic_function()",
+        "sampled_cycles": 683888,
+        "pct": 2.366863905325444
+      },
+      {
+        "symbol": "dagflow::detail::IdleAccounting::publish_worker(unsigned int)",
+        "sampled_cycles": 641145,
+        "pct": 2.2189349112426036
+      },
+      {
+        "symbol": "dagflow::detail::CompletionState* std::__exchange<dagflow::detail::CompletionState*, decltype(nullptr)>(dagflow::detail::CompletionState*&, decltype(nullptr)&&)",
+        "sampled_cycles": 598402,
+        "pct": 2.0710059171597632
+      },
+      {
+        "symbol": "dagflow::detail::ring_mpmc<dagflow::detail::ScheduledTask*, 16384ul>::try_pop(dagflow::detail::ScheduledTask*&)",
+        "sampled_cycles": 555659,
+        "pct": 1.9230769230769231
+      }
+    ]
+  },
+  "o3-lto-1-nested-helping": {
+    "samples": 1100,
+    "sampled_cycles": 92638700,
+    "missing_callchain_samples": 0,
+    "max_depth": 13,
+    "top_self": [
+      {
+        "symbol": "(anonymous namespace)::work(unsigned long, unsigned int)",
+        "sampled_cycles": 43034887,
+        "pct": 46.45454545454545
+      },
+      {
+        "symbol": "dagflow::Pool::enqueue(dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>, dagflow::SubmitOptions, dagflow::detail::CompletionCredit)",
+        "sampled_cycles": 8421700,
+        "pct": 9.090909090909092
+      },
+      {
+        "symbol": "[unknown in libmimalloc.so.3.5]",
+        "sampled_cycles": 3958199,
+        "pct": 4.2727272727272725
+      },
+      {
+        "symbol": "std::__atomic_base<long>::load(std::memory_order) const",
+        "sampled_cycles": 3031812,
+        "pct": 3.272727272727273
+      },
+      {
+        "symbol": "operator delete[](void*)",
+        "sampled_cycles": 2779161,
+        "pct": 3.0
+      },
+      {
+        "symbol": "mi_malloc_small",
+        "sampled_cycles": 2273859,
+        "pct": 2.4545454545454546
+      },
+      {
+        "symbol": "[unknown in ld-linux-x86-64.so.2]",
+        "sampled_cycles": 2105425,
+        "pct": 2.272727272727273
+      },
+      {
+        "symbol": "dagflow::detail::ParkingLot::wake_one(unsigned int)",
+        "sampled_cycles": 2105425,
+        "pct": 2.272727272727273
+      },
+      {
+        "symbol": "std::__atomic_base<unsigned long>::compare_exchange_weak(unsigned long&, unsigned long, std::memory_order, std::memory_order)",
+        "sampled_cycles": 1852774,
+        "pct": 2.0
+      },
+      {
+        "symbol": "_ZSt12construct_atIZN7dagflow4Pool15submit_detachedIZZN12_GLOBAL__N_114nested_helpingERS1_ENK3$_0clEvEUlvE_EEvT_NS0_13SubmitOptionsEEUlRNS0_6detail16CompletionCreditEE_JSC_EQaant20is_unbounded_array_vIS7_ErqXgsnwcvPvLi0E_S7_pispclsr3stdE7declvalIT0_EEEEEPS7_SF_DpOSE_",
+        "sampled_cycles": 1684340,
+        "pct": 1.8181818181818181
+      },
+      {
+        "symbol": "dagflow::detail::CompletionState::retire(dagflow::detail::CompletionState*)",
+        "sampled_cycles": 1347472,
+        "pct": 1.4545454545454546
+      },
+      {
+        "symbol": "std::_Vector_base<dagflow::detail::CompletionCredit, dagflow::detail::RuntimeAllocator<dagflow::detail::CompletionCredit> >::_Vector_impl_data::_M_copy_data(std::_Vector_base<dagflow::detail::CompletionCredit, dagflow::detail::RuntimeAllocator<dagflow::detail::CompletionCredit> >::_Vector_impl_data const&)",
+        "sampled_cycles": 1347472,
+        "pct": 1.4545454545454546
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::try_acquire(unsigned int)",
+        "sampled_cycles": 1094821,
+        "pct": 1.1818181818181819
+      },
+      {
+        "symbol": "pthread_mutex_unlock",
+        "sampled_cycles": 1010604,
+        "pct": 1.0909090909090908
+      },
+      {
+        "symbol": "dagflow::Pool::execute_task(unsigned int, dagflow::detail::ScheduledTask*)",
+        "sampled_cycles": 926387,
+        "pct": 1.0
+      }
+    ]
+  },
+  "o3-lto-1-mixed-chaos": {
+    "samples": 1476,
+    "sampled_cycles": 523981476,
+    "missing_callchain_samples": 1255,
+    "max_depth": 11,
+    "top_self": [
+      {
+        "symbol": "void dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>::call<dagflow::Pool::submit_detached<(anonymous namespace)::mixed_chaos(dagflow::Pool&, unsigned int)::$_0::operator()() const::{lambda()#1}::operator()() const::{lambda()#1}>((anonymous namespace)::mixed_chaos(dagflow::Pool&, unsigned int)::$_0::operator()() const::{lambda()#1}::operator()() const::{lambda()#1}, dagflow::SubmitOptions)::{lambda(dagflow::detail::CompletionCredit&)#1}>(void*, dagflow::detail::CompletionCredit&)",
+        "sampled_cycles": 138450390,
+        "pct": 26.422764227642276
+      },
+      {
+        "symbol": "dagflow::Pool::enqueue(dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>, dagflow::SubmitOptions, dagflow::detail::CompletionCredit)",
+        "sampled_cycles": 127800360,
+        "pct": 24.390243902439025
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::try_acquire(unsigned int)",
+        "sampled_cycles": 49700140,
+        "pct": 9.48509485094851
+      },
+      {
+        "symbol": "dagflow::detail::ParkingLot::wake_one(unsigned int)",
+        "sampled_cycles": 28400080,
+        "pct": 5.420054200542006
+      },
+      {
+        "symbol": "void dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>::call<dagflow::Pool::submit<(anonymous namespace)::mixed_chaos(dagflow::Pool&, unsigned int)::$_0::operator()() const::{lambda()#1}::operator()() const::{lambda()#1}::operator()() const::{lambda()#2}>((anonymous namespace)::mixed_chaos(dagflow::Pool&, unsigned int)::$_0::operator()() const::{lambda()#1}::operator()() const::{lambda()#1}::operator()() const::{lambda()#2}, dagflow::SubmitOptions)::{lambda(dagflow::detail::CompletionCredit&)#1}>(void*, dagflow::detail::CompletionCredit&)",
+        "sampled_cycles": 27335077,
+        "pct": 5.2168021680216805
+      },
+      {
+        "symbol": "[unknown in libmimalloc.so.3.5]",
+        "sampled_cycles": 26625075,
+        "pct": 5.08130081300813
+      },
+      {
+        "symbol": "void dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>::call<dagflow::Pool::submit_detached<(anonymous namespace)::mixed_chaos(dagflow::Pool&, unsigned int)::$_0::operator()() const::{lambda()#1}::operator()() const::{lambda()#1}::operator()() const::{lambda()#1}>((anonymous namespace)::mixed_chaos(dagflow::Pool&, unsigned int)::$_0::operator()() const::{lambda()#1}::operator()() const::{lambda()#1}::operator()() const::{lambda()#1}, dagflow::SubmitOptions)::{lambda(dagflow::detail::CompletionCredit&)#1}>(void*, dagflow::detail::CompletionCredit&)",
+        "sampled_cycles": 24495069,
+        "pct": 4.67479674796748
+      },
+      {
+        "symbol": "dagflow::Pool::execute_task(unsigned int, dagflow::detail::ScheduledTask*)",
+        "sampled_cycles": 18105051,
+        "pct": 3.4552845528455283
+      },
+      {
+        "symbol": "[unknown in [unknown]]",
+        "sampled_cycles": 13490038,
+        "pct": 2.5745257452574526
+      },
+      {
+        "symbol": "operator delete[](void*)",
+        "sampled_cycles": 13135037,
+        "pct": 2.5067750677506777
+      },
+      {
+        "symbol": "mi_malloc_small",
+        "sampled_cycles": 10650030,
+        "pct": 2.032520325203252
+      },
+      {
+        "symbol": "std::thread::_State_impl<std::thread::_Invoker<std::tuple<dagflow::Pool::Pool(dagflow::Config const&)::$_0> > >::_M_run()",
+        "sampled_cycles": 8165023,
+        "pct": 1.5582655826558265
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::drain(unsigned int, unsigned int, dagflow::Priority)",
+        "sampled_cycles": 7100020,
+        "pct": 1.3550135501355014
+      },
+      {
+        "symbol": "void dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>::move<dagflow::Pool::submit_detached<(anonymous namespace)::mixed_chaos(dagflow::Pool&, unsigned int)::$_0::operator()() const::{lambda()#1}::operator()() const::{lambda()#1}>((anonymous namespace)::mixed_chaos(dagflow::Pool&, unsigned int)::$_0::operator()() const::{lambda()#1}::operator()() const::{lambda()#1}, dagflow::SubmitOptions)::{lambda(dagflow::detail::CompletionCredit&)#1}>(void*, void*)",
+        "sampled_cycles": 4970014,
+        "pct": 0.948509485094851
+      },
+      {
+        "symbol": "std::thread::_State_impl<std::thread::_Invoker<std::tuple<(anonymous namespace)::mixed_chaos(dagflow::Pool&, unsigned int)::$_0::operator()() const::{lambda()#1}> > >::_M_run()",
+        "sampled_cycles": 4970014,
+        "pct": 0.948509485094851
+      }
+    ]
+  },
+  "o3-lto-1-idle-burst": {
+    "samples": 965,
+    "sampled_cycles": 10197155,
+    "missing_callchain_samples": 0,
+    "max_depth": 22,
+    "top_self": [
+      {
+        "symbol": "[unknown in [unknown]]",
+        "sampled_cycles": 4522676,
+        "pct": 44.35233160621762
+      },
+      {
+        "symbol": "[unknown in ld-linux-x86-64.so.2]",
+        "sampled_cycles": 845360,
+        "pct": 8.290155440414507
+      },
+      {
+        "symbol": "mi_malloc_small",
+        "sampled_cycles": 517783,
+        "pct": 5.077720207253886
+      },
+      {
+        "symbol": "[unknown in libmimalloc.so.3.5]",
+        "sampled_cycles": 475515,
+        "pct": 4.66321243523316
+      },
+      {
+        "symbol": "clock_gettime",
+        "sampled_cycles": 348711,
+        "pct": 3.4196891191709846
+      },
+      {
+        "symbol": "dagflow::Pool::enqueue(dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>, dagflow::SubmitOptions, dagflow::detail::CompletionCredit)",
+        "sampled_cycles": 306443,
+        "pct": 3.005181347150259
+      },
+      {
+        "symbol": "(anonymous namespace)::work(unsigned long, unsigned int)",
+        "sampled_cycles": 285309,
+        "pct": 2.7979274611398965
+      },
+      {
+        "symbol": "[unknown in libc.so.6]",
+        "sampled_cycles": 243041,
+        "pct": 2.383419689119171
+      },
+      {
+        "symbol": "operator delete[](void*)",
+        "sampled_cycles": 243041,
+        "pct": 2.383419689119171
+      },
+      {
+        "symbol": "__vdso_clock_gettime",
+        "sampled_cycles": 211340,
+        "pct": 2.0725388601036268
+      },
+      {
+        "symbol": "std::chrono::_V2::steady_clock::now()",
+        "sampled_cycles": 200773,
+        "pct": 1.9689119170984455
+      },
+      {
+        "symbol": "dagflow::detail::ParkingLot::wait(unsigned int, unsigned long, unsigned int, std::atomic<bool> const&)::$_0::operator()() const",
+        "sampled_cycles": 147938,
+        "pct": 1.450777202072539
+      },
+      {
+        "symbol": "pthread_mutex_lock",
+        "sampled_cycles": 126804,
+        "pct": 1.2435233160621761
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::try_acquire(unsigned int)",
+        "sampled_cycles": 105670,
+        "pct": 1.0362694300518134
+      },
+      {
+        "symbol": "std::chrono::_V2::steady_clock::now()@plt",
+        "sampled_cycles": 95103,
+        "pct": 0.9326424870466321
+      }
+    ]
+  },
+  "o3-lto-4-external-contention": {
+    "samples": 1484,
+    "sampled_cycles": 831505976,
+    "missing_callchain_samples": 947,
+    "max_depth": 17,
+    "top_self": [
+      {
+        "symbol": "dagflow::Pool::enqueue(dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>, dagflow::SubmitOptions, dagflow::detail::CompletionCredit)",
+        "sampled_cycles": 321059922,
+        "pct": 38.61185983827493
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::try_acquire(unsigned int)",
+        "sampled_cycles": 115984998,
+        "pct": 13.94878706199461
+      },
+      {
+        "symbol": "dagflow::detail::ParkingLot::wake_one(unsigned int)",
+        "sampled_cycles": 80124902,
+        "pct": 9.63611859838275
+      },
+      {
+        "symbol": "operator delete[](void*)",
+        "sampled_cycles": 71720192,
+        "pct": 8.625336927223719
+      },
+      {
+        "symbol": "[unknown in libmimalloc.so.3.5]",
+        "sampled_cycles": 59953598,
+        "pct": 7.210242587601078
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::drain(unsigned int, unsigned int, dagflow::Priority)",
+        "sampled_cycles": 36980724,
+        "pct": 4.44743935309973
+      },
+      {
+        "symbol": "mi_malloc_small",
+        "sampled_cycles": 34179154,
+        "pct": 4.110512129380054
+      },
+      {
+        "symbol": "std::thread::_State_impl<std::thread::_Invoker<std::tuple<dagflow::Pool::Pool(dagflow::Config const&)::$_0> > >::_M_run()",
+        "sampled_cycles": 20731618,
+        "pct": 2.4932614555256065
+      },
+      {
+        "symbol": "dagflow::Pool::execute_task(unsigned int, dagflow::detail::ScheduledTask*)",
+        "sampled_cycles": 19610990,
+        "pct": 2.358490566037736
+      },
+      {
+        "symbol": "std::__atomic_base<unsigned long>::compare_exchange_weak(unsigned long&, unsigned long, std::memory_order, std::memory_order)",
+        "sampled_cycles": 16249106,
+        "pct": 1.954177897574124
+      },
+      {
+        "symbol": "std::__atomic_base<long>::load(std::memory_order) const",
+        "sampled_cycles": 15688792,
+        "pct": 1.8867924528301887
+      },
+      {
+        "symbol": "std::thread::_State_impl<std::thread::_Invoker<std::tuple<(anonymous namespace)::external_contention(dagflow::Pool&, unsigned int)::$_0::operator()() const::{lambda()#1}> > >::_M_run()",
+        "sampled_cycles": 6163454,
+        "pct": 0.7412398921832885
+      },
+      {
+        "symbol": "std::__uniq_ptr_impl<dagflow::detail::Scheduler::Local, dagflow::detail::ArrayDeleter<dagflow::detail::Scheduler::Local> >::_M_ptr() const",
+        "sampled_cycles": 5042826,
+        "pct": 0.6064690026954178
+      },
+      {
+        "symbol": "dagflow::detail::ring_mpmc<dagflow::detail::ScheduledTask*, 16384ul>::try_pop(dagflow::detail::ScheduledTask*&)",
+        "sampled_cycles": 3922198,
+        "pct": 0.4716981132075472
+      },
+      {
+        "symbol": "void dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>::call<dagflow::Pool::submit_detached<(anonymous namespace)::external_contention(dagflow::Pool&, unsigned int)::$_0::operator()() const::{lambda()#1}::operator()() const::{lambda()#1}>((anonymous namespace)::external_contention(dagflow::Pool&, unsigned int)::$_0::operator()() const::{lambda()#1}::operator()() const::{lambda()#1}, dagflow::SubmitOptions)::{lambda(dagflow::detail::CompletionCredit&)#1}>(void*, dagflow::detail::CompletionCredit&)",
+        "sampled_cycles": 3922198,
+        "pct": 0.4716981132075472
+      }
+    ]
+  },
+  "o3-lto-4-hot-shard-skew": {
+    "samples": 1485,
+    "sampled_cycles": 694736460,
+    "missing_callchain_samples": 0,
+    "max_depth": 15,
+    "top_self": [
+      {
+        "symbol": "(anonymous namespace)::work(unsigned long, unsigned int)",
+        "sampled_cycles": 492631308,
+        "pct": 70.9090909090909
+      },
+      {
+        "symbol": "std::__atomic_base<unsigned long>::compare_exchange_weak(unsigned long&, unsigned long, std::memory_order, std::memory_order)",
+        "sampled_cycles": 49122780,
+        "pct": 7.070707070707071
+      },
+      {
+        "symbol": "[unknown in libmimalloc.so.3.5]",
+        "sampled_cycles": 23859636,
+        "pct": 3.4343434343434343
+      },
+      {
+        "symbol": "dagflow::detail::ring_mpmc<dagflow::detail::ScheduledTask*, 16384ul>::try_pop(dagflow::detail::ScheduledTask*&)",
+        "sampled_cycles": 22456128,
+        "pct": 3.2323232323232323
+      },
+      {
+        "symbol": "dagflow::Pool::enqueue(dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>, dagflow::SubmitOptions, dagflow::detail::CompletionCredit)",
+        "sampled_cycles": 21988292,
+        "pct": 3.164983164983165
+      },
+      {
+        "symbol": "std::__atomic_base<long>::load(std::memory_order) const",
+        "sampled_cycles": 12631572,
+        "pct": 1.8181818181818181
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::try_acquire(unsigned int)",
+        "sampled_cycles": 11695900,
+        "pct": 1.6835016835016836
+      },
+      {
+        "symbol": "dagflow::detail::ParkingLot::wake_one(unsigned int)",
+        "sampled_cycles": 9824556,
+        "pct": 1.4141414141414141
+      },
+      {
+        "symbol": "operator delete[](void*)",
+        "sampled_cycles": 7953212,
+        "pct": 1.1447811447811447
+      },
+      {
+        "symbol": "std::__uniq_ptr_impl<dagflow::detail::Scheduler::Local, dagflow::detail::ArrayDeleter<dagflow::detail::Scheduler::Local> >::_M_ptr() const",
+        "sampled_cycles": 5146196,
+        "pct": 0.7407407407407407
+      },
+      {
+        "symbol": "[unknown in [unknown]]",
+        "sampled_cycles": 4210524,
+        "pct": 0.6060606060606061
+      },
+      {
+        "symbol": "mi_malloc_small",
+        "sampled_cycles": 4210524,
+        "pct": 0.6060606060606061
+      },
+      {
+        "symbol": "dagflow::Pool::execute_task(unsigned int, dagflow::detail::ScheduledTask*)",
+        "sampled_cycles": 3742688,
+        "pct": 0.5387205387205387
+      },
+      {
+        "symbol": "void dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>::move<dagflow::Pool::submit_detached<(anonymous namespace)::hot_shard_skew(dagflow::Pool&)::$_0::operator()() const::{lambda()#1}>((anonymous namespace)::hot_shard_skew(dagflow::Pool&)::$_0::operator()() const::{lambda()#1}, dagflow::SubmitOptions)::{lambda(dagflow::detail::CompletionCredit&)#1}>(void*, void*)",
+        "sampled_cycles": 2339180,
+        "pct": 0.3367003367003367
+      },
+      {
+        "symbol": "[unknown in ld-linux-x86-64.so.2]",
+        "sampled_cycles": 1871344,
+        "pct": 0.26936026936026936
+      }
+    ]
+  },
+  "o3-lto-4-local-overflow": {
+    "samples": 1619,
+    "sampled_cycles": 803210185,
+    "missing_callchain_samples": 0,
+    "max_depth": 20,
+    "top_self": [
+      {
+        "symbol": "dagflow::detail::Scheduler::steal(unsigned int, unsigned int)",
+        "sampled_cycles": 245080810,
+        "pct": 30.51266213712168
+      },
+      {
+        "symbol": "operator delete[](void*)",
+        "sampled_cycles": 136927740,
+        "pct": 17.047560222359483
+      },
+      {
+        "symbol": "dagflow::detail::ParkingLot::wake_one(unsigned int)",
+        "sampled_cycles": 100711345,
+        "pct": 12.538604076590488
+      },
+      {
+        "symbol": "std::__atomic_base<long>::load(std::memory_order) const",
+        "sampled_cycles": 65983295,
+        "pct": 8.214947498455837
+      },
+      {
+        "symbol": "[unknown in libmimalloc.so.3.5]",
+        "sampled_cycles": 30263015,
+        "pct": 3.7677578752316245
+      },
+      {
+        "symbol": "mi_malloc_small",
+        "sampled_cycles": 26790210,
+        "pct": 3.335392217418159
+      },
+      {
+        "symbol": "dagflow::detail::chase_lev_deque<dagflow::detail::ScheduledTask*, 1024ul>::try_push(dagflow::detail::ScheduledTask*)",
+        "sampled_cycles": 22821290,
+        "pct": 2.8412600370599135
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::try_acquire(unsigned int)",
+        "sampled_cycles": 22325175,
+        "pct": 2.7794935145151327
+      },
+      {
+        "symbol": "dagflow::Pool::execute_task(unsigned int, dagflow::detail::ScheduledTask*)",
+        "sampled_cycles": 15875680,
+        "pct": 1.9765287214329834
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::random_below(dagflow::detail::Scheduler::Local&, unsigned int)",
+        "sampled_cycles": 14883450,
+        "pct": 1.8529956763434219
+      },
+      {
+        "symbol": "[unknown in [unknown]]",
+        "sampled_cycles": 10914530,
+        "pct": 1.358863495985176
+      },
+      {
+        "symbol": "std::__atomic_base<unsigned long>::compare_exchange_weak(unsigned long&, unsigned long, std::memory_order, std::memory_order)",
+        "sampled_cycles": 9922300,
+        "pct": 1.2353304508956147
+      },
+      {
+        "symbol": "dagflow::detail::ring_mpmc<dagflow::detail::ScheduledTask*, 16384ul>::try_pop(dagflow::detail::ScheduledTask*&)",
+        "sampled_cycles": 8930070,
+        "pct": 1.1117974058060531
+      },
+      {
+        "symbol": "dagflow::Pool::enqueue(dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>, dagflow::SubmitOptions, dagflow::detail::CompletionCredit)",
+        "sampled_cycles": 7937840,
+        "pct": 0.9882643607164917
+      },
+      {
+        "symbol": "dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>::basic_function()",
+        "sampled_cycles": 7937840,
+        "pct": 0.9882643607164917
+      }
+    ]
+  },
+  "o3-lto-4-nested-helping": {
+    "samples": 1388,
+    "sampled_cycles": 215128896,
+    "missing_callchain_samples": 0,
+    "max_depth": 22,
+    "top_self": [
+      {
+        "symbol": "(anonymous namespace)::work(unsigned long, unsigned int)",
+        "sampled_cycles": 62771760,
+        "pct": 29.178674351585013
+      },
+      {
+        "symbol": "operator delete[](void*)",
+        "sampled_cycles": 22783824,
+        "pct": 10.590778097982708
+      },
+      {
+        "symbol": "dagflow::Pool::enqueue(dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>, dagflow::SubmitOptions, dagflow::detail::CompletionCredit)",
+        "sampled_cycles": 14414256,
+        "pct": 6.70028818443804
+      },
+      {
+        "symbol": "[unknown in libmimalloc.so.3.5]",
+        "sampled_cycles": 10539456,
+        "pct": 4.899135446685879
+      },
+      {
+        "symbol": "dagflow::Pool::execute_task(unsigned int, dagflow::detail::ScheduledTask*)",
+        "sampled_cycles": 9299520,
+        "pct": 4.322766570605188
+      },
+      {
+        "symbol": "dagflow::detail::ParkingLot::wake_one(unsigned int)",
+        "sampled_cycles": 8989536,
+        "pct": 4.178674351585014
+      },
+      {
+        "symbol": "mi_malloc_small",
+        "sampled_cycles": 8524560,
+        "pct": 3.962536023054755
+      },
+      {
+        "symbol": "std::__atomic_base<unsigned long>::compare_exchange_weak(unsigned long&, unsigned long, std::memory_order, std::memory_order)",
+        "sampled_cycles": 8369568,
+        "pct": 3.8904899135446684
+      },
+      {
+        "symbol": "std::__atomic_base<long>::load(std::memory_order) const",
+        "sampled_cycles": 6044688,
+        "pct": 2.809798270893372
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::try_acquire(unsigned int)",
+        "sampled_cycles": 4339776,
+        "pct": 2.0172910662824206
+      },
+      {
+        "symbol": "[unknown in [unknown]]",
+        "sampled_cycles": 3564816,
+        "pct": 1.6570605187319885
+      },
+      {
+        "symbol": "dagflow::detail::CompletionState::retire(dagflow::detail::CompletionState*)",
+        "sampled_cycles": 3564816,
+        "pct": 1.6570605187319885
+      },
+      {
+        "symbol": "void dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>::call<dagflow::Pool::submit_detached<(anonymous namespace)::nested_helping(dagflow::Pool&)::$_0::operator()() const::{lambda()#1}>((anonymous namespace)::nested_helping(dagflow::Pool&)::$_0::operator()() const::{lambda()#1}, dagflow::SubmitOptions)::{lambda(dagflow::detail::CompletionCredit&)#1}>(void*, dagflow::detail::CompletionCredit&)",
+        "sampled_cycles": 3409824,
+        "pct": 1.585014409221902
+      },
+      {
+        "symbol": "pthread_mutex_lock",
+        "sampled_cycles": 3409824,
+        "pct": 1.585014409221902
+      },
+      {
+        "symbol": "dagflow::detail::CompletionState* std::__exchange<dagflow::detail::CompletionState*, decltype(nullptr)>(dagflow::detail::CompletionState*&, decltype(nullptr)&&)",
+        "sampled_cycles": 2944848,
+        "pct": 1.3688760806916427
+      }
+    ]
+  },
+  "o3-lto-4-mixed-chaos": {
+    "samples": 1459,
+    "sampled_cycles": 686198339,
+    "missing_callchain_samples": 0,
+    "max_depth": 15,
+    "top_self": [
+      {
+        "symbol": "(anonymous namespace)::work(unsigned long, unsigned int)",
+        "sampled_cycles": 176370375,
+        "pct": 25.702535983550376
+      },
+      {
+        "symbol": "dagflow::Pool::enqueue(dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>, dagflow::SubmitOptions, dagflow::detail::CompletionCredit)",
+        "sampled_cycles": 141566621,
+        "pct": 20.630568882796435
+      },
+      {
+        "symbol": "std::__atomic_base<unsigned long>::compare_exchange_weak(unsigned long&, unsigned long, std::memory_order, std::memory_order)",
+        "sampled_cycles": 48443063,
+        "pct": 7.059629883481837
+      },
+      {
+        "symbol": "dagflow::detail::ParkingLot::wake_one(unsigned int)",
+        "sampled_cycles": 41858569,
+        "pct": 6.100068540095956
+      },
+      {
+        "symbol": "[unknown in libmimalloc.so.3.5]",
+        "sampled_cycles": 35274075,
+        "pct": 5.140507196710075
+      },
+      {
+        "symbol": "std::__atomic_base<long>::load(std::memory_order) const",
+        "sampled_cycles": 33392791,
+        "pct": 4.866346812885538
+      },
+      {
+        "symbol": "operator delete[](void*)",
+        "sampled_cycles": 28219260,
+        "pct": 4.112405757368061
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::try_acquire(unsigned int)",
+        "sampled_cycles": 18812840,
+        "pct": 2.7416038382453736
+      },
+      {
+        "symbol": "mi_malloc_small",
+        "sampled_cycles": 17872198,
+        "pct": 2.6045236463331047
+      },
+      {
+        "symbol": "dagflow::Pool::execute_task(unsigned int, dagflow::detail::ScheduledTask*)",
+        "sampled_cycles": 17401877,
+        "pct": 2.5359835503769705
+      },
+      {
+        "symbol": "dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>::basic_function()",
+        "sampled_cycles": 10817383,
+        "pct": 1.5764222069910898
+      },
+      {
+        "symbol": "dagflow::detail::CompletionState* std::__exchange<dagflow::detail::CompletionState*, decltype(nullptr)>(dagflow::detail::CompletionState*&, decltype(nullptr)&&)",
+        "sampled_cycles": 9406420,
+        "pct": 1.3708019191226868
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::poll_external(unsigned int, dagflow::Priority)",
+        "sampled_cycles": 8936099,
+        "pct": 1.3022618231665524
+      },
+      {
+        "symbol": "std::__uniq_ptr_impl<dagflow::detail::Scheduler::Local, dagflow::detail::ArrayDeleter<dagflow::detail::Scheduler::Local> >::_M_ptr() const",
+        "sampled_cycles": 7054815,
+        "pct": 1.0281014393420151
+      },
+      {
+        "symbol": "void dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>::call<dagflow::Pool::submit_detached<(anonymous namespace)::mixed_chaos(dagflow::Pool&, unsigned int)::$_0::operator()() const::{lambda()#1}::operator()() const::{lambda()#1}>((anonymous namespace)::mixed_chaos(dagflow::Pool&, unsigned int)::$_0::operator()() const::{lambda()#1}::operator()() const::{lambda()#1}, dagflow::SubmitOptions)::{lambda(dagflow::detail::CompletionCredit&)#1}>(void*, dagflow::detail::CompletionCredit&)",
+        "sampled_cycles": 6114173,
+        "pct": 0.8910212474297464
+      }
+    ]
+  },
+  "o3-lto-4-idle-burst": {
+    "samples": 1738,
+    "sampled_cycles": 54121320,
+    "missing_callchain_samples": 542,
+    "max_depth": 17,
+    "top_self": [
+      {
+        "symbol": "[unknown in [unknown]]",
+        "sampled_cycles": 22638780,
+        "pct": 41.829689298043725
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::steal(unsigned int, unsigned int)",
+        "sampled_cycles": 4795560,
+        "pct": 8.860759493670885
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::drain(unsigned int, unsigned int, dagflow::Priority)",
+        "sampled_cycles": 3830220,
+        "pct": 7.077100115074798
+      },
+      {
+        "symbol": "__vdso_clock_gettime",
+        "sampled_cycles": 2397780,
+        "pct": 4.430379746835443
+      },
+      {
+        "symbol": "dagflow::detail::Scheduler::try_acquire(unsigned int)",
+        "sampled_cycles": 2210940,
+        "pct": 4.085155350978136
+      },
+      {
+        "symbol": "dagflow::Pool::enqueue(dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>, dagflow::SubmitOptions, dagflow::detail::CompletionCredit)",
+        "sampled_cycles": 1588140,
+        "pct": 2.934407364787112
+      },
+      {
+        "symbol": "[unknown in ld-linux-x86-64.so.2]",
+        "sampled_cycles": 1557000,
+        "pct": 2.8768699654775602
+      },
+      {
+        "symbol": "mi_malloc_small",
+        "sampled_cycles": 1557000,
+        "pct": 2.8768699654775602
+      },
+      {
+        "symbol": "[unknown in libmimalloc.so.3.5]",
+        "sampled_cycles": 1432440,
+        "pct": 2.6467203682393556
+      },
+      {
+        "symbol": "[unknown in libc.so.6]",
+        "sampled_cycles": 1339020,
+        "pct": 2.4741081703107017
+      },
+      {
+        "symbol": "clock_gettime",
+        "sampled_cycles": 1339020,
+        "pct": 2.4741081703107017
+      },
+      {
+        "symbol": "std::thread::_State_impl<std::thread::_Invoker<std::tuple<dagflow::Pool::Pool(dagflow::Config const&)::$_0> > >::_M_run()",
+        "sampled_cycles": 1339020,
+        "pct": 2.4741081703107017
+      },
+      {
+        "symbol": "operator delete[](void*)",
+        "sampled_cycles": 1183320,
+        "pct": 2.186421173762946
+      },
+      {
+        "symbol": "void dagflow::detail::basic_function<void (dagflow::detail::CompletionCredit&), 64ul, 16ul, true>::call<dagflow::Pool::submit_detached<(anonymous namespace)::warm_pool(dagflow::Pool&)::$_0>((anonymous namespace)::warm_pool(dagflow::Pool&)::$_0, dagflow::SubmitOptions)::{lambda(dagflow::detail::CompletionCredit&)#1}>(void*, dagflow::detail::CompletionCredit&)",
+        "sampled_cycles": 996480,
+        "pct": 1.8411967779056386
+      },
+      {
+        "symbol": "std::chrono::_V2::steady_clock::now()",
+        "sampled_cycles": 903060,
+        "pct": 1.668584579976985
+      }
+    ]
+  }
+}

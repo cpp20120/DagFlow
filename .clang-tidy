@@ -16,9 +16,9 @@ Checks: >-
   -misc-non-private-member-variables-in-classes,
   -misc-no-recursion,
   -misc-use-anonymous-namespace,
-  -misc-use-internal-linkage
-  -modernize-use-noexcept
-  -hicpp-noexcept-move
+  -misc-use-internal-linkage,
+  -modernize-use-noexcept,
+  -hicpp-noexcept-move,
   -performance-noexcept-move-constructor
 WarningsAsErrors: ''
 HeaderFilterRegex: ''

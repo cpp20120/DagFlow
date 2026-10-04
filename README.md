@@ -6,92 +6,169 @@
 
 DAG-flow runtime.
 
-A self-contained, minimal runtime for parallel task execution in C++20.  
+A minimal runtime for parallel task execution in C++23.
 Designed for workloads where you know the dependency graph in advance, need predictable scheduling, and want full control over affinity, priorities, and back-pressure — without the complexity of a full TBB.
 
-Mini-runtime for parallel tasks in C++20:
+Mini-runtime for parallel tasks in C++23:
 
-* Work-stealing pool (Chase–Lev deques, central ring-buffer MPMC queues).
+* Work-stealing pool (bounded Chase–Lev deques, central ring-buffer MPMC queues).
 
 * Bounded ring-buffer MPMC (Vyukov) for central queues — zero per-operation heap allocations.
 
-* Per-worker task free-list for allocation-free task recycling on the hot path.
+* Explicit task ownership and move-only completion credits; mimalloc by default,
+  with tbbmalloc and system allocation available through CMake.
 
-* A local `small_function` for cheap closures with inline storage.
+* Move-only `small_function` with inline storage and runtime-backed spill;
+  `inplace_function` for a strict inline-only contract.
 
-* A lightweight DAG graph with cancellation, concurrency limits, and back-pressure.
+* Reusable DAG graphs with per-run token state, bounded admission, and concurrency limits.
 
-* High-level API in the spirit of TBB: `submit`/`then`/`when_all`/`parallel_for` via `TaskScope`.
+* Graph-building API: `emplace`/`then`/`when_all`/`parallel_for` via `GraphScope`.
+
+* Dynamic structured tasks: `TaskScope::spawn`, child spawning through `Context`,
+  cooperative cancellation, and joining on destruction.
+
+[Code organization and API migration](docs/code_organization.md) describes the
+container contracts and API changes. [Runtime architecture](docs/how_it_works.md)
+describes admission, errors, reusable runs, scheduler bypass, and task storage.
 
 ### [Design](https://github.com/cpp20120/DagFlow/blob/main/docs/how_it_works.md)
-* Scheduler: local deques (Chase–Lev) + central ring-buffer MPMC shards for external submissions; worker drains own shard first, then steals from neighbours.
+* Scheduler: local deques (Chase–Lev) + central ring-buffer MPMC shards for external submissions; contiguous Local/Shard arrays; worker drains home ingress and steals within its domain before remote domains.
 
 * Central queues: Vyukov bounded ring buffer (capacity `DAGFLOW_CENTRAL_QUEUE_CAPACITY = 16 384`) — no node allocation per push, no QSBR reclamation needed.
 
-* Token tracking: atomic CAS-decrement on `Node::queued` counter — replaces the old per-node MS-queue inbox entirely.
+* Local deques: fixed capacity `DAGFLOW_LOCAL_QUEUE_CAPACITY = 1 024` per worker and priority, with atomic slots and no buffer growth. Central batches are capped by available local capacity.
 
-* Notifications: cold-start nudge (`inflight == 0`) + periodic fan-out every 64 / 128 external submissions. Pool-thread dispatches nudge one sleeping neighbour when `inflight < W/2`.
+* Queue overflow: a worker tries its local deque and central shard, then publishes to a shared intrusive overflow queue. Submission does not recursively invoke the incoming task. Helping and other workers can acquire overflow tasks; external producers retain bounded-ingress backpressure.
+* `Pool::close()` closes external admission; accepted workers can still spawn children. `shutdown()` and pool destruction drain accepted work and join workers. See [the lifecycle contract](docs/pool-lifecycle.md).
 
+* Progress: the central MPMC ring is not strictly lock-free; a producer paused after reserving a slot can delay consumers. Queue operations allocate no memory, but task and completion-counter allocation is a separate concern. The pool as a whole is not a lock-free API.
+
+* Token tracking: per-run execution lanes claim indices; successors open after the last lane completes the node. Compatible successors can bypass the queues.
+
+* Scheduling: shared ingress is probed every 32 acquisitions. `SubmissionMode::Enqueue` lets workers publish independent work there. ParkingLot uses a compact idle bitmap with precomputed shard masks, wakeup epochs and a paired-fence/final-scan handshake.
+
+* Topology: `Config::worker_shards` optionally maps workers to logical domains; affinity hints route through that mapping. See [topology and memory](docs/scheduler-topology.md).
+
+* Idle accounting: single-writer producer/worker counters avoid a pool-wide RMW per task; `wait_idle()` performs the scan. See [contract and lifetime](docs/idle-accounting.md).
 * Synchronization: `memory_order` (acquire/release/seq_cst where reconciliation is required).
 
-By default, `small_function<void(), 128>` in graph nodes. If you get a "Callable too large" error, increase `DAGFLOW_TASK_FN_SIZE` in `config.hpp` or pack captures into a `shared_ptr` block.
+By default, graph nodes use 128 bytes of inline callable storage. Larger,
+over-aligned or potentially throwing-move callables spill through `runtime_memory`.
+`inplace_function<Sig, N, Align>` rejects targets that cannot remain inline.
 
 For "heavy" stages, set `concurrency > 1` in `ScheduleOptions`/`NodeOptions`.
 
 Configure `Config` for CPU/NUMA; `pin_threads = true` is useful for cache stability.
 
-In large pipelines, enable back-pressure via `capacity` + `Overflow` at bottleneck nodes.
+Node capacity limits admitted live executions. `Block` defers excess tokens,
+`Drop` admits at most capacity tokens, and `Fail` cancels an overflowing run.
+This finite-DAG policy is not a streaming pipeline contract. Pool waits observe
+completion; call `handle.rethrow_if_failed()` to propagate task errors.
 
-### Benchmarks
-```
-CPU:    AMD Ryzen 7 6800H
-OS:     Linux 6.19 (CachyOS)
-Build:  Release (-O3 -march=native)
-Compiler: Clang 19
-Config: pin_threads = true
-```
+The [implementation plan](docs/runtime-improvement-plan.md) records completed work
+and deferred experiments. [Earlier runtime measurements](docs/runtime-benchmark-results.md)
+predate the current ownership and allocator changes. See
+[explicit ownership](docs/explicit-ownership.md) for the current lifetime rules.
 
-| Benchmark                               | Runs | Mean       | Min        | Max        |
-|-----------------------------------------|------|------------|------------|------------|
-| **Dependent chain (1 000 tasks)**       | 5    | 0.430 ms   | 0.312 ms   | 0.732 ms   |
-| **Independent tasks (1 000)**           | 5    | 2.238 s    | 2.229 s    | 2.247 s    |
-| **Independent batched (1 000, b=10)**   | 5    | 2.333 s    | 2.284 s    | 2.367 s    |
-| **Parallel_for (1 000 000 elements)**   | 5    | 11.5 ms    | 9.8 ms     | 13.1 ms    |
-| **Workflow (width=10, depth=5)**        | 5    | 143 µs     | 59 µs      | 207 µs     |
-| **Noop tasks (1 000 000)**              | 5    | 0.606 s    | 0.554 s    | 0.682 s    |
+The [runtime benchmark suite](docs/benchmarks/runtime-suite.md) covers dynamic
+scopes, DAG reuse, queue saturation, stealing and idle bursts, with separate
+throughput/latency passes and Release/LTO/PGO matrices.
+The [`main.cpp` stress harness](docs/benchmarks/main-harness.md) adds independent
+producer/worker controls, payload verification, phase-gated perf counters,
+callgraphs/flamegraphs and separate runtime path diagnostics. Run its O3/LTO
+matrix with `python3 scripts/benchmark_main.py --out out/profiles/main-harness`.
 
-\* Numbers vary with CPU governor, background load, and NUMA topology.
+### Latest benchmark run
 
-For each versions
+The old table used an earlier runtime and is no longer a useful baseline. The
+current public-API run was measured on 2026-10-02 with an AMD Ryzen 7 6800H,
+Clang 22.1.8, `-O3 -g -DNDEBUG`, system allocation, eight workers, five measured
+runs and one warmup. Native CPU flags and LTO were disabled. The table compares
+the same workload and timing boundaries with oneTBB 2023.1.0; lower DagFlow time
+is better.
 
-| For each version                    | Runs | Mean      | Min       | Max       | Notes                        |
-|-------------------------------------|------|-----------|-----------|-----------|------------------------------|
-| **for\_each (static chunking)**     | 5    | 9.4 ms    | 9.0 ms    | 9.8 ms    | baseline                     |
-| **for\_each\_ws (range stealing)**  | 5    | 9.5 ms    | 9.0 ms    | 10.2 ms   | adaptive; better on skew     |
+| Benchmark | DagFlow mean | oneTBB mean | DagFlow throughput | oneTBB throughput |
+|---|---:|---:|---:|---:|
+| Dependent chain (1,000 tasks) | 298.0 µs | 129.9 µs | 3.356 M task/s | 7.699 M task/s |
+| Independent tasks (1,000) | 2.733 s | 2.574 s | 365.9 task/s | 388.4 task/s |
+| Independent batched (1,000, b=10) | 2.748 s | — | 363.8 task/s | — |
+| Parallel_for (1,000,000 elements) | 43.024 ms | 37.341 ms | 23.243 M elem/s | 26.780 M elem/s |
+| Workflow (width=10, depth=5) | 55.4 µs | 37.5 µs | 903.267 k task/s | 1.335 M task/s |
+| Noop tasks (1,000,000) | 457.295 ms | 69.879 ms | 2.187 M task/s | 14.310 M task/s |
 
-**for_each_ws (range stealing)** — Lazy binary range partitioning with help-first stealing of upper halves.  
-Distributes load better for uneven workloads and reduces tail latency. Requires random-access iterators.
-
-Compare with [TBB](https://github.com/uxlfoundation/oneTBB)
-
-| Benchmark           | Problem size    | DagFlow mean | TBB mean   | DagFlow throughput  |
-|---------------------|-----------------|--------------|------------|---------------------|
-| Dependent chain     | 1 000 tasks     | 0.430 ms     | 0.288 ms   | ~2.3 M tasks/s      |
-| Independent tasks   | 1 000 tasks     | 2.238 s      | 1.251 s    | ~447 tasks/s        |
-| parallel_for        | 1 000 000 elems | 11.5 ms      | 26.8 ms    | ~87 M elems/s       |
-| for_each_ws         | 1 000 000 elems | 9.5 ms       | 26.8 ms    | ~105 M elems/s      |
-| Workflow (w=10,d=5) | ~50 stage ops   | 143 µs       | 292 µs     | —                   |
-| Noop tasks          | 1 000 000 tasks | 0.606 s      | 0.226 s    | ~1.65 M tasks/s     |
-
+These numbers are one measurement on one machine, not performance guarantees.
+The runtime matrix with DAG reuse, stealing, overflow, idle bursts and latency
+quantiles is documented in [the runtime benchmark suite](docs/benchmarks/runtime-suite.md).
+The CMake and stress-harness reports are described in [the benchmark workflow](docs/benchmarks/cmake.md).
 
 ### Build and usage
+
+DagFlow uses the reusable CMake library framework vendored directly under
+`cmake/`. `Bootstrap.cmake` initializes the project, `DagFlow.cmake` exposes the
+project/target/profile helpers, and the DagFlow modules only describe this
+runtime's sources and workloads. A normal build and PGO flow stay in CMake;
+Python is only needed for optional large benchmark campaigns.
+
+Install mimalloc with its CMake package for the default build. Alternatively pass
+`-DDAGFLOW_ALLOCATOR=tbbmalloc` (requires oneTBB's malloc component) or
+`-DDAGFLOW_ALLOCATOR=system` (no external allocator dependency). The selection
+applies to runtime objects and `small_vector` heap buffers; it does not replace
+the application's global allocator.
 
 ```sh
 git clone https://github.com/cpp20120/DagFlow.git
 cd DagFlow
-cmake -B build -DTp_BUILD_EXAMPLES=ON
-cmake --build build --config Release
+cmake --preset release
+cmake --build --preset release
+ctest --preset release
 ```
+
+Presets compose the framework's target policies and profiles. The main switches
+are `DAGFLOW_BUILD_SHARED`, `DAGFLOW_BUILD_STATIC`, `DAGFLOW_BUILD_TESTS`,
+`DAGFLOW_BUILD_EXAMPLES`, `DAGFLOW_INSTALL`, `DAGFLOW_ALLOCATOR` and
+`DAGFLOW_COMPILER_CACHE`. Use `DAGFLOW_PROFILE=lto` for an explicit profile or
+`DAGFLOW_PGO_MODE=generate|use` for PGO. The install tree exports
+`DagFlow::DagFlow` and `DagFlow::DagFlow_static` for `find_package` consumers.
+The same presets are exercised by [GitHub Actions](.github/workflows/dagflow-ci.yml)
+on Linux, Windows and macOS, including sanitizer jobs.
+
+Build the complete benchmark set through CMake:
+
+```sh
+cmake --preset bench-all
+cmake --build --preset bench-all --target dagflow_benchmarks --parallel 4
+```
+
+The individual targets are `dagflow_runtime_bench`, `dagflow_runtime_suite`,
+`dagflow_stress_bench`, `dagflow_public_api_bench`, `dagflow_tbb_bench` and
+`dagflow_function_bench`. Each has a matching `dagflow_run_*` target for an
+explicit CMake-managed run. `bench-check` is the short correctness and smoke
+matrix; `bench-lto`, `bench-full-lto`, `bench-pgo-generate` and `bench-pgo-use`
+cover the optimized profiles.
+
+For a standalone PGO cycle without Python:
+
+```sh
+cmake --preset bench-pgo-generate
+cmake --build --preset bench-pgo-generate --target dagflow_pgo_merge --parallel 4
+cmake --preset bench-pgo-use
+cmake --build --preset bench-pgo-use --target dagflow_benchmarks --parallel 4
+```
+
+Queue and scheduler regression tests:
+
+```sh
+cmake --preset bench-check
+cmake --build --preset bench-check
+ctest --preset bench-check
+```
+
+Tests cover last-element owner/thief races, ring-slot reuse, delayed MPMC
+publication, queue saturation, oversized batches, nested waits after stealing,
+cross-pool submissions, container lifetimes, DAG dependencies, chunked algorithms,
+and allocation/deallocation counts for queue operations
+(allocation interception test on non-MSVC builds).
 
 How to use in your CMake project
 
@@ -100,7 +177,7 @@ How to use in your CMake project
 add_subdirectory(external/DagFlow)
 
 add_executable(my_app main.cpp)
-target_link_libraries(my_app PRIVATE DagFlow)
+target_link_libraries(my_app PRIVATE DagFlow::DagFlow)
 ```
 
 2. Via `find_package`:
@@ -115,7 +192,7 @@ target_link_libraries(my_app PRIVATE DagFlow::DagFlow)
 
 2.5 On Windows, add to your target:
 ```cmake
-if (WIN32 AND TP_BUILD_SHARED)
+if (WIN32 AND DAGFLOW_BUILD_SHARED)
   add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
       $<TARGET_FILE:DagFlow>
@@ -124,18 +201,55 @@ if (WIN32 AND TP_BUILD_SHARED)
 endif()
 ```
 
-### Example of usage: [there](https://github.com/cpp20120/DagFlow/blob/main/src/main.cpp)
+### Examples and everyday API
+
+[Runnable examples](examples/README.md) cover
+individual tasks, structured spawning, cancellation, reusable graphs, ranges,
+and detached batch submission.
+
+```cpp
+#include <dagflow/dagflow.hpp>
+#include <vector>
+
+dagflow::Pool pool;
+std::vector<int> data(1000, 1);
+auto done = pool.for_each(data, [](int& x) { x *= 2; });
+pool.wait_and_rethrow(done);
+```
+
+`wait_and_rethrow()` waits and propagates task errors; `wait()` still only waits.
+Range overloads accept lvalue containers and borrowed temporaries such as
+`std::span(data)`, and reject owning temporaries such as `std::vector<int>(1000)`.
+Keep the backing data alive and its iterators valid until completion; graph
+algorithms retain those iterators for subsequent runs. Pool range algorithms
+share their callable across tasks, so concurrent callback calls must be safe.
 
 Minimal example
 ```cpp
-#include <dagflow.hpp>
+#include <dagflow/dagflow.hpp>
 
 dagflow::Pool pool;
-dagflow::TaskScope scope(pool);
+dagflow::GraphScope scope(pool);
 
-auto a = scope.submit([] { /* … */ });
+auto a = scope.emplace([] { /* … */ });
 auto b = scope.then(a, [] { /* … */ });
 auto c = scope.when_all({a, b}, [] { /* … */ });
 
 scope.run_and_wait();
 ```
+
+Dynamic tasks use a separate one-shot scope:
+
+```cpp
+dagflow::TaskScope scope(pool);
+scope.spawn([](dagflow::TaskScope::Context& ctx) {
+  ctx.spawn([] { /* child work */ });
+});
+scope.join(); // closes external admission, waits for descendants, rethrows errors
+```
+
+`close()` stops external submission while live children retain spawning rights.
+`cancel()` also stops child spawning and skips callbacks that have not passed
+their cancellation check; running callbacks finish cooperatively. `wait()` and
+destruction drain without rethrowing task errors. The pool must outlive its
+scopes. See [TaskScope lifetime and admission](docs/task-scope-lifetime.md).

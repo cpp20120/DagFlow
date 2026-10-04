@@ -1,0 +1,205 @@
+--- a/tests/queue_tests.cpp
++++ b/tests/queue_tests.cpp
+@@ -1,4 +1,5 @@
+ #include <atomic>
++#include <array>
+ #include <barrier>
+ #include <cstdint>
+ #include <cstdio>
+@@ -214,6 +215,98 @@
+   CHECK(q.empty());
+ }
+ 
++void batch_boundaries() {
++  chase_lev_deque<int, 4> deque;
++  ring_mpmc<int, 4> ring;
++  const std::array values{0, 1, 2, 3};
++  for (int round = 0; round < 1000; ++round) {
++    CHECK(deque.try_push_batch({}));
++    CHECK(deque.try_push_batch(values));
++    CHECK(!deque.try_push_batch(std::span(values).first(1)));
++    int value = -1;
++    CHECK(deque.try_steal(value) && value == 0);
++    CHECK(deque.try_pop(value) && value == 3);
++    CHECK(deque.try_pop(value) && value == 2);
++    CHECK(deque.try_steal(value) && value == 1);
++    std::array<int, 6> output{-1, -1, -1, -1, -1, -1};
++    CHECK(ring.try_pop_batch(output) == 0 && output[0] == -1);
++    for (auto item : values) CHECK(ring.try_push(item));
++    CHECK(ring.try_pop_batch({}) == 0);
++    CHECK(ring.try_pop_batch(std::span(output).first(1)) == 1);
++    CHECK(ring.try_pop_batch(std::span(output).subspan(1)) == 3);
++    for (unsigned i = 0; i < values.size(); ++i) CHECK(output[i] == values[i]);
++    CHECK(output[4] == -1 && output[5] == -1);
++    CHECK(ring.empty());
++  }
++}
++
++void batch_publication_gap() {
++  ring_mpmc<GatedValue, 4> ring;
++  CHECK(ring.try_push(GatedValue{1}));
++  std::atomic<bool> entered{false}, release{false};
++  std::thread producer([&] {
++    CHECK(ring.try_push(GatedValue{2, &entered, &release}));
++  });
++  entered.wait(false, std::memory_order_acquire);
++  CHECK(ring.try_push(GatedValue{3}));
++  GatedValue output[4];
++  CHECK(ring.try_pop_batch(output) == 1 && output[0].value == 1);
++  CHECK(ring.try_pop_batch(output) == 0);  // Must not skip the reserved head.
++  release.store(true, std::memory_order_release);
++  release.notify_one();
++  producer.join();
++  CHECK(ring.try_pop_batch(output) == 2);
++  CHECK(output[0].value == 2 && output[1].value == 3);
++}
++
++// Mix scalar/batch consumers and simultaneous producer/thief access across
++// many physical-ring wraps. Payload writes precede publication and must be
++// visible to every successful consumer, exactly once, without external fences.
++void batch_transfer_contention() {
++  constexpr std::size_t count = 100000;
++  ring_mpmc<Item*, 16> ring;
++  chase_lev_deque<Item*, 16> deque;
++  std::vector<Item> items(count);
++  std::vector<std::atomic<unsigned>> seen(count);
++  std::atomic<std::size_t> consumed{0};
++  auto consume = [&](Item* item) {
++    CHECK(item >= items.data() && item < items.data() + count);
++    CHECK(item->payload == (item->id ^ 0x9e3779b97f4a7c15ULL));
++    CHECK(seen[item->id].fetch_add(1, std::memory_order_relaxed) == 0);
++    consumed.fetch_add(1, std::memory_order_relaxed);
++  };
++  std::vector<std::thread> threads;
++  for (unsigned p = 0; p < 4; ++p) threads.emplace_back([&, p] {
++    for (std::size_t i = p; i < count; i += 4) {
++      items[i] = {i, i ^ 0x9e3779b97f4a7c15ULL};
++      while (!ring.try_push(&items[i])) std::this_thread::yield();
++    }
++  });
++  for (unsigned c = 0; c < 3; ++c) threads.emplace_back([&, c] {
++    while (consumed.load(std::memory_order_relaxed) < count) {
++      Item* batch[8];
++      const auto n = c == 0 ? (ring.try_pop(batch[0]) ? 1u : 0u)
++                           : ring.try_pop_batch(batch);
++      for (std::size_t i = 0; i < n; ++i) consume(batch[i]);
++      Item* stolen;
++      if (deque.try_steal(stolen)) consume(stolen);
++    }
++  });
++  while (consumed.load(std::memory_order_relaxed) < count) {
++    Item* batch[8];
++    const auto n = ring.try_pop_batch(batch);
++    while (!deque.try_push_batch(std::span{batch, n})) {
++      Item* item;
++      if (deque.try_pop(item)) consume(item);
++    }
++    Item* item;
++    if (deque.try_pop(item)) consume(item);
++  }
++  for (auto& thread : threads) thread.join();
++  for (const auto& n : seen) CHECK(n.load() == 1);
++  CHECK(ring.empty() && deque.empty());
++}
++
+ int main() {
+   deque_boundaries();
+   deque_last_element();
+@@ -221,5 +314,8 @@
+   ring_boundaries();
+   ring_delayed_publication();
+   ring_contention();
++  batch_boundaries();
++  batch_publication_gap();
++  batch_transfer_contention();
+   std::puts("queue tests passed");
+ }
+--- a/tests/scheduler_topology_tests.cpp
++++ b/tests/scheduler_topology_tests.cpp
+@@ -1,5 +1,6 @@
+ #include <array>
+ #include <atomic>
++#include <barrier>
+ #include <chrono>
+ #include <future>
+ #include <stdexcept>
+@@ -62,6 +63,69 @@
+   CHECK(scheduler.has_local_work(0));
+   CHECK(scheduler.try_acquire(0) == &third);
+   CHECK(scheduler.try_acquire(0) == &second);
++}
++
++void acquisition_publication() {
++  Scheduler scheduler(2, 1, 3);
++  ScheduledTask tasks[5];
++  bool published = true;
++  CHECK(!scheduler.try_acquire(0, published) && !published);
++  CHECK(scheduler.try_submit_external(0, &tasks[0]));
++  CHECK(scheduler.try_acquire(0, published) == &tasks[0] && !published);
++  for (auto& task : tasks) CHECK(scheduler.try_submit_external(0, &task));
++  CHECK(scheduler.try_acquire(0, published) == &tasks[0] && published);
++  CHECK(scheduler.try_acquire(0, published) == &tasks[2] && !published);
++  CHECK(scheduler.try_acquire(0, published) == &tasks[1] && !published);
++  CHECK(scheduler.try_acquire(0, published) == &tasks[3] && published);
++  CHECK(scheduler.try_acquire(0, published) == &tasks[4] && !published);
++  for (auto& task : tasks) CHECK(scheduler.try_submit_local(0, &task));
++  CHECK(scheduler.try_acquire(1, published) == &tasks[0] && published);
++  CHECK(scheduler.try_acquire(1, published) == &tasks[3] && !published);
++  CHECK(scheduler.try_acquire(1, published) == &tasks[2] && !published);
++  CHECK(scheduler.try_acquire(1, published) == &tasks[1] && !published);
++  CHECK(scheduler.try_acquire(1, published) == &tasks[4] && !published);
++}
++
++void expect_signal(ParkingLot& parking, uint32_t worker, uint64_t epoch);
++
++void transferred_batch_wakes_waiter() {
++  Scheduler scheduler(2, 1, 32);
++  ParkingLot parking(scheduler);
++  ScheduledTask tasks[4];
++  for (auto& task : tasks) CHECK(scheduler.try_submit_external(0, &task));
++  const auto epoch = parking.prepare(1);
++  bool published = false;
++  CHECK(scheduler.try_acquire(0, published) == &tasks[0] && published);
++  parking.wake_one(0);
++  expect_signal(parking, 1, epoch);
++  CHECK(scheduler.try_acquire(1, published) == &tasks[1] && published);
++  CHECK(scheduler.try_acquire(1) == &tasks[3]);
++  CHECK(scheduler.try_acquire(1) == &tasks[2]);
++}
++
++void batch_recruits_sleeping_workers() {
++  for (uint32_t workers : {2u, 4u, 8u}) {
++    dagflow::Config cfg;
++    cfg.threads = workers;
++    cfg.shards = 1;
++    cfg.pin_threads = false;
++    cfg.idle_us_min = cfg.idle_us_max = 5'000'000;
++    dagflow::Pool pool(cfg);
++    for (unsigned round = 0; round < 6; ++round) {
++      std::this_thread::sleep_for(std::chrono::milliseconds(10));
++      std::barrier together(workers);
++      auto body = [&] { together.arrive_and_wait(); };
++      std::vector<decltype(body)> jobs(workers, body);
++      // The external batch emits one wake. Every body must run at once:
++      // transfers must recruit sleepers even beyond the four-task steal size.
++      const auto priority = round % 2 ? dagflow::Priority::High
++                                     : dagflow::Priority::Normal;
++      pool.submit_batch_detached(std::span{jobs}, {.priority = priority});
++      auto done = std::async(std::launch::async, [&] { pool.wait_idle(); });
++      CHECK(done.wait_for(std::chrono::seconds(1)) == std::future_status::ready);
++      done.get();  // Cannot rely on the five-second parking timeout for progress.
++    }
++  }
+ }
+ 
+ void expect_signal(ParkingLot& parking, uint32_t worker, uint64_t epoch) {
+@@ -231,6 +295,9 @@
+ int main() {
+   membership_and_stealing();
+   central_batch_visible();
++  acquisition_publication();
++  transferred_batch_wakes_waiter();
++  batch_recruits_sleeping_workers();
+   parking_membership();
+   parking_publication_race();
+   packed_domain_boundaries();

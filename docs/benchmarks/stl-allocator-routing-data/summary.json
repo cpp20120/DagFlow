@@ -1,0 +1,866 @@
+[
+  {
+    "backend": "mimalloc",
+    "workers": 1,
+    "scenario": "dag_build_run",
+    "iterations": 0,
+    "before_us": 251.623,
+    "after_us": 249.55,
+    "paired_change_pct": -1.1036915211920628,
+    "min_change_pct": -2.4541281640422574,
+    "max_change_pct": 3.9102148849667895,
+    "paired_changes": [
+      -1.1036915211920628,
+      3.9102148849667895,
+      -2.4541281640422574,
+      -1.38684059022548,
+      -0.4333008958355977
+    ]
+  },
+  {
+    "backend": "mimalloc",
+    "workers": 1,
+    "scenario": "dag_build_run",
+    "iterations": 400,
+    "before_us": 3783.058,
+    "after_us": 3832.766,
+    "paired_change_pct": 0.7016826349061311,
+    "min_change_pct": -0.6962356908088663,
+    "max_change_pct": 1.686265411884036,
+    "paired_changes": [
+      0.7016826349061311,
+      0.20012086085527958,
+      1.586575440787552,
+      -0.6962356908088663,
+      1.686265411884036
+    ]
+  },
+  {
+    "backend": "mimalloc",
+    "workers": 1,
+    "scenario": "external_detached",
+    "iterations": 0,
+    "before_us": 298.901,
+    "after_us": 296.116,
+    "paired_change_pct": 2.3057500833690847,
+    "min_change_pct": -4.668489359862171,
+    "max_change_pct": 14.17793851475906,
+    "paired_changes": [
+      6.715390547855349,
+      -4.668489359862171,
+      2.3057500833690847,
+      -0.7271791453995369,
+      14.17793851475906
+    ]
+  },
+  {
+    "backend": "mimalloc",
+    "workers": 1,
+    "scenario": "external_detached",
+    "iterations": 400,
+    "before_us": 3450.009,
+    "after_us": 3467.596,
+    "paired_change_pct": 0.5662878073821043,
+    "min_change_pct": -1.3813830498942026,
+    "max_change_pct": 3.3046290603879536,
+    "paired_changes": [
+      1.0060148068026464,
+      3.3046290603879536,
+      -1.3813830498942026,
+      -0.45560034235963,
+      0.5662878073821043
+    ]
+  },
+  {
+    "backend": "mimalloc",
+    "workers": 1,
+    "scenario": "external_handles",
+    "iterations": 0,
+    "before_us": 582.264,
+    "after_us": 579.278,
+    "paired_change_pct": -4.269234863563199,
+    "min_change_pct": -6.364548269009873,
+    "max_change_pct": 4.9901566685433,
+    "paired_changes": [
+      -6.364548269009873,
+      -5.167096048477804,
+      4.9901566685433,
+      -4.269234863563199,
+      -0.5128257972328631
+    ]
+  },
+  {
+    "backend": "mimalloc",
+    "workers": 1,
+    "scenario": "external_handles",
+    "iterations": 400,
+    "before_us": 3704.767,
+    "after_us": 3676.971,
+    "paired_change_pct": -0.8980101744355262,
+    "min_change_pct": -17.209229213512323,
+    "max_change_pct": -0.08680707855581726,
+    "paired_changes": [
+      -0.08680707855581726,
+      -0.16646265761369738,
+      -17.209229213512323,
+      -2.073960443107503,
+      -0.8980101744355262
+    ]
+  },
+  {
+    "backend": "mimalloc",
+    "workers": 1,
+    "scenario": "graph_reuse",
+    "iterations": 0,
+    "before_us": 446.794,
+    "after_us": 434.772,
+    "paired_change_pct": -5.7957542785151865,
+    "min_change_pct": -10.131240686162712,
+    "max_change_pct": 0.018633926168254433,
+    "paired_changes": [
+      0.018633926168254433,
+      -5.7957542785151865,
+      -6.8247822857616995,
+      -0.5201502258311286,
+      -10.131240686162712
+    ]
+  },
+  {
+    "backend": "mimalloc",
+    "workers": 1,
+    "scenario": "graph_reuse",
+    "iterations": 400,
+    "before_us": 3698.37,
+    "after_us": 3536.157,
+    "paired_change_pct": -4.207177756687397,
+    "min_change_pct": -5.106458205091425,
+    "max_change_pct": 0.6863508854652478,
+    "paired_changes": [
+      0.6863508854652478,
+      -5.106458205091425,
+      -4.207177756687397,
+      -0.05992772215412945,
+      -4.573928778814606
+    ]
+  },
+  {
+    "backend": "mimalloc",
+    "workers": 4,
+    "scenario": "dag_build_run",
+    "iterations": 0,
+    "before_us": 358.19,
+    "after_us": 347.611,
+    "paired_change_pct": -2.9534604539490195,
+    "min_change_pct": -9.39643061553671,
+    "max_change_pct": -0.7514826335162317,
+    "paired_changes": [
+      -0.7514826335162317,
+      -2.9534604539490195,
+      -1.8078316567229358,
+      -3.7713513073774685,
+      -9.39643061553671
+    ]
+  },
+  {
+    "backend": "mimalloc",
+    "workers": 4,
+    "scenario": "dag_build_run",
+    "iterations": 400,
+    "before_us": 4388.331,
+    "after_us": 4455.545,
+    "paired_change_pct": 2.729431260223536,
+    "min_change_pct": -3.649804693093872,
+    "max_change_pct": 5.385716434218191,
+    "paired_changes": [
+      5.385716434218191,
+      4.6108130466208985,
+      1.5316529222613395,
+      -3.649804693093872,
+      2.729431260223536
+    ]
+  },
+  {
+    "backend": "mimalloc",
+    "workers": 4,
+    "scenario": "external_detached",
+    "iterations": 0,
+    "before_us": 1647.739,
+    "after_us": 1613.574,
+    "paired_change_pct": -3.1678590846406673,
+    "min_change_pct": -54.213113216396216,
+    "max_change_pct": 22.76983199519309,
+    "paired_changes": [
+      -5.785339024199853,
+      22.76983199519309,
+      -3.1678590846406673,
+      15.884311775105164,
+      -54.213113216396216
+    ]
+  },
+  {
+    "backend": "mimalloc",
+    "workers": 4,
+    "scenario": "external_detached",
+    "iterations": 400,
+    "before_us": 926.559,
+    "after_us": 929.423,
+    "paired_change_pct": 0.8291258725907635,
+    "min_change_pct": -12.57097435704475,
+    "max_change_pct": 4.239172789724899,
+    "paired_changes": [
+      4.239172789724899,
+      1.3975632901037427,
+      -12.57097435704475,
+      0.8291258725907635,
+      -1.0055484863888853
+    ]
+  },
+  {
+    "backend": "mimalloc",
+    "workers": 4,
+    "scenario": "external_handles",
+    "iterations": 0,
+    "before_us": 3100.921,
+    "after_us": 3033.061,
+    "paired_change_pct": -2.548791149468166,
+    "min_change_pct": -4.047598478131165,
+    "max_change_pct": 8.377834766610004,
+    "paired_changes": [
+      3.0007495504543513,
+      8.377834766610004,
+      -4.047598478131165,
+      -3.960339159693982,
+      -2.548791149468166
+    ]
+  },
+  {
+    "backend": "mimalloc",
+    "workers": 4,
+    "scenario": "external_handles",
+    "iterations": 400,
+    "before_us": 950.764,
+    "after_us": 949.3,
+    "paired_change_pct": 0.18299516867426036,
+    "min_change_pct": -3.494388306946661,
+    "max_change_pct": 0.589946611356762,
+    "paired_changes": [
+      -3.494388306946661,
+      0.18299516867426036,
+      0.589946611356762,
+      0.3104631145287362,
+      -2.24330214075118
+    ]
+  },
+  {
+    "backend": "mimalloc",
+    "workers": 4,
+    "scenario": "graph_reuse",
+    "iterations": 0,
+    "before_us": 2514.649,
+    "after_us": 2489.462,
+    "paired_change_pct": -4.598348811173625,
+    "min_change_pct": -54.84282595714775,
+    "max_change_pct": 2.082437747773147,
+    "paired_changes": [
+      -6.231186538235367,
+      -54.84282595714775,
+      -4.598348811173625,
+      -4.240228180613503,
+      2.082437747773147
+    ]
+  },
+  {
+    "backend": "mimalloc",
+    "workers": 4,
+    "scenario": "graph_reuse",
+    "iterations": 400,
+    "before_us": 963.377,
+    "after_us": 960.37,
+    "paired_change_pct": 0.17043273643631007,
+    "min_change_pct": -4.789173142548398,
+    "max_change_pct": 1.0159214961322105,
+    "paired_changes": [
+      0.17043273643631007,
+      -4.789173142548398,
+      1.0159214961322105,
+      0.46716860558986273,
+      0.03020624324641119
+    ]
+  },
+  {
+    "backend": "system",
+    "workers": 1,
+    "scenario": "dag_build_run",
+    "iterations": 0,
+    "before_us": 843.035,
+    "after_us": 820.553,
+    "paired_change_pct": -0.3205627193525462,
+    "min_change_pct": -6.0701869660626855,
+    "max_change_pct": 18.415289139020572,
+    "paired_changes": [
+      -0.3205627193525462,
+      0.4231450279612359,
+      -6.0701869660626855,
+      -4.090458877745284,
+      18.415289139020572
+    ]
+  },
+  {
+    "backend": "system",
+    "workers": 1,
+    "scenario": "dag_build_run",
+    "iterations": 400,
+    "before_us": 4766.524,
+    "after_us": 4740.817,
+    "paired_change_pct": -0.47178946765844554,
+    "min_change_pct": -1.3168223655519062,
+    "max_change_pct": 0.28338818447926073,
+    "paired_changes": [
+      -0.53932383430777,
+      0.28338818447926073,
+      0.18847859219821572,
+      -0.47178946765844554,
+      -1.3168223655519062
+    ]
+  },
+  {
+    "backend": "system",
+    "workers": 1,
+    "scenario": "external_detached",
+    "iterations": 0,
+    "before_us": 755.854,
+    "after_us": 753.569,
+    "paired_change_pct": 1.39854056163069,
+    "min_change_pct": -0.30230705929982227,
+    "max_change_pct": 6.172648909620748,
+    "paired_changes": [
+      1.39854056163069,
+      6.172648909620748,
+      -0.30230705929982227,
+      1.2503143701644515,
+      2.8418780061215676
+    ]
+  },
+  {
+    "backend": "system",
+    "workers": 1,
+    "scenario": "external_detached",
+    "iterations": 400,
+    "before_us": 3923.523,
+    "after_us": 3919.646,
+    "paired_change_pct": 0.21836434828388374,
+    "min_change_pct": -3.262780937372367,
+    "max_change_pct": 3.71089961751212,
+    "paired_changes": [
+      0.08499598630065108,
+      3.71089961751212,
+      0.5505124691330687,
+      0.21836434828388374,
+      -3.262780937372367
+    ]
+  },
+  {
+    "backend": "system",
+    "workers": 1,
+    "scenario": "external_handles",
+    "iterations": 0,
+    "before_us": 989.185,
+    "after_us": 961.311,
+    "paired_change_pct": -2.452114511160086,
+    "min_change_pct": -5.7305271599098155,
+    "max_change_pct": -0.6902738566641475,
+    "paired_changes": [
+      -2.452114511160086,
+      -1.320815164722644,
+      -0.6902738566641475,
+      -5.7305271599098155,
+      -4.150487522556445
+    ]
+  },
+  {
+    "backend": "system",
+    "workers": 1,
+    "scenario": "external_handles",
+    "iterations": 400,
+    "before_us": 4344.816,
+    "after_us": 4250.462,
+    "paired_change_pct": -2.1716454735942636,
+    "min_change_pct": -10.149827556962732,
+    "max_change_pct": -0.766376699468807,
+    "paired_changes": [
+      -10.149827556962732,
+      -8.179418561146967,
+      -2.0376514503125387,
+      -0.766376699468807,
+      -2.1716454735942636
+    ]
+  },
+  {
+    "backend": "system",
+    "workers": 1,
+    "scenario": "graph_reuse",
+    "iterations": 0,
+    "before_us": 866.177,
+    "after_us": 870.586,
+    "paired_change_pct": -2.112056849230348,
+    "min_change_pct": -34.605806892932776,
+    "max_change_pct": 3.318239136555179,
+    "paired_changes": [
+      3.318239136555179,
+      0.13415271936336737,
+      -34.605806892932776,
+      -3.4116674460922036,
+      -2.112056849230348
+    ]
+  },
+  {
+    "backend": "system",
+    "workers": 1,
+    "scenario": "graph_reuse",
+    "iterations": 400,
+    "before_us": 3712.405,
+    "after_us": 3720.585,
+    "paired_change_pct": -0.09527516529043156,
+    "min_change_pct": -1.14594224057879,
+    "max_change_pct": 8.608167680302593,
+    "paired_changes": [
+      -1.14594224057879,
+      8.101765075332313,
+      -0.09527516529043156,
+      -0.28294909783599387,
+      8.608167680302593
+    ]
+  },
+  {
+    "backend": "system",
+    "workers": 4,
+    "scenario": "dag_build_run",
+    "iterations": 0,
+    "before_us": 955.831,
+    "after_us": 907.904,
+    "paired_change_pct": -2.5885658465446437,
+    "min_change_pct": -9.877382002069467,
+    "max_change_pct": 2.229487152437315,
+    "paired_changes": [
+      -5.432550314856921,
+      -0.8544021805601654,
+      -9.877382002069467,
+      2.229487152437315,
+      -2.5885658465446437
+    ]
+  },
+  {
+    "backend": "system",
+    "workers": 4,
+    "scenario": "dag_build_run",
+    "iterations": 400,
+    "before_us": 5439.203,
+    "after_us": 5467.325,
+    "paired_change_pct": -0.053370533382268714,
+    "min_change_pct": -2.058415982409556,
+    "max_change_pct": 0.5797348403653535,
+    "paired_changes": [
+      -0.053370533382268714,
+      -1.7098018894985745,
+      -2.058415982409556,
+      0.5797348403653535,
+      0.5170242772700284
+    ]
+  },
+  {
+    "backend": "system",
+    "workers": 4,
+    "scenario": "external_detached",
+    "iterations": 0,
+    "before_us": 2926.221,
+    "after_us": 2588.874,
+    "paired_change_pct": 7.611250141393966,
+    "min_change_pct": -34.58468390515298,
+    "max_change_pct": 86.47712922981717,
+    "paired_changes": [
+      7.611250141393966,
+      86.47712922981717,
+      -34.58468390515298,
+      -29.863564583521285,
+      61.88345888258584
+    ]
+  },
+  {
+    "backend": "system",
+    "workers": 4,
+    "scenario": "external_detached",
+    "iterations": 400,
+    "before_us": 1296.351,
+    "after_us": 1293.303,
+    "paired_change_pct": -0.6175796524243937,
+    "min_change_pct": -6.651254138538077,
+    "max_change_pct": 1.673462029178463,
+    "paired_changes": [
+      -6.651254138538077,
+      -0.8821594481286277,
+      -0.6175796524243937,
+      1.6555195482142127,
+      1.673462029178463
+    ]
+  },
+  {
+    "backend": "system",
+    "workers": 4,
+    "scenario": "external_handles",
+    "iterations": 0,
+    "before_us": 4647.3,
+    "after_us": 4356.066,
+    "paired_change_pct": -7.389086136035983,
+    "min_change_pct": -21.284453247759792,
+    "max_change_pct": 0.035740014488827576,
+    "paired_changes": [
+      -8.476971465669925,
+      -2.974345821110058,
+      -7.389086136035983,
+      -21.284453247759792,
+      0.035740014488827576
+    ]
+  },
+  {
+    "backend": "system",
+    "workers": 4,
+    "scenario": "external_handles",
+    "iterations": 400,
+    "before_us": 1993.455,
+    "after_us": 1900.472,
+    "paired_change_pct": -4.719390087944275,
+    "min_change_pct": -5.440316205533602,
+    "max_change_pct": -2.142851568495352,
+    "paired_changes": [
+      -4.521828425132057,
+      -5.440316205533602,
+      -4.749241894098432,
+      -2.142851568495352,
+      -4.719390087944275
+    ]
+  },
+  {
+    "backend": "system",
+    "workers": 4,
+    "scenario": "graph_reuse",
+    "iterations": 0,
+    "before_us": 2836.911,
+    "after_us": 3105.697,
+    "paired_change_pct": 2.557991701436646,
+    "min_change_pct": -17.35951922133139,
+    "max_change_pct": 49.73141200545701,
+    "paired_changes": [
+      -8.55004396826734,
+      -17.35951922133139,
+      17.80284964879053,
+      2.557991701436646,
+      49.73141200545701
+    ]
+  },
+  {
+    "backend": "system",
+    "workers": 4,
+    "scenario": "graph_reuse",
+    "iterations": 400,
+    "before_us": 1399.931,
+    "after_us": 1368.775,
+    "paired_change_pct": -0.10334625223311633,
+    "min_change_pct": -8.726184220704214,
+    "max_change_pct": 26.342012570619545,
+    "paired_changes": [
+      -2.2185694936363576,
+      26.342012570619545,
+      -0.038102886586777185,
+      -0.10334625223311633,
+      -8.726184220704214
+    ]
+  },
+  {
+    "backend": "tbbmalloc",
+    "workers": 1,
+    "scenario": "dag_build_run",
+    "iterations": 0,
+    "before_us": 532.462,
+    "after_us": 215.908,
+    "paired_change_pct": -57.27128313950942,
+    "min_change_pct": -63.31122479329011,
+    "max_change_pct": -54.43749185940909,
+    "paired_changes": [
+      -57.25618218209103,
+      -57.27128313950942,
+      -63.31122479329011,
+      -54.43749185940909,
+      -60.44994760189459
+    ]
+  },
+  {
+    "backend": "tbbmalloc",
+    "workers": 1,
+    "scenario": "dag_build_run",
+    "iterations": 400,
+    "before_us": 4344.722,
+    "after_us": 3781.666,
+    "paired_change_pct": -12.748813341681299,
+    "min_change_pct": -13.87570770723352,
+    "max_change_pct": -8.987686669020478,
+    "paired_changes": [
+      -12.748813341681299,
+      -13.710891990749396,
+      -12.55877635207745,
+      -8.987686669020478,
+      -13.87570770723352
+    ]
+  },
+  {
+    "backend": "tbbmalloc",
+    "workers": 1,
+    "scenario": "external_detached",
+    "iterations": 0,
+    "before_us": 297.338,
+    "after_us": 300.123,
+    "paired_change_pct": 1.1118659572607603,
+    "min_change_pct": 0.03683969041263779,
+    "max_change_pct": 1.9221430196662892,
+    "paired_changes": [
+      1.9221430196662892,
+      0.5669170495175901,
+      1.1118659572607603,
+      0.03683969041263779,
+      1.4723297692931459
+    ]
+  },
+  {
+    "backend": "tbbmalloc",
+    "workers": 1,
+    "scenario": "external_detached",
+    "iterations": 400,
+    "before_us": 3485.606,
+    "after_us": 3506.171,
+    "paired_change_pct": -0.4737971992360479,
+    "min_change_pct": -0.8565022878976647,
+    "max_change_pct": 1.9819343036825865,
+    "paired_changes": [
+      -0.6954660316320305,
+      -0.8565022878976647,
+      0.6467168119403066,
+      -0.4737971992360479,
+      1.9819343036825865
+    ]
+  },
+  {
+    "backend": "tbbmalloc",
+    "workers": 1,
+    "scenario": "external_handles",
+    "iterations": 0,
+    "before_us": 556.055,
+    "after_us": 522.704,
+    "paired_change_pct": -6.064009690051353,
+    "min_change_pct": -8.651841994047338,
+    "max_change_pct": -0.911278238819746,
+    "paired_changes": [
+      -5.4143028251343095,
+      -0.911278238819746,
+      -8.651841994047338,
+      -7.343421090573543,
+      -6.064009690051353
+    ]
+  },
+  {
+    "backend": "tbbmalloc",
+    "workers": 1,
+    "scenario": "external_handles",
+    "iterations": 400,
+    "before_us": 3699.313,
+    "after_us": 3730.767,
+    "paired_change_pct": 0.08882730388048987,
+    "min_change_pct": -3.088966104417923,
+    "max_change_pct": 1.7114545809954196,
+    "paired_changes": [
+      0.25256580220127667,
+      1.7114545809954196,
+      -3.042972894234708,
+      0.08882730388048987,
+      -3.088966104417923
+    ]
+  },
+  {
+    "backend": "tbbmalloc",
+    "workers": 1,
+    "scenario": "graph_reuse",
+    "iterations": 0,
+    "before_us": 410.868,
+    "after_us": 402.341,
+    "paired_change_pct": -1.496009265981757,
+    "min_change_pct": -6.737056825952403,
+    "max_change_pct": 1.5279882359088282,
+    "paired_changes": [
+      -6.737056825952403,
+      1.5279882359088282,
+      -1.496009265981757,
+      -2.904095719306443,
+      -0.6555876661974325
+    ]
+  },
+  {
+    "backend": "tbbmalloc",
+    "workers": 1,
+    "scenario": "graph_reuse",
+    "iterations": 400,
+    "before_us": 3572.747,
+    "after_us": 3565.034,
+    "paired_change_pct": -0.2439463686589205,
+    "min_change_pct": -0.675749795199565,
+    "max_change_pct": 6.530947844696278,
+    "paired_changes": [
+      -0.675749795199565,
+      6.530947844696278,
+      -0.21588430415027116,
+      -0.2439463686589205,
+      -0.3317401642074502
+    ]
+  },
+  {
+    "backend": "tbbmalloc",
+    "workers": 4,
+    "scenario": "dag_build_run",
+    "iterations": 0,
+    "before_us": 628.649,
+    "after_us": 338.795,
+    "paired_change_pct": -47.02556772045144,
+    "min_change_pct": -54.03610566250485,
+    "max_change_pct": -45.208655332302946,
+    "paired_changes": [
+      -46.04524941581073,
+      -45.208655332302946,
+      -54.03610566250485,
+      -47.02556772045144,
+      -53.88316806076404
+    ]
+  },
+  {
+    "backend": "tbbmalloc",
+    "workers": 4,
+    "scenario": "dag_build_run",
+    "iterations": 400,
+    "before_us": 4999.865,
+    "after_us": 4489.011,
+    "paired_change_pct": -11.703517581908951,
+    "min_change_pct": -13.767951734696837,
+    "max_change_pct": -5.781374850628273,
+    "paired_changes": [
+      -11.703517581908951,
+      -13.767951734696837,
+      -5.781374850628273,
+      -12.98816432371941,
+      -8.606725258115633
+    ]
+  },
+  {
+    "backend": "tbbmalloc",
+    "workers": 4,
+    "scenario": "external_detached",
+    "iterations": 0,
+    "before_us": 2166.124,
+    "after_us": 2131.942,
+    "paired_change_pct": -5.569842202536924,
+    "min_change_pct": -30.225210048743335,
+    "max_change_pct": 20.23671443723407,
+    "paired_changes": [
+      -5.569842202536924,
+      3.0649676565145834,
+      20.23671443723407,
+      -9.222665996746915,
+      -30.225210048743335
+    ]
+  },
+  {
+    "backend": "tbbmalloc",
+    "workers": 4,
+    "scenario": "external_detached",
+    "iterations": 400,
+    "before_us": 902.604,
+    "after_us": 918.102,
+    "paired_change_pct": 0.1753401904066143,
+    "min_change_pct": -3.9967187073792987,
+    "max_change_pct": 1.7170320539239725,
+    "paired_changes": [
+      -3.9967187073792987,
+      1.7170320539239725,
+      0.1753401904066143,
+      -0.005552772999317668,
+      1.5352217542533797
+    ]
+  },
+  {
+    "backend": "tbbmalloc",
+    "workers": 4,
+    "scenario": "external_handles",
+    "iterations": 0,
+    "before_us": 3546.232,
+    "after_us": 3382.138,
+    "paired_change_pct": -2.5099982276313937,
+    "min_change_pct": -11.72385676357679,
+    "max_change_pct": 6.047301171189257,
+    "paired_changes": [
+      -7.261067285276745,
+      -2.5099982276313937,
+      6.047301171189257,
+      -11.72385676357679,
+      1.4286713334040302
+    ]
+  },
+  {
+    "backend": "tbbmalloc",
+    "workers": 4,
+    "scenario": "external_handles",
+    "iterations": 400,
+    "before_us": 955.652,
+    "after_us": 957.094,
+    "paired_change_pct": -0.2315696508771059,
+    "min_change_pct": -0.5037720814231372,
+    "max_change_pct": 1.344111925670921,
+    "paired_changes": [
+      -0.5037720814231372,
+      1.344111925670921,
+      -0.4315250478027277,
+      0.3157292875304085,
+      -0.2315696508771059
+    ]
+  },
+  {
+    "backend": "tbbmalloc",
+    "workers": 4,
+    "scenario": "graph_reuse",
+    "iterations": 0,
+    "before_us": 3013.166,
+    "after_us": 2944.747,
+    "paired_change_pct": 0.6902576797877202,
+    "min_change_pct": -3.744831847963248,
+    "max_change_pct": 6.248292293736402,
+    "paired_changes": [
+      0.6902576797877202,
+      -1.4775817306105332,
+      -3.744831847963248,
+      6.248292293736402,
+      5.580885096890742
+    ]
+  },
+  {
+    "backend": "tbbmalloc",
+    "workers": 4,
+    "scenario": "graph_reuse",
+    "iterations": 400,
+    "before_us": 942.668,
+    "after_us": 944.722,
+    "paired_change_pct": -0.3241862458469025,
+    "min_change_pct": -0.990179946969616,
+    "max_change_pct": 19.989576341965034,
+    "paired_changes": [
+      19.989576341965034,
+      -0.3241862458469025,
+      -0.990179946969616,
+      -0.4741247580563046,
+      0.5358889837426384
+    ]
+  }
+]

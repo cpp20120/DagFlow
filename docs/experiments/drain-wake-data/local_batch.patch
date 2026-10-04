@@ -1,0 +1,79 @@
+--- a/include/dagflow/detail/chase_lev_deque.hpp
++++ b/include/dagflow/detail/chase_lev_deque.hpp
+@@ -23,6 +23,7 @@
+ #include <atomic>
+ #include <cstddef>
+ #include <limits>
++#include <span>
+ #include <type_traits>
+ 
+ #include "dagflow/config.hpp"
+@@ -61,6 +62,22 @@
+     buffer_[static_cast<std::size_t>(b) & (N - 1)].store(
+         value, std::memory_order_relaxed);
+     bottom_.store(b + 1, std::memory_order_release);
++    return true;
++  }
++
++  /// Owner only. Publish all values with one bottom release. No value becomes
++  /// stealable before every slot is initialized. Thieves can only increase
++  /// capacity during this operation; the owner must not reenter before return.
++  [[nodiscard]] bool try_push_batch(std::span<const T> values) noexcept {
++    if (values.empty()) return true;
++    const auto b = bottom_.load(std::memory_order_relaxed);
++    const auto t = top_.load(std::memory_order_acquire);
++    if (values.size() > N - static_cast<std::size_t>(b - t)) return false;
++    for (std::size_t i = 0; i < values.size(); ++i)
++      buffer_[(static_cast<std::size_t>(b) + i) & (N - 1)].store(
++          values[i], std::memory_order_relaxed);
++    bottom_.store(b + static_cast<difference_type>(values.size()),
++                  std::memory_order_release);
+     return true;
+   }
+ 
+--- a/src/scheduler.cpp
++++ b/src/scheduler.cpp
+@@ -17,6 +17,9 @@
+ constexpr uint32_t splitmix_shift_3 = 31;
+ constexpr uint32_t steal_batch_limit = 4;
+ constexpr uint32_t external_poll_interval = 32;
++// Bound stack scratch and each ingress reservation, independently of the
++// configured total drain budget. Do not hold unpublished tasks across user code.
++constexpr std::size_t drain_transfer_batch = 64;
+ }  // namespace
+ 
+ namespace dagflow::detail {
+@@ -98,14 +101,25 @@
+   ScheduledTask* first = nullptr;
+   if (!central.try_pop(first)) return nullptr;
+   runtime_count(RuntimeEvent::drain_tasks);
+-  if (shard != locals_[id].home_shard) runtime_count(RuntimeEvent::remote_drain_tasks);
+-  const auto limit =
+-      std::min<std::size_t>(central_batch_, local.free_capacity() + 1);
+-  ScheduledTask* next = nullptr;
+-  for (std::size_t taken = 1; taken < limit && central.try_pop(next); ++taken) {
+-    runtime_count(RuntimeEvent::drain_tasks);
+-    if (shard != locals_[id].home_shard) runtime_count(RuntimeEvent::remote_drain_tasks);
+-    if (!local.try_push(next)) std::terminate();
++  if (shard != locals_[id].home_shard)
++    runtime_count(RuntimeEvent::remote_drain_tasks);
++  auto remaining =
++      std::min<std::size_t>(central_batch_ - 1, local.free_capacity());
++  ScheduledTask* tasks[drain_transfer_batch];
++  while (remaining) {
++    const auto requested = std::min(remaining, drain_transfer_batch);
++    std::size_t taken = 0;
++    while (taken < requested && central.try_pop(tasks[taken])) ++taken;
++    if (!taken) break;
++    runtime_count(RuntimeEvent::drain_tasks, taken);
++    if (shard != locals_[id].home_shard)
++      runtime_count(RuntimeEvent::remote_drain_tasks, taken);
++    // Capacity was reserved conservatively by the owner before draining.
++    // Only thieves run concurrently and they can only free additional slots.
++    if (!local.try_push_batch(std::span{tasks, taken}))
++      std::terminate();
++    remaining -= taken;
++    if (taken < requested) break;
+   }
+   // Publish the entire batch before user code can help/wait on its siblings.
+   return first;

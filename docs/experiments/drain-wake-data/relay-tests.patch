@@ -1,0 +1,103 @@
+--- a/tests/scheduler_topology_tests.cpp
++++ b/tests/scheduler_topology_tests.cpp
+@@ -1,9 +1,11 @@
+ #include <array>
+ #include <atomic>
++#include <barrier>
+ #include <chrono>
+ #include <future>
+ #include <stdexcept>
+ #include <thread>
++#include <vector>
+ 
+ #include "dagflow/detail/parking_lot.hpp"
+ #include "dagflow/detail/scheduler.hpp"
+@@ -62,6 +64,78 @@
+   CHECK(scheduler.has_local_work(0));
+   CHECK(scheduler.try_acquire(0) == &third);
+   CHECK(scheduler.try_acquire(0) == &second);
++}
++
++void acquisition_publication() {
++  Scheduler scheduler(2, 1, 3);
++  ScheduledTask tasks[5];
++  bool published = true;
++  CHECK(!scheduler.try_acquire(0, published) && !published);
++  CHECK(scheduler.try_submit_external(0, &tasks[0]));
++  CHECK(scheduler.try_acquire(0, published) == &tasks[0] && published);
++  for (auto& task : tasks) CHECK(scheduler.try_submit_external(0, &task));
++  CHECK(scheduler.try_acquire(0, published) == &tasks[0] && published);
++  CHECK(scheduler.try_acquire(0, published) == &tasks[2] && !published);
++  CHECK(scheduler.try_acquire(0, published) == &tasks[1] && !published);
++  CHECK(scheduler.try_acquire(0, published) == &tasks[3] && published);
++  CHECK(scheduler.try_acquire(0, published) == &tasks[4] && !published);
++  for (auto& task : tasks) CHECK(scheduler.try_submit_local(0, &task));
++  CHECK(scheduler.try_acquire(1, published) == &tasks[0] && published);
++  CHECK(scheduler.try_acquire(1, published) == &tasks[3] && !published);
++  CHECK(scheduler.try_acquire(1, published) == &tasks[2] && !published);
++  CHECK(scheduler.try_acquire(1, published) == &tasks[1] && !published);
++  CHECK(scheduler.try_acquire(1, published) == &tasks[4] && published);
++  Scheduler polling(1, 1, 32);
++  for (unsigned i = 0; i < 31; ++i) {
++    CHECK(polling.try_submit_local(0, &tasks[0]));
++    CHECK(polling.try_acquire(0, published) == &tasks[0] && !published);
++  }
++  CHECK(polling.try_submit_external(0, &tasks[0]));
++  // The fairness probe takes one ingress task without staging local siblings.
++  // It must still relay recruitment; other queues may have available work.
++  CHECK(polling.try_acquire(0, published) == &tasks[0] && published);
++}
++
++void expect_signal(ParkingLot& parking, uint32_t worker, uint64_t epoch);
++
++void transferred_batch_wakes_waiter() {
++  Scheduler scheduler(2, 1, 32);
++  ParkingLot parking(scheduler);
++  ScheduledTask tasks[4];
++  for (auto& task : tasks) CHECK(scheduler.try_submit_external(0, &task));
++  const auto epoch = parking.prepare(1);
++  bool published = false;
++  CHECK(scheduler.try_acquire(0, published) == &tasks[0] && published);
++  parking.wake_one(0);
++  expect_signal(parking, 1, epoch);
++  CHECK(scheduler.try_acquire(1, published) == &tasks[1] && published);
++  CHECK(scheduler.try_acquire(1) == &tasks[3]);
++  CHECK(scheduler.try_acquire(1) == &tasks[2]);
++}
++
++void batch_recruits_sleeping_workers() {
++  for (uint32_t workers : {2u, 4u, 8u}) {
++    dagflow::Config cfg;
++    cfg.threads = workers;
++    cfg.shards = 1;
++    cfg.pin_threads = false;
++    cfg.idle_us_min = cfg.idle_us_max = 5'000'000;
++    dagflow::Pool pool(cfg);
++    for (unsigned round = 0; round < 6; ++round) {
++      std::this_thread::sleep_for(std::chrono::milliseconds(10));
++      std::barrier together(workers);
++      auto body = [&] { together.arrive_and_wait(); };
++      std::vector<decltype(body)> jobs(workers, body);
++      // The external batch emits one wake. Every body must run at once:
++      // transfers must recruit sleepers even beyond the four-task steal size.
++      const auto priority = round % 2 ? dagflow::Priority::High
++                                     : dagflow::Priority::Normal;
++      pool.submit_batch_detached(std::span{jobs}, {.priority = priority});
++      auto done = std::async(std::launch::async, [&] { pool.wait_idle(); });
++      CHECK(done.wait_for(std::chrono::seconds(1)) == std::future_status::ready);
++      done.get();  // Cannot rely on the five-second parking timeout for progress.
++    }
++  }
+ }
+ 
+ void expect_signal(ParkingLot& parking, uint32_t worker, uint64_t epoch) {
+@@ -231,6 +305,9 @@
+ int main() {
+   membership_and_stealing();
+   central_batch_visible();
++  acquisition_publication();
++  transferred_batch_wakes_waiter();
++  batch_recruits_sleeping_workers();
+   parking_membership();
+   parking_publication_race();
+   packed_domain_boundaries();

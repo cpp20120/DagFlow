@@ -1,0 +1,408 @@
+{
+  "cases": [
+    {
+      "scenario": "deep_dag",
+      "workers": 1,
+      "tasks": 4096,
+      "iterations": 0
+    },
+    {
+      "scenario": "deep_dag",
+      "workers": 1,
+      "tasks": 4096,
+      "iterations": 128
+    },
+    {
+      "scenario": "deep_dag",
+      "workers": 4,
+      "tasks": 4096,
+      "iterations": 0
+    },
+    {
+      "scenario": "deep_dag",
+      "workers": 4,
+      "tasks": 4096,
+      "iterations": 128
+    },
+    {
+      "scenario": "fanout_fanin",
+      "workers": 1,
+      "tasks": 4096,
+      "iterations": 0
+    },
+    {
+      "scenario": "fanout_fanin",
+      "workers": 1,
+      "tasks": 4096,
+      "iterations": 128
+    },
+    {
+      "scenario": "fanout_fanin",
+      "workers": 4,
+      "tasks": 4096,
+      "iterations": 0
+    },
+    {
+      "scenario": "fanout_fanin",
+      "workers": 4,
+      "tasks": 4096,
+      "iterations": 128
+    },
+    {
+      "scenario": "graph_reuse",
+      "workers": 1,
+      "tasks": 4096,
+      "iterations": 0
+    },
+    {
+      "scenario": "graph_reuse",
+      "workers": 1,
+      "tasks": 4096,
+      "iterations": 128
+    },
+    {
+      "scenario": "graph_reuse",
+      "workers": 4,
+      "tasks": 4096,
+      "iterations": 0
+    },
+    {
+      "scenario": "graph_reuse",
+      "workers": 4,
+      "tasks": 4096,
+      "iterations": 128
+    },
+    {
+      "scenario": "dag_build_run",
+      "workers": 1,
+      "tasks": 4096,
+      "iterations": 0
+    },
+    {
+      "scenario": "dag_build_run",
+      "workers": 1,
+      "tasks": 4096,
+      "iterations": 128
+    },
+    {
+      "scenario": "dag_build_run",
+      "workers": 4,
+      "tasks": 4096,
+      "iterations": 0
+    },
+    {
+      "scenario": "dag_build_run",
+      "workers": 4,
+      "tasks": 4096,
+      "iterations": 128
+    },
+    {
+      "scenario": "graph_tokens_serial",
+      "workers": 1,
+      "tasks": 4096,
+      "iterations": 0
+    },
+    {
+      "scenario": "graph_tokens_serial",
+      "workers": 1,
+      "tasks": 4096,
+      "iterations": 128
+    },
+    {
+      "scenario": "graph_tokens_serial",
+      "workers": 4,
+      "tasks": 4096,
+      "iterations": 0
+    },
+    {
+      "scenario": "graph_tokens_serial",
+      "workers": 4,
+      "tasks": 4096,
+      "iterations": 128
+    },
+    {
+      "scenario": "graph_tokens_parallel",
+      "workers": 1,
+      "tasks": 4096,
+      "iterations": 0
+    },
+    {
+      "scenario": "graph_tokens_parallel",
+      "workers": 1,
+      "tasks": 4096,
+      "iterations": 128
+    },
+    {
+      "scenario": "graph_tokens_parallel",
+      "workers": 4,
+      "tasks": 4096,
+      "iterations": 0
+    },
+    {
+      "scenario": "graph_tokens_parallel",
+      "workers": 4,
+      "tasks": 4096,
+      "iterations": 128
+    },
+    {
+      "scenario": "deep_dag",
+      "workers": 1,
+      "tasks": 64,
+      "iterations": 0
+    },
+    {
+      "scenario": "deep_dag",
+      "workers": 1,
+      "tasks": 65,
+      "iterations": 0
+    },
+    {
+      "scenario": "graph_tokens_serial",
+      "workers": 1,
+      "tasks": 64,
+      "iterations": 0
+    },
+    {
+      "scenario": "graph_tokens_serial",
+      "workers": 1,
+      "tasks": 65,
+      "iterations": 0
+    }
+  ],
+  "variants": [
+    "baseline",
+    "candidate"
+  ],
+  "profiles": [
+    "o3",
+    "o3-lto"
+  ],
+  "rounds": 5,
+  "repeats": 51,
+  "warmup": 10,
+  "seed": 1729,
+  "cpu_topology": [
+    {
+      "cpu": 0,
+      "package": "0",
+      "core": "0",
+      "siblings": "0-1",
+      "governor": "powersave",
+      "frequency_khz": "2028757"
+    },
+    {
+      "cpu": 1,
+      "package": "0",
+      "core": "0",
+      "siblings": "0-1",
+      "governor": "powersave",
+      "frequency_khz": "1724512"
+    },
+    {
+      "cpu": 2,
+      "package": "0",
+      "core": "1",
+      "siblings": "2-3",
+      "governor": "powersave",
+      "frequency_khz": "1352315"
+    },
+    {
+      "cpu": 3,
+      "package": "0",
+      "core": "1",
+      "siblings": "2-3",
+      "governor": "powersave",
+      "frequency_khz": "1351011"
+    },
+    {
+      "cpu": 4,
+      "package": "0",
+      "core": "2",
+      "siblings": "4-5",
+      "governor": "powersave",
+      "frequency_khz": "1367071"
+    },
+    {
+      "cpu": 5,
+      "package": "0",
+      "core": "2",
+      "siblings": "4-5",
+      "governor": "powersave",
+      "frequency_khz": "1095838"
+    },
+    {
+      "cpu": 6,
+      "package": "0",
+      "core": "3",
+      "siblings": "6-7",
+      "governor": "powersave",
+      "frequency_khz": "1095838"
+    },
+    {
+      "cpu": 7,
+      "package": "0",
+      "core": "3",
+      "siblings": "6-7",
+      "governor": "powersave",
+      "frequency_khz": "1352558"
+    },
+    {
+      "cpu": 8,
+      "package": "0",
+      "core": "4",
+      "siblings": "8-9",
+      "governor": "powersave",
+      "frequency_khz": "3040839"
+    },
+    {
+      "cpu": 9,
+      "package": "0",
+      "core": "4",
+      "siblings": "8-9",
+      "governor": "powersave",
+      "frequency_khz": "1095838"
+    },
+    {
+      "cpu": 10,
+      "package": "0",
+      "core": "5",
+      "siblings": "10-11",
+      "governor": "powersave",
+      "frequency_khz": "1095838"
+    },
+    {
+      "cpu": 11,
+      "package": "0",
+      "core": "5",
+      "siblings": "10-11",
+      "governor": "powersave",
+      "frequency_khz": "1095838"
+    },
+    {
+      "cpu": 12,
+      "package": "0",
+      "core": "6",
+      "siblings": "12-13",
+      "governor": "powersave",
+      "frequency_khz": "2035174"
+    },
+    {
+      "cpu": 13,
+      "package": "0",
+      "core": "6",
+      "siblings": "12-13",
+      "governor": "powersave",
+      "frequency_khz": "2032334"
+    },
+    {
+      "cpu": 14,
+      "package": "0",
+      "core": "7",
+      "siblings": "14-15",
+      "governor": "powersave",
+      "frequency_khz": "1095838"
+    },
+    {
+      "cpu": 15,
+      "package": "0",
+      "core": "7",
+      "siblings": "14-15",
+      "governor": "powersave",
+      "frequency_khz": "3044272"
+    }
+  ],
+  "source_sha256": {
+    "baseline": {
+      "CMakePresets.json": "4ed3badda2c6cdfa0f4e2779931e8af1cbeb118d8d7e7c8e8cfac9f9c249c943",
+      "CMakeLists.txt": "2c535bfcea0d19998d9881683967dc859cdaec8e25ab9231f5a8d7524a282d13",
+      "src/task_scope.cpp": "f1ce2b4a701718594178ccdf260446495bf8bbd8b32dc51fc644545cafb9af44",
+      "src/task_graph.cpp": "0dd3aa3133e33d04304664cd936c585aa4ea1144ab38a8577aaf1a1bd2569dd5",
+      "src/scheduler.cpp": "183e8256da831479fcc5b5fde1765377325cfc1a0772ffd7b232c4efaa164d59",
+      "src/thread_pool.cpp": "3fce4acc4860ca150334f6345e190c1c68c08ff52531945f4d8c1723ea89a354",
+      "src/idle_accounting.cpp": "4fb0a102c3ebd1857697f2de09a03489752b42640b5e4ae5001977a009ed900f",
+      "src/runtime_memory.cpp": "1b23a95084246dd5cd74734d15bb612e0c130e8eb02afaf4a8046f8ac23b2331",
+      "src/main.cpp": "644c6d8554054ad0f759609d409ccee80d2999f524d2c03399d1c7e78e3ca315",
+      "src/parking_lot.cpp": "23eff95824d8126e36a60119fcf39640e3d76d0781e153f8cb12bb19833a6ed8",
+      "src/runtime_diagnostics.cpp": "13b773c65cd2425ea3194c6138a9c4cd9fc3f200fcae1bbc87488f5668927c3c",
+      "cmake/DagFlowConfig.cmake.in": "ff0a3b5ef4613ac154ff543583a80a7531483b213fa3539cb4c0a72b06777bd3",
+      "bench/runtime_bench.cpp": "e8e84d3fd9eb188dbfe5412efbcc6cec50e1495c9d79aeaef40a2755cb950245",
+      "bench/function_bench.cpp": "e596c397ab0ad6c347d6d7edfcc6c02d80c2a05f408a1ec4092d1aa6e7ff447e",
+      "bench/runtime_suite.cpp": "f7b76e6cebc6fe08535fff3df60287790d142ccd545f5bb3645e784d93753d2a",
+      "bench/tbb_bench.cpp": "87bb7b30aba7b355a9e00e031ed939a6165afb2283147411a6f35fae43031f77",
+      "bench/tbb_results.md": "b5e8b2eeff65382e714e061229492f3bafd27c75bdc633ad42277484ddc1e1f2",
+      "include/dagflow/handle.hpp": "f31bea406f2d88bd89efa81f8abee360a24ea40d85327bb2526a3d00d0e93478",
+      "include/dagflow/task_graph.hpp": "6694805ea0380caada074cc80c8598a0578940b1c018bd00c29af7e003d2bd34",
+      "include/dagflow/inplace_function.hpp": "03c6b4d14aa4afd46c75fdfeff47e60954f19e659d8b15ee01a98414c349104c",
+      "include/dagflow/task_scope.hpp": "5a4d127356004449b2df052b73b4b5c9a66d712abb3de5a9a8f79bf3dfdb4a50",
+      "include/dagflow/graph_scope.hpp": "dd2c4bffb2d6cc2f9bbba8d90b7b8d755592f51353fc8eb9b3b6e28c8cf49b89",
+      "include/dagflow/config.hpp": "a478e941f1a0de0ca0731db4b0c8c460fe49a51818b0face4c724468953a1ea4",
+      "include/dagflow/thread_pool.hpp": "dec07f7d6f350537cb5f0b227236723f579783969dd413753888ba9e6f325924",
+      "include/dagflow/dagflow.hpp": "6f3ba567771c4f5d717f6c210f9668ea7dddafea20a4a0a76726f33856e80e67",
+      "include/dagflow/detail/idle_accounting.hpp": "16baedee12db1d150ba1e2ca08170b0009f115abd16b1c311004cf0f9f53f8af",
+      "include/dagflow/detail/small_vector.hpp": "a523f80fcaec798e9f709db4869f6e69e284920244e92077b57d577408e0f700",
+      "include/dagflow/detail/ring_mpmc.hpp": "766e58575ca449f0014be8afdb7e4b789112f8cc1b986b8ec60fadf8bc48cc32",
+      "include/dagflow/detail/chase_lev_deque.hpp": "292e61a4775e08c011d21ece70e2872a6db34594ef294595b7b75158c657e118",
+      "include/dagflow/detail/small_function.hpp": "66abc1f2fb14ecde9a9b84026db35faa49c0ddd4d36aabc3987c5dabab9335dc",
+      "include/dagflow/detail/parking_lot.hpp": "97edd033a372d2ed72a1491dea0bb775a9befe0272007ddfb453a88b6f0de1c2",
+      "include/dagflow/detail/runtime_diagnostics.hpp": "09b63e93b43b831843dc75eb25f49c64e2cfcaad84bad3bcbd97c6aec54eff3f",
+      "include/dagflow/detail/scheduler.hpp": "45612ee3da0cfdb577dfaf4ef1433daab1de1f5bc0d69edffa77e3afbeb2e6b3",
+      "include/dagflow/detail/runtime_memory.hpp": "f676ba615ae7749137fc521cec36e80ff622e71d426b5ec09dda6b0ec546d941"
+    },
+    "candidate": {
+      "CMakePresets.json": "4ed3badda2c6cdfa0f4e2779931e8af1cbeb118d8d7e7c8e8cfac9f9c249c943",
+      "CMakeLists.txt": "2c535bfcea0d19998d9881683967dc859cdaec8e25ab9231f5a8d7524a282d13",
+      "src/task_scope.cpp": "f1ce2b4a701718594178ccdf260446495bf8bbd8b32dc51fc644545cafb9af44",
+      "src/task_graph.cpp": "6ae859c547ee0615b68c18787ddd26b3ae830bec9192e35787fa5ecee3ec524e",
+      "src/scheduler.cpp": "183e8256da831479fcc5b5fde1765377325cfc1a0772ffd7b232c4efaa164d59",
+      "src/thread_pool.cpp": "3fce4acc4860ca150334f6345e190c1c68c08ff52531945f4d8c1723ea89a354",
+      "src/idle_accounting.cpp": "4fb0a102c3ebd1857697f2de09a03489752b42640b5e4ae5001977a009ed900f",
+      "src/runtime_memory.cpp": "1b23a95084246dd5cd74734d15bb612e0c130e8eb02afaf4a8046f8ac23b2331",
+      "src/main.cpp": "644c6d8554054ad0f759609d409ccee80d2999f524d2c03399d1c7e78e3ca315",
+      "src/parking_lot.cpp": "23eff95824d8126e36a60119fcf39640e3d76d0781e153f8cb12bb19833a6ed8",
+      "src/runtime_diagnostics.cpp": "13b773c65cd2425ea3194c6138a9c4cd9fc3f200fcae1bbc87488f5668927c3c",
+      "cmake/DagFlowConfig.cmake.in": "ff0a3b5ef4613ac154ff543583a80a7531483b213fa3539cb4c0a72b06777bd3",
+      "bench/runtime_bench.cpp": "e8e84d3fd9eb188dbfe5412efbcc6cec50e1495c9d79aeaef40a2755cb950245",
+      "bench/function_bench.cpp": "e596c397ab0ad6c347d6d7edfcc6c02d80c2a05f408a1ec4092d1aa6e7ff447e",
+      "bench/runtime_suite.cpp": "f7b76e6cebc6fe08535fff3df60287790d142ccd545f5bb3645e784d93753d2a",
+      "bench/tbb_bench.cpp": "87bb7b30aba7b355a9e00e031ed939a6165afb2283147411a6f35fae43031f77",
+      "bench/tbb_results.md": "b5e8b2eeff65382e714e061229492f3bafd27c75bdc633ad42277484ddc1e1f2",
+      "include/dagflow/handle.hpp": "f31bea406f2d88bd89efa81f8abee360a24ea40d85327bb2526a3d00d0e93478",
+      "include/dagflow/task_graph.hpp": "bc6529cd2e70aea988fb09cb41dfe66d7aee2b4b1e13f2e79ebe383c7e560e96",
+      "include/dagflow/inplace_function.hpp": "03c6b4d14aa4afd46c75fdfeff47e60954f19e659d8b15ee01a98414c349104c",
+      "include/dagflow/task_scope.hpp": "5a4d127356004449b2df052b73b4b5c9a66d712abb3de5a9a8f79bf3dfdb4a50",
+      "include/dagflow/graph_scope.hpp": "dd2c4bffb2d6cc2f9bbba8d90b7b8d755592f51353fc8eb9b3b6e28c8cf49b89",
+      "include/dagflow/config.hpp": "a478e941f1a0de0ca0731db4b0c8c460fe49a51818b0face4c724468953a1ea4",
+      "include/dagflow/thread_pool.hpp": "dec07f7d6f350537cb5f0b227236723f579783969dd413753888ba9e6f325924",
+      "include/dagflow/dagflow.hpp": "6f3ba567771c4f5d717f6c210f9668ea7dddafea20a4a0a76726f33856e80e67",
+      "include/dagflow/detail/idle_accounting.hpp": "16baedee12db1d150ba1e2ca08170b0009f115abd16b1c311004cf0f9f53f8af",
+      "include/dagflow/detail/small_vector.hpp": "a523f80fcaec798e9f709db4869f6e69e284920244e92077b57d577408e0f700",
+      "include/dagflow/detail/ring_mpmc.hpp": "766e58575ca449f0014be8afdb7e4b789112f8cc1b986b8ec60fadf8bc48cc32",
+      "include/dagflow/detail/chase_lev_deque.hpp": "292e61a4775e08c011d21ece70e2872a6db34594ef294595b7b75158c657e118",
+      "include/dagflow/detail/small_function.hpp": "66abc1f2fb14ecde9a9b84026db35faa49c0ddd4d36aabc3987c5dabab9335dc",
+      "include/dagflow/detail/parking_lot.hpp": "97edd033a372d2ed72a1491dea0bb775a9befe0272007ddfb453a88b6f0de1c2",
+      "include/dagflow/detail/runtime_diagnostics.hpp": "09b63e93b43b831843dc75eb25f49c64e2cfcaad84bad3bcbd97c6aec54eff3f",
+      "include/dagflow/detail/scheduler.hpp": "45612ee3da0cfdb577dfaf4ef1433daab1de1f5bc0d69edffa77e3afbeb2e6b3",
+      "include/dagflow/detail/runtime_memory.hpp": "f676ba615ae7749137fc521cec36e80ff622e71d426b5ec09dda6b0ec546d941"
+    }
+  },
+  "binaries": {
+    "o3-baseline": {
+      "path": "/home/cppshizoid/Code/DagFlow/out/experiments/graph-execution/build/o3-baseline/dagflow-runtime-suite",
+      "sha256": "d69ce7d4b538a3d558d751b77768d58b1a623d48c9b4b4b7ecec702bd6750f0e"
+    },
+    "o3-candidate": {
+      "path": "/home/cppshizoid/Code/DagFlow/out/experiments/graph-execution/build/o3-candidate/dagflow-runtime-suite",
+      "sha256": "b93e52cda56601e791e706fb69d9b3f5c97d38eb0b9dea53b4911291716b2592"
+    },
+    "o3-lto-baseline": {
+      "path": "/home/cppshizoid/Code/DagFlow/out/experiments/graph-execution/build/o3-lto-baseline/dagflow-runtime-suite",
+      "sha256": "b6066b8527503bb637c331dd1187c7dfac2897d555217395995867c03e34c237"
+    },
+    "o3-lto-candidate": {
+      "path": "/home/cppshizoid/Code/DagFlow/out/experiments/graph-execution/build/o3-lto-candidate/dagflow-runtime-suite",
+      "sha256": "28357651477387fc9eca88318536bdf15dec79f63c4ccfbfca561088034b583c"
+    }
+  },
+  "placement": "process restricted to workers+1 physical cores; threads not individually pinned",
+  "frequency_locked": false
+}

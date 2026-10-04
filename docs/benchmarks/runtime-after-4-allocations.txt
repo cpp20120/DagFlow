@@ -1,0 +1,8 @@
+threads=4 tasks=10000 repeats=15 central_batch=32 pin_threads=false allocations=1
+dag_chain_build_run median_us=1256.88 p95_us=1331.19 p99_us=1331.19 ordinary_new_calls/run=10035.00 ordinary_new_bytes/run=4044520.00
+dag_fanout_fanin_build_run median_us=5252.26 p95_us=6141.20 p99_us=6141.20 ordinary_new_calls/run=10051.13 ordinary_new_bytes/run=4579965.33
+external_detached median_us=5524.12 p95_us=6179.31 p99_us=6179.31 ordinary_new_calls/run=0.53 ordinary_new_bytes/run=4949.33
+external_handles median_us=9106.72 p95_us=9837.79 p99_us=9837.79 ordinary_new_calls/run=10001.53 ordinary_new_bytes/run=1764949.33
+nested_spawn median_us=2907.99 p95_us=3155.47 p99_us=3155.47 ordinary_new_calls/run=5.80 ordinary_new_bytes/run=44704.00
+external_burst_with_local_spawn median_us=10652.61 p95_us=11043.87 p99_us=11043.87 ordinary_new_calls/run=40001.00 ordinary_new_bytes/run=1280032.00
+last_burst_latency p50_us=0.50 p95_us=2.39 p99_us=5.63

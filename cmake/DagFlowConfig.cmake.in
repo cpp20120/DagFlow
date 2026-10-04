@@ -1,9 +1,22 @@
 @PACKAGE_INIT@
 
 include(CMakeFindDependencyMacro)
+find_dependency(Threads)
 
+if("@DAGFLOW_ALLOCATOR@" STREQUAL "mimalloc")
+  find_dependency(mimalloc CONFIG)
+elseif("@DAGFLOW_ALLOCATOR@" STREQUAL "tbbmalloc")
+  find_dependency(TBB CONFIG COMPONENTS tbbmalloc)
+endif()
 
 include("${CMAKE_CURRENT_LIST_DIR}/DagFlowTargets.cmake")
+
+if(NOT TARGET DagFlow::DagFlow)
+  add_library(DagFlow::DagFlow ALIAS DagFlow::@DAGFLOW_PACKAGE_PREFERRED@)
+endif()
+if(TARGET DagFlow::static AND NOT TARGET DagFlow::DagFlow_static)
+  add_library(DagFlow::DagFlow_static ALIAS DagFlow::static)
+endif()
 
 check_required_components(DagFlow)
 
@@ -11,5 +24,5 @@ set(DagFlow_FOUND TRUE)
 set(DagFlow_VERSION @PROJECT_VERSION@)
 
 function(dagflow_enable_cxx_standard target)
-    target_compile_features(${target} PRIVATE cxx_std_23)
+  target_compile_features(${target} PRIVATE cxx_std_23)
 endfunction()

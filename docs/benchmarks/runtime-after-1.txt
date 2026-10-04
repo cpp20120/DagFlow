@@ -1,0 +1,8 @@
+threads=1 tasks=10000 repeats=15 central_batch=32 pin_threads=false allocations=0
+dag_chain_build_run median_us=996.06 p95_us=1332.17 p99_us=1332.17
+dag_fanout_fanin_build_run median_us=2474.37 p95_us=3223.30 p99_us=3223.30
+external_detached median_us=1754.56 p95_us=1794.19 p99_us=1794.19
+external_handles median_us=2617.42 p95_us=2744.53 p99_us=2744.53
+nested_spawn median_us=887.76 p95_us=1005.55 p99_us=1005.55
+external_burst_with_local_spawn median_us=3644.89 p95_us=3727.37 p99_us=3727.37
+last_burst_latency p50_us=2399.08 p95_us=2710.48 p99_us=2738.20

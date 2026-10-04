@@ -1,0 +1,455 @@
+Start testing: Oct 02 00:15 +07
+----------------------------------------------------------
+20/28 Testing: dagflow_batch_submit_tests
+20/28 Test: dagflow_batch_submit_tests
+Command: "/tmp/dagflow-harness-release/dagflow_batch_submit_tests"
+Directory: /tmp/dagflow-harness-release
+"dagflow_batch_submit_tests" start time: Oct 02 00:15 +07
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.05 sec
+----------------------------------------------------------
+Test Passed.
+"dagflow_batch_submit_tests" end time: Oct 02 00:15 +07
+"dagflow_batch_submit_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+19/28 Testing: dagflow_pool_queue_tests
+19/28 Test: dagflow_pool_queue_tests
+Command: "/tmp/dagflow-harness-release/dagflow_pool_queue_tests"
+Directory: /tmp/dagflow-harness-release
+"dagflow_pool_queue_tests" start time: Oct 02 00:15 +07
+Output:
+----------------------------------------------------------
+pool queue tests passed
+<end of output>
+Test time =   0.05 sec
+----------------------------------------------------------
+Test Passed.
+"dagflow_pool_queue_tests" end time: Oct 02 00:15 +07
+"dagflow_pool_queue_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+16/28 Testing: dagflow_idle_accounting_tests
+16/28 Test: dagflow_idle_accounting_tests
+Command: "/tmp/dagflow-harness-release/dagflow_idle_accounting_tests"
+Directory: /tmp/dagflow-harness-release
+"dagflow_idle_accounting_tests" start time: Oct 02 00:15 +07
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.12 sec
+----------------------------------------------------------
+Test Passed.
+"dagflow_idle_accounting_tests" end time: Oct 02 00:15 +07
+"dagflow_idle_accounting_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+8/28 Testing: dagflow_queue_tests
+8/28 Test: dagflow_queue_tests
+Command: "/tmp/dagflow-harness-release/dagflow_queue_tests"
+Directory: /tmp/dagflow-harness-release
+"dagflow_queue_tests" start time: Oct 02 00:15 +07
+Output:
+----------------------------------------------------------
+queue tests passed
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"dagflow_queue_tests" end time: Oct 02 00:15 +07
+"dagflow_queue_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+22/28 Testing: dagflow_ownership_tests
+22/28 Test: dagflow_ownership_tests
+Command: "/tmp/dagflow-harness-release/dagflow_ownership_tests"
+Directory: /tmp/dagflow-harness-release
+"dagflow_ownership_tests" start time: Oct 02 00:15 +07
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"dagflow_ownership_tests" end time: Oct 02 00:15 +07
+"dagflow_ownership_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+26/28 Testing: dagflow_graph_tests
+26/28 Test: dagflow_graph_tests
+Command: "/tmp/dagflow-harness-release/dagflow_graph_tests"
+Directory: /tmp/dagflow-harness-release
+"dagflow_graph_tests" start time: Oct 02 00:15 +07
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.04 sec
+----------------------------------------------------------
+Test Passed.
+"dagflow_graph_tests" end time: Oct 02 00:15 +07
+"dagflow_graph_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+25/28 Testing: dagflow_task_scope_tests
+25/28 Test: dagflow_task_scope_tests
+Command: "/tmp/dagflow-harness-release/dagflow_task_scope_tests"
+Directory: /tmp/dagflow-harness-release
+"dagflow_task_scope_tests" start time: Oct 02 00:15 +07
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"dagflow_task_scope_tests" end time: Oct 02 00:15 +07
+"dagflow_task_scope_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+1/28 Testing: dagflow_example_basic
+1/28 Test: dagflow_example_basic
+Command: "/tmp/dagflow-harness-release/dagflow-example" "--workers" "2" "--tasks" "128" "--warmup" "0" "--warmup-ms" "0" "--repeats" "1" "--bursts" "2" "--idle-us" "100" "--verify" "exact"
+Directory: /tmp/dagflow-harness-release
+"dagflow_example_basic" start time: Oct 02 00:15 +07
+Output:
+----------------------------------------------------------
+external-contention median=0.130133 ms min=0.130133 max=0.130133 throughput=0.983609 Mtask/s
+  workers=2 producers=2 samples=1 warmups=0 verify=exact diagnostics=0
+external-batch median=0.058058 ms min=0.058058 max=0.058058 throughput=2.20469 Mtask/s
+  workers=2 producers=2 samples=1 warmups=0 verify=exact diagnostics=0
+hot-shard-skew median=0.049613 ms min=0.049613 max=0.049613 throughput=2.57997 Mtask/s
+  workers=2 producers=1 samples=1 warmups=0 verify=exact diagnostics=0
+local-overflow median=0.039123 ms min=0.039123 max=0.039123 throughput=3.29729 Mtask/s
+  workers=2 producers=1 samples=1 warmups=0 verify=exact diagnostics=0
+nested-helping median=0.045785 ms min=0.045785 max=0.045785 throughput=5.59135 Mtask/s
+  workers=2 producers=1 samples=1 warmups=0 verify=exact diagnostics=0
+mixed-chaos median=0.061625 ms min=0.061625 max=0.061625 throughput=3.24544 Mtask/s
+  workers=2 producers=2 samples=1 warmups=0 verify=exact diagnostics=0
+idle-burst p50=59.12 us p99=59.12 us max=68.217 us
+  workers=2 producers=1 samples=2 warmups=0 verify=exact diagnostics=0
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"dagflow_example_basic" end time: Oct 02 00:15 +07
+"dagflow_example_basic" time elapsed: 00:00:00
+----------------------------------------------------------
+
+27/28 Testing: dagflow_runtime_failure_tests
+27/28 Test: dagflow_runtime_failure_tests
+Command: "/tmp/dagflow-harness-release/dagflow_runtime_failure_tests"
+Directory: /tmp/dagflow-harness-release
+"dagflow_runtime_failure_tests" start time: Oct 02 00:15 +07
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"dagflow_runtime_failure_tests" end time: Oct 02 00:15 +07
+"dagflow_runtime_failure_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+23/28 Testing: dagflow_api_convenience_tests
+23/28 Test: dagflow_api_convenience_tests
+Command: "/tmp/dagflow-harness-release/dagflow_api_convenience_tests"
+Directory: /tmp/dagflow-harness-release
+"dagflow_api_convenience_tests" start time: Oct 02 00:15 +07
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"dagflow_api_convenience_tests" end time: Oct 02 00:15 +07
+"dagflow_api_convenience_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+14/28 Testing: dagflow_topology_allocation_tests
+14/28 Test: dagflow_topology_allocation_tests
+Command: "/tmp/dagflow-harness-release/dagflow_topology_allocation_tests"
+Directory: /tmp/dagflow-harness-release
+"dagflow_topology_allocation_tests" start time: Oct 02 00:15 +07
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"dagflow_topology_allocation_tests" end time: Oct 02 00:15 +07
+"dagflow_topology_allocation_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+28/28 Testing: dagflow_scheduler_fairness_tests
+28/28 Test: dagflow_scheduler_fairness_tests
+Command: "/tmp/dagflow-harness-release/dagflow_scheduler_fairness_tests"
+Directory: /tmp/dagflow-harness-release
+"dagflow_scheduler_fairness_tests" start time: Oct 02 00:15 +07
+Output:
+----------------------------------------------------------
+scheduler fairness tests passed
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"dagflow_scheduler_fairness_tests" end time: Oct 02 00:15 +07
+"dagflow_scheduler_fairness_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+21/28 Testing: dagflow_runtime_memory_tests
+21/28 Test: dagflow_runtime_memory_tests
+Command: "/tmp/dagflow-harness-release/dagflow_runtime_memory_tests"
+Directory: /tmp/dagflow-harness-release
+"dagflow_runtime_memory_tests" start time: Oct 02 00:15 +07
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"dagflow_runtime_memory_tests" end time: Oct 02 00:15 +07
+"dagflow_runtime_memory_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+5/28 Testing: dagflow_example_graph
+5/28 Test: dagflow_example_graph
+Command: "/tmp/dagflow-harness-release/dagflow-example-graph"
+Directory: /tmp/dagflow-harness-release
+"dagflow_example_graph" start time: Oct 02 00:15 +07
+Output:
+----------------------------------------------------------
+GraphScope result: 10
+GraphScope result: 16
+TaskGraph result: 14
+TaskGraph result: 18
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"dagflow_example_graph" end time: Oct 02 00:15 +07
+"dagflow_example_graph" time elapsed: 00:00:00
+----------------------------------------------------------
+
+7/28 Testing: dagflow_example_batch
+7/28 Test: dagflow_example_batch
+Command: "/tmp/dagflow-harness-release/dagflow-example-batch"
+Directory: /tmp/dagflow-harness-release
+"dagflow_example_batch" start time: Oct 02 00:15 +07
+Output:
+----------------------------------------------------------
+Batch: 128 tasks; sum: 8256
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"dagflow_example_batch" end time: Oct 02 00:15 +07
+"dagflow_example_batch" time elapsed: 00:00:00
+----------------------------------------------------------
+
+24/28 Testing: dagflow_pool_memory_tests
+24/28 Test: dagflow_pool_memory_tests
+Command: "/tmp/dagflow-harness-release/dagflow_pool_memory_tests"
+Directory: /tmp/dagflow-harness-release
+"dagflow_pool_memory_tests" start time: Oct 02 00:15 +07
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"dagflow_pool_memory_tests" end time: Oct 02 00:15 +07
+"dagflow_pool_memory_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+4/28 Testing: dagflow_example_cancellation
+4/28 Test: dagflow_example_cancellation
+Command: "/tmp/dagflow-harness-release/dagflow-example-cancellation"
+Directory: /tmp/dagflow-harness-release
+"dagflow_example_cancellation" start time: Oct 02 00:15 +07
+Output:
+----------------------------------------------------------
+Stopped: 1; child accepted: 0; external accepted: 0
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"dagflow_example_cancellation" end time: Oct 02 00:15 +07
+"dagflow_example_cancellation" time elapsed: 00:00:00
+----------------------------------------------------------
+
+6/28 Testing: dagflow_example_parallel_for
+6/28 Test: dagflow_example_parallel_for
+Command: "/tmp/dagflow-harness-release/dagflow-example-parallel_for"
+Directory: /tmp/dagflow-harness-release
+"dagflow_example_parallel_for" start time: Oct 02 00:15 +07
+Output:
+----------------------------------------------------------
+Processed 40000 elements; sum: 560000
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"dagflow_example_parallel_for" end time: Oct 02 00:15 +07
+"dagflow_example_parallel_for" time elapsed: 00:00:00
+----------------------------------------------------------
+
+13/28 Testing: dagflow_queue_allocation_tests
+13/28 Test: dagflow_queue_allocation_tests
+Command: "/tmp/dagflow-harness-release/dagflow_queue_allocation_tests"
+Directory: /tmp/dagflow-harness-release
+"dagflow_queue_allocation_tests" start time: Oct 02 00:15 +07
+Output:
+----------------------------------------------------------
+queue operations: 0 allocations, 0 deallocations
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"dagflow_queue_allocation_tests" end time: Oct 02 00:15 +07
+"dagflow_queue_allocation_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/28 Testing: dagflow_example_task_scope
+3/28 Test: dagflow_example_task_scope
+Command: "/tmp/dagflow-harness-release/dagflow-example-task_scope"
+Directory: /tmp/dagflow-harness-release
+"dagflow_example_task_scope" start time: Oct 02 00:15 +07
+Output:
+----------------------------------------------------------
+Joined: 60; ready: 1; accepted after close: 0
+Caught: scope task failed
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"dagflow_example_task_scope" end time: Oct 02 00:15 +07
+"dagflow_example_task_scope" time elapsed: 00:00:00
+----------------------------------------------------------
+
+11/28 Testing: dagflow_vector_allocation_tests
+11/28 Test: dagflow_vector_allocation_tests
+Command: "/tmp/dagflow-harness-release/dagflow_vector_allocation_tests"
+Directory: /tmp/dagflow-harness-release
+"dagflow_vector_allocation_tests" start time: Oct 02 00:15 +07
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"dagflow_vector_allocation_tests" end time: Oct 02 00:15 +07
+"dagflow_vector_allocation_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+18/28 Testing: dagflow_function_tests
+18/28 Test: dagflow_function_tests
+Command: "/tmp/dagflow-harness-release/dagflow_function_tests"
+Directory: /tmp/dagflow-harness-release
+"dagflow_function_tests" start time: Oct 02 00:15 +07
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"dagflow_function_tests" end time: Oct 02 00:15 +07
+"dagflow_function_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+12/28 Testing: dagflow_function_allocation_tests
+12/28 Test: dagflow_function_allocation_tests
+Command: "/tmp/dagflow-harness-release/dagflow_function_allocation_tests"
+Directory: /tmp/dagflow-harness-release
+"dagflow_function_allocation_tests" start time: Oct 02 00:15 +07
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"dagflow_function_allocation_tests" end time: Oct 02 00:15 +07
+"dagflow_function_allocation_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+10/28 Testing: dagflow_stl_allocation_tests
+10/28 Test: dagflow_stl_allocation_tests
+Command: "/tmp/dagflow-harness-release/dagflow_stl_allocation_tests"
+Directory: /tmp/dagflow-harness-release
+"dagflow_stl_allocation_tests" start time: Oct 02 00:15 +07
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"dagflow_stl_allocation_tests" end time: Oct 02 00:15 +07
+"dagflow_stl_allocation_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+15/28 Testing: dagflow_accounting_allocation_tests
+15/28 Test: dagflow_accounting_allocation_tests
+Command: "/tmp/dagflow-harness-release/dagflow_accounting_allocation_tests"
+Directory: /tmp/dagflow-harness-release
+"dagflow_accounting_allocation_tests" start time: Oct 02 00:15 +07
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"dagflow_accounting_allocation_tests" end time: Oct 02 00:15 +07
+"dagflow_accounting_allocation_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+9/28 Testing: dagflow_container_tests
+9/28 Test: dagflow_container_tests
+Command: "/tmp/dagflow-harness-release/dagflow_container_tests"
+Directory: /tmp/dagflow-harness-release
+"dagflow_container_tests" start time: Oct 02 00:15 +07
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"dagflow_container_tests" end time: Oct 02 00:15 +07
+"dagflow_container_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+17/28 Testing: dagflow_scheduler_topology_tests
+17/28 Test: dagflow_scheduler_topology_tests
+Command: "/tmp/dagflow-harness-release/dagflow_scheduler_topology_tests"
+Directory: /tmp/dagflow-harness-release
+"dagflow_scheduler_topology_tests" start time: Oct 02 00:15 +07
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.24 sec
+----------------------------------------------------------
+Test Passed.
+"dagflow_scheduler_topology_tests" end time: Oct 02 00:15 +07
+"dagflow_scheduler_topology_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/28 Testing: dagflow_main_harness_tests
+2/28 Test: dagflow_main_harness_tests
+Command: "/usr/bin/python3.14" "/home/cppshizoid/Code/DagFlow/tests/main_harness_tests.py" "/tmp/dagflow-harness-release/dagflow-example"
+Directory: /tmp/dagflow-harness-release
+"dagflow_main_harness_tests" start time: Oct 02 00:15 +07
+Output:
+----------------------------------------------------------
+........
+----------------------------------------------------------------------
+Ran 8 tests in 0.373s
+
+OK
+<end of output>
+Test time =   0.45 sec
+----------------------------------------------------------
+Test Passed.
+"dagflow_main_harness_tests" end time: Oct 02 00:15 +07
+"dagflow_main_harness_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Oct 02 00:15 +07

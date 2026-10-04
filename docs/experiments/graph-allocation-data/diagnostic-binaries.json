@@ -1,0 +1,10 @@
+{
+  "diagnostic-baseline": {
+    "path": "out/experiments/graph-allocations/build/diagnostic-baseline/dagflow-runtime-suite",
+    "sha256": "98b8fde12b68b2f55fee505a898e2eeebf5836c87581b47c1df268065ceafac8"
+  },
+  "diagnostic-candidate": {
+    "path": "out/experiments/graph-allocations/build/diagnostic-candidate/dagflow-runtime-suite",
+    "sha256": "3435e6d565735a8742430d0b38690c24a68722a3fcc7621ed284d2c7d1bd0a6b"
+  }
+}

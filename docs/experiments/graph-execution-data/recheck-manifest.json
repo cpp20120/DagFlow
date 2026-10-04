@@ -1,0 +1,525 @@
+{
+  "original_comparison": "/home/cppshizoid/Code/DagFlow/out/experiments/graph-execution/single-invocation",
+  "original_manifest_sha256": "00a372531bd5a1ef2e03a28dcd5687c725c29f58a3e1809ba8e27cbf6ad8f4dc",
+  "binaries": {
+    "o3-baseline": {
+      "path": "/home/cppshizoid/Code/DagFlow/out/experiments/graph-execution/build/o3-baseline/dagflow-runtime-suite",
+      "sha256": "d69ce7d4b538a3d558d751b77768d58b1a623d48c9b4b4b7ecec702bd6750f0e"
+    },
+    "o3-candidate": {
+      "path": "/home/cppshizoid/Code/DagFlow/out/experiments/graph-execution/build/o3-candidate/dagflow-runtime-suite",
+      "sha256": "4ef7b44c4b2a00f6b17b05a3bae342c560760b7d46b380cd2ce2b667571f71a1"
+    },
+    "o3-lto-baseline": {
+      "path": "/home/cppshizoid/Code/DagFlow/out/experiments/graph-execution/build/o3-lto-baseline/dagflow-runtime-suite",
+      "sha256": "b6066b8527503bb637c331dd1187c7dfac2897d555217395995867c03e34c237"
+    },
+    "o3-lto-candidate": {
+      "path": "/home/cppshizoid/Code/DagFlow/out/experiments/graph-execution/build/o3-lto-candidate/dagflow-runtime-suite",
+      "sha256": "7ddbe26ac2c8eebc0d159cd2dd0df538f17ce861f3418209e5dc092b099ef9f6"
+    }
+  },
+  "points": [
+    {
+      "case": 2,
+      "profile": "o3",
+      "scenario": "deep_dag",
+      "workers": 4,
+      "tasks": 4096,
+      "iterations": 0,
+      "baseline_us": 184.443,
+      "candidate_us": 118.17,
+      "change_percent": -35.93142596899855,
+      "baseline_min_us": 180.075,
+      "baseline_max_us": 249.334,
+      "candidate_min_us": 112.98,
+      "candidate_max_us": 166.02
+    },
+    {
+      "case": 2,
+      "profile": "o3-lto",
+      "scenario": "deep_dag",
+      "workers": 4,
+      "tasks": 4096,
+      "iterations": 0,
+      "baseline_us": 180.917,
+      "candidate_us": 117.9,
+      "change_percent": -34.83199478213766,
+      "baseline_min_us": 172.882,
+      "baseline_max_us": 220.731,
+      "candidate_min_us": 116.046,
+      "candidate_max_us": 132.597
+    },
+    {
+      "case": 3,
+      "profile": "o3-lto",
+      "scenario": "deep_dag",
+      "workers": 4,
+      "tasks": 4096,
+      "iterations": 128,
+      "baseline_us": 1383.277,
+      "candidate_us": 1534.208,
+      "change_percent": 10.91111903111235,
+      "baseline_min_us": 1358.4,
+      "baseline_max_us": 1535.22,
+      "candidate_min_us": 1383.417,
+      "candidate_max_us": 1576.066
+    },
+    {
+      "case": 13,
+      "profile": "o3",
+      "scenario": "dag_build_run",
+      "workers": 1,
+      "tasks": 4096,
+      "iterations": 128,
+      "baseline_us": 1272.801,
+      "candidate_us": 1279.203,
+      "change_percent": 0.5029851485031767,
+      "baseline_min_us": 1265.447,
+      "baseline_max_us": 1286.587,
+      "candidate_min_us": 1246.703,
+      "candidate_max_us": 1341.449
+    },
+    {
+      "case": 13,
+      "profile": "o3-lto",
+      "scenario": "dag_build_run",
+      "workers": 1,
+      "tasks": 4096,
+      "iterations": 128,
+      "baseline_us": 1262.962,
+      "candidate_us": 1290.133,
+      "change_percent": 2.151371141807923,
+      "baseline_min_us": 1246.572,
+      "baseline_max_us": 1280.736,
+      "candidate_min_us": 1238.967,
+      "candidate_max_us": 1327.603
+    },
+    {
+      "case": 16,
+      "profile": "o3",
+      "scenario": "graph_tokens_serial",
+      "workers": 1,
+      "tasks": 4096,
+      "iterations": 0,
+      "baseline_us": 27.591,
+      "candidate_us": 28.784,
+      "change_percent": 4.323873726939942,
+      "baseline_min_us": 27.211,
+      "baseline_max_us": 28.793,
+      "candidate_min_us": 27.481,
+      "candidate_max_us": 30.436
+    },
+    {
+      "case": 17,
+      "profile": "o3-lto",
+      "scenario": "graph_tokens_serial",
+      "workers": 1,
+      "tasks": 4096,
+      "iterations": 128,
+      "baseline_us": 1019.86,
+      "candidate_us": 1028.556,
+      "change_percent": 0.8526660522032437,
+      "baseline_min_us": 1019.53,
+      "baseline_max_us": 1057.089,
+      "candidate_min_us": 1016.183,
+      "candidate_max_us": 1062.76
+    },
+    {
+      "case": 19,
+      "profile": "o3",
+      "scenario": "graph_tokens_serial",
+      "workers": 4,
+      "tasks": 4096,
+      "iterations": 128,
+      "baseline_us": 1198.813,
+      "candidate_us": 1211.998,
+      "change_percent": 1.0998379230121813,
+      "baseline_min_us": 1167.305,
+      "baseline_max_us": 1395.119,
+      "candidate_min_us": 1132.73,
+      "candidate_max_us": 1306.374
+    },
+    {
+      "case": 19,
+      "profile": "o3-lto",
+      "scenario": "graph_tokens_serial",
+      "workers": 4,
+      "tasks": 4096,
+      "iterations": 128,
+      "baseline_us": 1166.644,
+      "candidate_us": 1257.773,
+      "change_percent": 7.8112089034872545,
+      "baseline_min_us": 1127.69,
+      "baseline_max_us": 1178.225,
+      "candidate_min_us": 1203.191,
+      "candidate_max_us": 1545.96
+    },
+    {
+      "case": 20,
+      "profile": "o3",
+      "scenario": "graph_tokens_parallel",
+      "workers": 1,
+      "tasks": 4096,
+      "iterations": 0,
+      "baseline_us": 29.034,
+      "candidate_us": 30.637,
+      "change_percent": 5.52111317765378,
+      "baseline_min_us": 27.561,
+      "baseline_max_us": 49.672,
+      "candidate_min_us": 28.363,
+      "candidate_max_us": 32.611
+    },
+    {
+      "case": 21,
+      "profile": "o3-lto",
+      "scenario": "graph_tokens_parallel",
+      "workers": 1,
+      "tasks": 4096,
+      "iterations": 128,
+      "baseline_us": 1031.882,
+      "candidate_us": 1031.992,
+      "change_percent": 0.010660133619921908,
+      "baseline_min_us": 1019.088,
+      "baseline_max_us": 1210.074,
+      "candidate_min_us": 1021.463,
+      "candidate_max_us": 1215.043
+    },
+    {
+      "case": 23,
+      "profile": "o3-lto",
+      "scenario": "graph_tokens_parallel",
+      "workers": 4,
+      "tasks": 4096,
+      "iterations": 128,
+      "baseline_us": 367.665,
+      "candidate_us": 374.217,
+      "change_percent": 1.7820570356166465,
+      "baseline_min_us": 365.541,
+      "baseline_max_us": 377.443,
+      "candidate_min_us": 364.118,
+      "candidate_max_us": 378.575
+    },
+    {
+      "case": 27,
+      "profile": "o3",
+      "scenario": "graph_tokens_serial",
+      "workers": 1,
+      "tasks": 65,
+      "iterations": 0,
+      "baseline_us": 12.944,
+      "candidate_us": 14.537,
+      "change_percent": 12.306860321384416,
+      "baseline_min_us": 8.015,
+      "baseline_max_us": 13.255,
+      "candidate_min_us": 11.872,
+      "candidate_max_us": 14.607
+    }
+  ],
+  "masks": {
+    "12": "0,2",
+    "2": "0,2,4,6,8",
+    "3": "0,2,4,6,8",
+    "11": "0,2,4,6,8",
+    "9": "0,2",
+    "0": "0,2",
+    "20": "0,2",
+    "17": "0,2",
+    "26": "0,2",
+    "4": "0,2",
+    "24": "0,2",
+    "16": "0,2",
+    "10": "0,2,4,6,8",
+    "18": "0,2,4,6,8",
+    "27": "0,2",
+    "25": "0,2",
+    "22": "0,2,4,6,8",
+    "19": "0,2,4,6,8",
+    "14": "0,2,4,6,8",
+    "5": "0,2",
+    "21": "0,2",
+    "6": "0,2,4,6,8",
+    "13": "0,2",
+    "7": "0,2,4,6,8",
+    "1": "0,2",
+    "23": "0,2,4,6,8",
+    "8": "0,2",
+    "15": "0,2,4,6,8"
+  },
+  "rounds": 15,
+  "repeats": 201,
+  "warmup": 30,
+  "seed": 20261002,
+  "cpu_topology": [
+    {
+      "cpu": 0,
+      "package": "0",
+      "core": "0",
+      "siblings": "0-1",
+      "governor": "powersave",
+      "frequency_khz": "1845022"
+    },
+    {
+      "cpu": 1,
+      "package": "0",
+      "core": "0",
+      "siblings": "0-1",
+      "governor": "powersave",
+      "frequency_khz": "3038985"
+    },
+    {
+      "cpu": 2,
+      "package": "0",
+      "core": "1",
+      "siblings": "2-3",
+      "governor": "powersave",
+      "frequency_khz": "1592237"
+    },
+    {
+      "cpu": 3,
+      "package": "0",
+      "core": "1",
+      "siblings": "2-3",
+      "governor": "powersave",
+      "frequency_khz": "1388290"
+    },
+    {
+      "cpu": 4,
+      "package": "0",
+      "core": "2",
+      "siblings": "4-5",
+      "governor": "powersave",
+      "frequency_khz": "3040799"
+    },
+    {
+      "cpu": 5,
+      "package": "0",
+      "core": "2",
+      "siblings": "4-5",
+      "governor": "powersave",
+      "frequency_khz": "1352680"
+    },
+    {
+      "cpu": 6,
+      "package": "0",
+      "core": "3",
+      "siblings": "6-7",
+      "governor": "powersave",
+      "frequency_khz": "1352718"
+    },
+    {
+      "cpu": 7,
+      "package": "0",
+      "core": "3",
+      "siblings": "6-7",
+      "governor": "powersave",
+      "frequency_khz": "2589479"
+    },
+    {
+      "cpu": 8,
+      "package": "0",
+      "core": "4",
+      "siblings": "8-9",
+      "governor": "powersave",
+      "frequency_khz": "1360308"
+    },
+    {
+      "cpu": 9,
+      "package": "0",
+      "core": "4",
+      "siblings": "8-9",
+      "governor": "powersave",
+      "frequency_khz": "1404101"
+    },
+    {
+      "cpu": 10,
+      "package": "0",
+      "core": "5",
+      "siblings": "10-11",
+      "governor": "powersave",
+      "frequency_khz": "1391535"
+    },
+    {
+      "cpu": 11,
+      "package": "0",
+      "core": "5",
+      "siblings": "10-11",
+      "governor": "powersave",
+      "frequency_khz": "1352570"
+    },
+    {
+      "cpu": 12,
+      "package": "0",
+      "core": "6",
+      "siblings": "12-13",
+      "governor": "powersave",
+      "frequency_khz": "2026104"
+    },
+    {
+      "cpu": 13,
+      "package": "0",
+      "core": "6",
+      "siblings": "12-13",
+      "governor": "powersave",
+      "frequency_khz": "3047257"
+    },
+    {
+      "cpu": 14,
+      "package": "0",
+      "core": "7",
+      "siblings": "14-15",
+      "governor": "powersave",
+      "frequency_khz": "2682510"
+    },
+    {
+      "cpu": 15,
+      "package": "0",
+      "core": "7",
+      "siblings": "14-15",
+      "governor": "powersave",
+      "frequency_khz": "3044017"
+    }
+  ],
+  "placement": "process restricted to workers+1 physical cores; threads not individually pinned",
+  "frequency_locked": false,
+  "loadavg_start": [
+    0.37548828125,
+    0.89453125,
+    1.248046875
+  ],
+  "loadavg_end": [
+    2.16748046875,
+    1.380859375,
+    1.39306640625
+  ],
+  "cpu_topology_end": [
+    {
+      "cpu": 0,
+      "package": "0",
+      "core": "0",
+      "siblings": "0-1",
+      "governor": "powersave",
+      "frequency_khz": "1095838"
+    },
+    {
+      "cpu": 1,
+      "package": "0",
+      "core": "0",
+      "siblings": "0-1",
+      "governor": "powersave",
+      "frequency_khz": "1095838"
+    },
+    {
+      "cpu": 2,
+      "package": "0",
+      "core": "1",
+      "siblings": "2-3",
+      "governor": "powersave",
+      "frequency_khz": "1095838"
+    },
+    {
+      "cpu": 3,
+      "package": "0",
+      "core": "1",
+      "siblings": "2-3",
+      "governor": "powersave",
+      "frequency_khz": "1095838"
+    },
+    {
+      "cpu": 4,
+      "package": "0",
+      "core": "2",
+      "siblings": "4-5",
+      "governor": "powersave",
+      "frequency_khz": "1095838"
+    },
+    {
+      "cpu": 5,
+      "package": "0",
+      "core": "2",
+      "siblings": "4-5",
+      "governor": "powersave",
+      "frequency_khz": "2145395"
+    },
+    {
+      "cpu": 6,
+      "package": "0",
+      "core": "3",
+      "siblings": "6-7",
+      "governor": "powersave",
+      "frequency_khz": "1095838"
+    },
+    {
+      "cpu": 7,
+      "package": "0",
+      "core": "3",
+      "siblings": "6-7",
+      "governor": "powersave",
+      "frequency_khz": "4266902"
+    },
+    {
+      "cpu": 8,
+      "package": "0",
+      "core": "4",
+      "siblings": "8-9",
+      "governor": "powersave",
+      "frequency_khz": "1897811"
+    },
+    {
+      "cpu": 9,
+      "package": "0",
+      "core": "4",
+      "siblings": "8-9",
+      "governor": "powersave",
+      "frequency_khz": "1095838"
+    },
+    {
+      "cpu": 10,
+      "package": "0",
+      "core": "5",
+      "siblings": "10-11",
+      "governor": "powersave",
+      "frequency_khz": "2171338"
+    },
+    {
+      "cpu": 11,
+      "package": "0",
+      "core": "5",
+      "siblings": "10-11",
+      "governor": "powersave",
+      "frequency_khz": "1886627"
+    },
+    {
+      "cpu": 12,
+      "package": "0",
+      "core": "6",
+      "siblings": "12-13",
+      "governor": "powersave",
+      "frequency_khz": "1095838"
+    },
+    {
+      "cpu": 13,
+      "package": "0",
+      "core": "6",
+      "siblings": "12-13",
+      "governor": "powersave",
+      "frequency_khz": "1095838"
+    },
+    {
+      "cpu": 14,
+      "package": "0",
+      "core": "7",
+      "siblings": "14-15",
+      "governor": "powersave",
+      "frequency_khz": "1902923"
+    },
+    {
+      "cpu": 15,
+      "package": "0",
+      "core": "7",
+      "siblings": "14-15",
+      "governor": "powersave",
+      "frequency_khz": "1095838"
+    }
+  ]
+}

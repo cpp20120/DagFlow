@@ -1,0 +1,18 @@
+Start testing: Oct 02 00:16 +07
+----------------------------------------------------------
+20/22 Testing: dagflow_graph_tests
+20/22 Test: dagflow_graph_tests
+Command: "/tmp/dagflow-scope-tsan/dagflow_graph_tests"
+Directory: /tmp/dagflow-scope-tsan
+"dagflow_graph_tests" start time: Oct 02 00:16 +07
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.23 sec
+----------------------------------------------------------
+Test Passed.
+"dagflow_graph_tests" end time: Oct 02 00:16 +07
+"dagflow_graph_tests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Oct 02 00:16 +07

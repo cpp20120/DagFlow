@@ -1,0 +1,247 @@
+--- a/include/dagflow/detail/chase_lev_deque.hpp
++++ b/include/dagflow/detail/chase_lev_deque.hpp
+@@ -23,6 +23,7 @@
+ #include <atomic>
+ #include <cstddef>
+ #include <limits>
++#include <span>
+ #include <type_traits>
+ 
+ #include "dagflow/config.hpp"
+@@ -61,6 +62,22 @@
+     buffer_[static_cast<std::size_t>(b) & (N - 1)].store(
+         value, std::memory_order_relaxed);
+     bottom_.store(b + 1, std::memory_order_release);
++    return true;
++  }
++
++  /// Owner only. Publish all values with one bottom release. No value becomes
++  /// stealable before every slot is initialized. Thieves can only increase
++  /// capacity during this operation; the owner must not reenter before return.
++  [[nodiscard]] bool try_push_batch(std::span<const T> values) noexcept {
++    if (values.empty()) return true;
++    const auto b = bottom_.load(std::memory_order_relaxed);
++    const auto t = top_.load(std::memory_order_acquire);
++    if (values.size() > N - static_cast<std::size_t>(b - t)) return false;
++    for (std::size_t i = 0; i < values.size(); ++i)
++      buffer_[(static_cast<std::size_t>(b) + i) & (N - 1)].store(
++          values[i], std::memory_order_relaxed);
++    bottom_.store(b + static_cast<difference_type>(values.size()),
++                  std::memory_order_release);
+     return true;
+   }
+ 
+--- a/include/dagflow/detail/ring_mpmc.hpp
++++ b/include/dagflow/detail/ring_mpmc.hpp
+@@ -2,6 +2,7 @@
+ 
+ #include <atomic>
+ #include <cstddef>
++#include <span>
+ #include <type_traits>
+ #include <utility>
+ 
+@@ -73,6 +74,44 @@
+     return true;
+   }
+ 
++  /// Claim a contiguous published prefix with one head CAS. A publication gap
++  /// ends the batch: never skip it or wait for a producer to fill it. As with
++  /// scalar pop, only the successful claimant may read/move cell values.
++  [[nodiscard]] size_type try_pop_batch(std::span<T> values) noexcept {
++    const auto limit = values.size() < N ? values.size() : N;
++    if (!limit) return 0;
++    auto position = head_.load(std::memory_order_relaxed);
++    size_type count;
++    for (;;) {
++      count = 0;
++      difference_type difference = 0;
++      while (count < limit) {
++        const auto expected = position + count + 1;
++        const auto sequence = buffer_[(position + count) & mask].sequence.load(
++            std::memory_order_acquire);
++        difference = static_cast<difference_type>(sequence) -
++                     static_cast<difference_type>(expected);
++        if (difference != 0) break;
++        ++count;
++      }
++      if (!count) {
++        if (difference < 0) return 0;
++        position = head_.load(std::memory_order_relaxed);
++      } else if (head_.compare_exchange_weak(position, position + count,
++                                             std::memory_order_relaxed)) {
++        break;
++      }
++      // Another consumer may invalidate the scanned prefix. Retry from the
++      // new head and reacquire its sequences; a failed CAS grants no ownership.
++    }
++    for (size_type i = 0; i < count; ++i) {
++      auto& cell = buffer_[(position + i) & mask];
++      values[i] = std::move(cell.value);
++      cell.sequence.store(position + i + N, std::memory_order_release);
++    }
++    return count;
++  }
++
+   /// Snapshot only: an unpublished head is not proof that a run is finished.
+   [[nodiscard]] bool empty() const noexcept {
+     const auto position = head_.load(std::memory_order_acquire);
+--- a/include/dagflow/detail/scheduler.hpp
++++ b/include/dagflow/detail/scheduler.hpp
+@@ -25,7 +25,14 @@
+   /// into the worker domain for compatibility; they never index arrays raw.
+   uint32_t select_shard(std::optional<uint32_t> affinity);
+   bool try_submit_external(uint32_t shard, ScheduledTask* task);
+-  ScheduledTask* try_acquire(uint32_t id);
++  /// Owner only. published_siblings reports a new local publication by this
++  /// acquisition, not a snapshot of remaining work. The executor must wake
++  /// after such a publication before entering arbitrary user code.
++  ScheduledTask* try_acquire(uint32_t id, bool& published_siblings);
++  ScheduledTask* try_acquire(uint32_t id) {
++    bool ignored;
++    return try_acquire(id, ignored);
++  }
+   [[nodiscard]] bool has_local_work(uint32_t id) const;
+   [[nodiscard]] uint32_t worker_count() const noexcept { return worker_count_; }
+   [[nodiscard]] uint32_t shard_count() const noexcept { return shard_count_; }
+@@ -60,9 +67,10 @@
+     uint32_t member_count{};
+   };
+   static uint32_t random_below(Local& local, uint32_t count) noexcept;
+-  ScheduledTask* drain(uint32_t id, uint32_t shard, Priority priority);
++  ScheduledTask* drain(uint32_t id, uint32_t shard, Priority priority,
++                       bool& published_siblings);
+   ScheduledTask* poll_external(uint32_t id, Priority priority);
+-  ScheduledTask* steal(uint32_t id, uint32_t shard);
++  ScheduledTask* steal(uint32_t id, uint32_t shard, bool& published_siblings);
+ 
+   uint32_t worker_count_, shard_count_, central_batch_;
+   OwnedArray<Local> locals_;
+--- a/src/scheduler.cpp
++++ b/src/scheduler.cpp
+@@ -17,6 +17,9 @@
+ constexpr uint32_t splitmix_shift_3 = 31;
+ constexpr uint32_t steal_batch_limit = 4;
+ constexpr uint32_t external_poll_interval = 32;
++// Bound stack scratch and each ingress reservation, independently of the
++// configured total drain budget. Do not hold unpublished tasks across user code.
++constexpr std::size_t drain_transfer_batch = 64;
+ }  // namespace
+ 
+ namespace dagflow::detail {
+@@ -90,28 +93,37 @@
+ }
+ 
+ ScheduledTask* Scheduler::drain(uint32_t id, uint32_t shard,
+-                                Priority priority) {
++                                Priority priority, bool& published_siblings) {
+   auto& local =
+       priority == Priority::High ? locals_[id].high : locals_[id].normal;
+   auto& central =
+       priority == Priority::High ? shards_[shard].high : shards_[shard].normal;
+   ScheduledTask* first = nullptr;
+-  if (!central.try_pop(first)) return nullptr;
+-  runtime_count(RuntimeEvent::drain_tasks);
+-  if (shard != locals_[id].home_shard) runtime_count(RuntimeEvent::remote_drain_tasks);
+-  const auto limit =
++  auto remaining =
+       std::min<std::size_t>(central_batch_, local.free_capacity() + 1);
+-  ScheduledTask* next = nullptr;
+-  for (std::size_t taken = 1; taken < limit && central.try_pop(next); ++taken) {
+-    runtime_count(RuntimeEvent::drain_tasks);
+-    if (shard != locals_[id].home_shard) runtime_count(RuntimeEvent::remote_drain_tasks);
+-    if (!local.try_push(next)) std::terminate();
++  ScheduledTask* tasks[drain_transfer_batch];
++  while (remaining) {
++    const auto requested = std::min(remaining, drain_transfer_batch);
++    const auto taken = central.try_pop_batch(std::span{tasks, requested});
++    if (!taken) break;
++    runtime_count(RuntimeEvent::drain_tasks, taken);
++    if (shard != locals_[id].home_shard)
++      runtime_count(RuntimeEvent::remote_drain_tasks, taken);
++    const std::size_t skip = first ? 0 : 1;
++    if (!first) first = tasks[0];
++    // Capacity was reserved conservatively by the owner before draining.
++    // Only thieves run concurrently and they can only free additional slots.
++    if (!local.try_push_batch(std::span{tasks + skip, taken - skip}))
++      std::terminate();
++    published_siblings |= taken > skip;
++    remaining -= taken;
+   }
+   // Publish the entire batch before user code can help/wait on its siblings.
+   return first;
+ }
+ 
+-ScheduledTask* Scheduler::steal(uint32_t id, uint32_t shard) {
++ScheduledTask* Scheduler::steal(uint32_t id, uint32_t shard,
++                              bool& published_siblings) {
+   const auto group = members(shard);
+   if (group.empty()) return nullptr;
+   auto& local = locals_[id];
+@@ -131,13 +143,15 @@
+       if (!taken) continue;
+       for (uint32_t i = 1; i < taken; ++i)
+         if (!destination.try_push(tasks[i])) std::terminate();
++      published_siblings = taken > 1;
+       return tasks[0];
+     }
+   }
+   return nullptr;
+ }
+ 
+-ScheduledTask* Scheduler::try_acquire(uint32_t id) {
++ScheduledTask* Scheduler::try_acquire(uint32_t id, bool& published_siblings) {
++  published_siblings = false;
+   auto& local = locals_[id];
+   ScheduledTask* task = nullptr;
+   if (++local.acquisitions_since_external >= external_poll_interval) {
+@@ -155,16 +169,16 @@
+   }
+   const auto home = local.home_shard;
+   for (auto priority : {Priority::High, Priority::Normal})
+-    if (auto* ready = drain(id, home, priority)) return ready;
+-  if (auto* ready = steal(id, home)) return ready;
++    if (auto* ready = drain(id, home, priority, published_siblings)) return ready;
++  if (auto* ready = steal(id, home, published_siblings)) return ready;
+   const auto start = random_below(local, shard_count_);
+   for (uint32_t offset = 0; offset < shard_count_; ++offset) {
+     const auto remote =
+         static_cast<uint32_t>((uint64_t{start} + offset) % shard_count_);
+     if (remote == home) continue;
+     for (auto priority : {Priority::High, Priority::Normal})
+-      if (auto* ready = drain(id, remote, priority)) return ready;
+-    if (auto* ready = steal(id, remote)) return ready;
++      if (auto* ready = drain(id, remote, priority, published_siblings)) return ready;
++    if (auto* ready = steal(id, remote, published_siblings)) return ready;
+   }
+   return nullptr;
+ }
+--- a/src/thread_pool.cpp
++++ b/src/thread_pool.cpp
+@@ -431,13 +431,20 @@
+ }
+ 
+ bool Pool::try_help_one(uint32_t id, bool parking_announced) {
+-  // One acquisition attempt. A claimed parked waiter must be cancelled before
+-  // execution; a remaining local batch gets a wake so its siblings do not wait
+-  // for the next idle cycle. No accounting transfer occurs when work is stolen.
+-  if (auto* task = scheduler_->try_acquire(id)) {
++  // One acquisition attempt. Cancel our parking announcement before notifying
++  // others, or the wake could select this worker instead of another waiter.
++  bool published_siblings;
++  if (auto* task = scheduler_->try_acquire(id, published_siblings)) {
+     if (parking_announced) parking_->cancel(id);
+-    // Batches are visible before execution, including during nested waits.
+-    if (scheduler_->has_local_work(id))
++    // Drain/steal temporarily removes tasks from a queue and republishes them
++    // locally. A waiter's final scan can miss that transfer, so publication
++    // still needs wake_one's fence/registration handshake before user code.
++    // Ordinary local pop only consumes already-published work: submit or the
++    // earlier transfer supplied its wake. Repeating a fenced wake after every
++    // pop adds no publication guarantee. Batch thieves republish their own
++    // siblings and propagate recruitment to further sleeping workers.
++    // No accounting transfer occurs when work changes executor.
++    if (published_siblings)
+       parking_->wake_one(scheduler_->home_shard(id));
+     execute_task(id, task);
+     return true;

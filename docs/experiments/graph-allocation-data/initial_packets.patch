@@ -1,0 +1,220 @@
+--- a/src/task_graph.cpp
++++ b/src/task_graph.cpp
+@@ -89,8 +89,11 @@
+   // All potentially throwing work precedes callable transfer. A failed seal
+   // leaves both the previous compiled callables and pending callables intact.
+   detail::OwnedArray<NodeState> grown_runtime;
+-  if (count > runtime_capacity_)
++  detail::OwnedArray<InitialTask> grown_tasks;
++  if (count > runtime_capacity_) {
+     grown_runtime = detail::make_owned_array<NodeState>(count);
++    grown_tasks = detail::make_owned_array<InitialTask>(count);
++  }
+   for (index_type i = 0; i < compiled_.node_count; ++i)
+     next.nodes[i].work = std::move(compiled_.nodes[i].work);
+   for (std::size_t i = 0; i < builder_.pending_work.size(); ++i)
+@@ -101,6 +104,7 @@
+   std::vector<Work, detail::RuntimeAllocator<Work>>{}.swap(builder_.pending_work);
+   if (grown_runtime) {
+     runtime_ = std::move(grown_runtime);
++    initial_tasks_ = std::move(grown_tasks);
+     runtime_capacity_ = count;
+   }
+   sealed_ = true;
+@@ -115,28 +119,48 @@
+   builder_.pending_work.clear();
+   builder_.edge_count = 0;
+   runtime_.reset();
++  initial_tasks_.reset();
+   runtime_capacity_ = 0;
+   sealed_ = false;
+ }
+ 
+ void TaskGraph::reset() {
+   ensure_not_running();
+-  run_state_.reset();
++  // Completion readiness already ends every borrowed graph access. Preserve
++  // the allocation, but reconstruct the state (including once_flag and error)
++  // rather than trying to reset synchronization primitives piecemeal. Old
++  // Handles retain their own immutable completion allocation.
++  if (run_state_) {
++    static_assert(std::is_nothrow_default_constructible_v<RunState>);
++    std::destroy_at(run_state_.get());
++    std::construct_at(run_state_.get());
++  }
+ }
+ 
+ Handle TaskGraph::run() {
+   ensure_not_running();
+   if (empty()) return {};
+   if (!seal()) throw std::logic_error("TaskGraph: cycle detected in run()");
+-  auto owner = detail::make_owned<RunState>();
+-  detail::runtime_count(detail::RuntimeEvent::graph_run_state_allocations);
++  detail::OwnedObject<RunState> owner;
++  if (!run_state_) {
++    owner = detail::make_owned<RunState>();
++    detail::runtime_count(detail::RuntimeEvent::graph_run_state_allocations);
++  }
+   auto publication = detail::CompletionCredit::create();
+   auto result = publication.handle();
+-  auto* state = owner.get();
++  // Allocate the new completion first: failure preserves the previous result.
++  // Never recycle CompletionState itself, since old Handles can outlive this
++  // run and even the graph. Only the exclusively graph-owned RunState is reused.
++  if (run_state_)
++    reset();
++  else
++    run_state_ = std::move(owner);
++  auto* state = run_state_.get();
+   state->nodes = {compiled_.nodes.get(), compiled_.node_count};
+   state->edges = {compiled_.edges.get(), compiled_.edge_count};
+   state->pool = &pool_;
+   state->runtime = {runtime_.get(), compiled_.node_count};
++  state->initial_tasks = {initial_tasks_.get(), compiled_.node_count};
+   state->completion = result;
+   for (index_type i = 0; i < compiled_.node_count; ++i) {
+     // Only joins count arrivals. Roots and single-predecessor nodes have one
+@@ -146,12 +170,11 @@
+       state->runtime[i].predecessors.store(state->nodes[i].predecessor_count,
+                                            std::memory_order_relaxed);
+   }
+-  run_state_ = std::move(owner);
+   for (index_type root = 0; root < compiled_.root_count; ++root) {
+     if (state->cancel.load(std::memory_order_acquire)) break;
+     const auto i = compiled_.roots[root];
+     activate(*state, i, publication);
+-    publish(*state, i, publication);
++    publish_initial(*state, i, publication);
+   }
+   // The sentinel retires on return. No state access follows its retirement.
+   return result;
+@@ -216,6 +239,46 @@
+     record_error(state, credit, std::current_exception());
+     execute(state, i, credit);
+   }
++}
++
++void TaskGraph::InitialTask::invoke(detail::ScheduledTask* task) {
++  auto* self = static_cast<InitialTask*>(task);
++  execute(*self->run, self->index, self->done);
++}
++
++void TaskGraph::InitialTask::release(detail::ScheduledTask* task) noexcept {
++  // Pool normally moved the credit out already. Rejected publication instead
++  // arrives here with a live credit. End every slot access before retiring it:
++  // completion may immediately permit graph destruction or a subsequent run.
++  // The array owns object lifetime; releasing a borrow must not destroy/free it.
++  auto done = std::move(task->done);
++  done.finish();
++}
++
++void TaskGraph::publish_initial(RunState& state, index_type i,
++                                detail::CompletionCredit& credit) {
++  auto& task = state.initial_tasks[i];
++  assert(!task.done);
++  task.ops = &InitialTask::operations;
++  task.prio = state.nodes[i].submit.priority;
++  task.run = &state;
++  task.index = i;
++  task.done = credit.fork();
++#if defined(DAGFLOW_RUNTIME_DIAGNOSTICS)
++  // This is a borrowed array slot, not a per-publication allocation/free.
++  task.allocating_thread = UINT64_MAX;
++#endif
++  try {
++    state.pool->enqueue_prepared(detail::OwnedScheduledTask{&task},
++                                 state.nodes[i].submit);
++  } catch (...) {
++    // The erased owner releases the slot's child credit on rejection. The
++    // caller still owns this lane and state; cancel and retire it as usual.
++    record_error(state, credit, std::current_exception());
++    execute(state, i, credit);
++  }
++  // Publication transfers the borrow. No slot access follows, even if a worker
++  // completed the packet before enqueue_prepared returned.
+ }
+ 
+ void TaskGraph::execute(RunState& state, index_type i,
+@@ -286,14 +349,14 @@
+             candidate.priority == node.submit.priority)
+           next = j;
+         else
+-          publish(state, j, credit);
++          publish_initial(state, j, credit);
+       }
+     }
+     if (next == no_node) break;
+     if ((budget == 0 || --budget == 0) &&
+         !state.cancel.load(std::memory_order_acquire)) {
+       detail::runtime_count(detail::RuntimeEvent::graph_continuations);
+-      publish(state, next, credit);
++      publish_initial(state, next, credit);
+       break;
+     }
+     i = next;
+--- a/src/thread_pool.cpp
++++ b/src/thread_pool.cpp
+@@ -405,7 +405,8 @@
+ void Pool::execute_task(uint32_t id, Task* task) {
+   detail::runtime_count(detail::RuntimeEvent::executed);
+ #if defined(DAGFLOW_RUNTIME_DIAGNOSTICS)
+-  if (task->allocating_thread != detail::runtime_diagnostic_thread())
++  if (task->allocating_thread != UINT64_MAX &&
++      task->allocating_thread != detail::runtime_diagnostic_thread())
+     detail::runtime_count(detail::RuntimeEvent::cross_thread_free);
+ #endif
+   // Lifetime ordering is fixed: invoke -> capture exception -> move credit ->
+@@ -422,8 +423,9 @@
+   }
+ 
+   auto done = std::move(task->done);
+-  // `destroy` runs the concrete callable destructor and releases the exact
+-  // variable-sized TaskModel allocation. The base pointer is dead afterward.
++  // `destroy` releases the packet before readiness: owning TaskModels destroy
++  // their callable/allocation, graph slots release their exclusive borrow.
++  // In both cases the executor must never access the base pointer afterward.
+   ops->destroy(task);
+   done.finish();
+ 
+--- a/include/dagflow/task_graph.hpp
++++ b/include/dagflow/task_graph.hpp
+@@ -131,10 +131,22 @@
+     std::atomic<std::size_t> next{0};
+     std::atomic<index_type> lanes{0};
+   };
++  struct RunState;
++  // Exactly one initial driver per node/run may borrow this packet. Additional
++  // lanes and same-node token continuations use ordinary owning packets. Never
++  // reuse this slot within a run: an older driver can still be in Pool's epilogue.
++  struct InitialTask : detail::ScheduledTask {
++    RunState* run{};
++    index_type index{};
++    static void invoke(detail::ScheduledTask* task);
++    static void release(detail::ScheduledTask* task) noexcept;
++    inline static constexpr detail::ScheduledTaskOps operations{invoke, release};
++  };
+   struct RunState {
+     std::span<const NodeDef> nodes;
+     std::span<const Edge> edges;
+     std::span<NodeState> runtime;
++    std::span<InitialTask> initial_tasks;
+     Pool* pool{};
+     Handle completion;
+     std::atomic<bool> cancel{false};
+@@ -166,6 +178,8 @@
+                            std::exception_ptr error);
+   static void publish(RunState& state, index_type i,
+                       detail::CompletionCredit& credit);
++  static void publish_initial(RunState& state, index_type i,
++                              detail::CompletionCredit& credit);
+   /// Prepare the lanes, publishing all except one reserved for the caller.
+   static void activate(RunState& state, index_type i,
+                        detail::CompletionCredit& credit);
+@@ -177,6 +191,7 @@
+   BuilderTopology builder_;
+   CompiledTopology compiled_;
+   detail::OwnedArray<NodeState> runtime_;
++  detail::OwnedArray<InitialTask> initial_tasks_;
+   size_type runtime_capacity_{0};
+   // The graph owns all storage. A live credit grants access through RunState's
+   // spans; after completion packet epilogues must not touch graph/run storage.

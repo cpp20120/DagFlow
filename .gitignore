@@ -36,6 +36,17 @@ out
 build
 cmake-build-*
 
+# The vendored framework includes Python helpers; their bytecode is generated
+# only when benchmark harnesses are run.
+cmake/harness/**/__pycache__/
+cmake/harness/**/*.pyc
+
+# A local checkout of the framework may be kept beside DagFlow while working;
+# DagFlow vendors the framework directly under cmake/.
+cmake_boilerplate/
+**/__pycache__/
+*.pyc
+
 #docs
 doxygen_output
 

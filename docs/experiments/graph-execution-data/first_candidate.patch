@@ -1,0 +1,127 @@
+--- a/include/dagflow/task_graph.hpp
++++ b/include/dagflow/task_graph.hpp
+@@ -123,7 +123,8 @@
+   struct CompiledTopology {
+     detail::OwnedArray<NodeDef> nodes;
+     detail::OwnedArray<Edge> edges;
+-    index_type node_count{0}, edge_count{0};
++    detail::OwnedArray<index_type> roots;
++    index_type node_count{0}, edge_count{0}, root_count{0};
+   };
+   struct NodeState {
+     std::atomic<index_type> predecessors{0};
+--- a/src/task_graph.cpp
++++ b/src/task_graph.cpp
+@@ -39,6 +39,7 @@
+     indegree.push_back(builder_.nodes[i].predecessor_count);
+     if (!indegree.back()) ready.push_back(i);
+   }
++  const auto root_count = static_cast<index_type>(ready.size());
+   for (std::size_t i = 0; i < ready.size(); ++i)
+     for (auto next : builder_.nodes[ready[i]].successors)
+       if (--indegree[next] == 0) ready.push_back(next);
+@@ -47,8 +48,11 @@
+   CompiledTopology next;
+   next.nodes = detail::make_owned_array<NodeDef>(count);
+   next.edges = detail::make_owned_array<Edge>(builder_.edge_count);
++  next.roots = detail::make_owned_array<index_type>(root_count);
++  std::copy_n(ready.begin(), root_count, next.roots.get());
+   next.node_count = count;
+   next.edge_count = builder_.edge_count;
++  next.root_count = root_count;
+   index_type offset = 0;
+   for (index_type i = 0; i < count; ++i) {
+     const auto& source = builder_.nodes[i];
+@@ -134,18 +138,19 @@
+   state->runtime = {runtime_.get(), compiled_.node_count};
+   state->completion = result;
+   for (index_type i = 0; i < compiled_.node_count; ++i) {
+-    state->runtime[i].predecessors.store(state->nodes[i].predecessor_count,
+-                                         std::memory_order_relaxed);
+-    state->runtime[i].next.store(0, std::memory_order_relaxed);
+-    state->runtime[i].lanes.store(0, std::memory_order_relaxed);
++    // Only joins count arrivals. Roots and single-predecessor nodes have one
++    // activator; token/lane state is initialized there, even on a repeated run
++    // after cancellation left some nodes untouched.
++    if (state->nodes[i].predecessor_count > 1)
++      state->runtime[i].predecessors.store(state->nodes[i].predecessor_count,
++                                           std::memory_order_relaxed);
+   }
+   run_state_ = std::move(owner);
+-  for (index_type i = 0; i < compiled_.node_count; ++i) {
++  for (index_type root = 0; root < compiled_.root_count; ++root) {
+     if (state->cancel.load(std::memory_order_acquire)) break;
+-    if (state->nodes[i].predecessor_count == 0) {
+-      activate(*state, i, publication);
+-      publish(*state, i, publication);
+-    }
++    const auto i = compiled_.roots[root];
++    activate(*state, i, publication);
++    publish(*state, i, publication);
+   }
+   // The sentinel retires on return. No state access follows its retirement.
+   return result;
+@@ -188,6 +193,7 @@
+   }
+   const auto lanes =
+       state.cancel.load(std::memory_order_acquire) ? 1 : node.lanes;
++  runtime.next.store(0, std::memory_order_relaxed);
+   runtime.lanes.store(lanes, std::memory_order_relaxed);
+   // The final lane is owned by the caller, keeping this node alive while the
+   // other lanes can already execute, including inline on queue saturation.
+@@ -220,27 +226,47 @@
+     while (!state.cancel.load(std::memory_order_acquire)) {
+       auto token = runtime.next.load(std::memory_order_relaxed);
+       if (token >= node.tokens) break;
+-      if (!runtime.next.compare_exchange_weak(token, token + 1,
+-                                              std::memory_order_relaxed))
++      // Yield only if there is still unclaimed work. In particular, finishing
++      // exactly the budget must not allocate an empty continuation just to
++      // retire this lane. Another lane can claim the work after this probe;
++      // such a racing empty continuation is harmless and still owns one lane.
++      if (budget == 0) {
++        publish(state, i, credit);
++        return;
++      }
++      // One logical lane has exclusive cursor ownership, including across
++      // queue publication/helping. Store before calling user code or handing
++      // off; after publication this driver must not touch the cursor again.
++      // Multi-lane nodes retain the bounded CAS (fetch_add could wrap at
++      // SIZE_MAX). A runtime cancellation must not select the single-lane path
++      // for a node compiled with several lanes.
++      if (node.lanes == 1)
++        runtime.next.store(token + 1, std::memory_order_relaxed);
++      else if (!runtime.next.compare_exchange_weak(token, token + 1,
++                                                   std::memory_order_relaxed))
+         continue;
+       try {
+         node.work(token);
+       } catch (...) {
+         record_error(state, credit, std::current_exception());
+       }
+-      if (--budget == 0 && !state.cancel.load(std::memory_order_acquire)) {
+-        publish(state, i, credit);
+-        return;
+-      }
++      --budget;
+     }
+ 
+     index_type next = no_node;
+-    if (runtime.lanes.fetch_sub(1, std::memory_order_acq_rel) == 1 &&
++    // Only concurrent lanes need an acquire/release join. For a single lane,
++    // this driver owns the node's completion and all its callable writes.
++    if ((node.lanes == 1 ||
++         runtime.lanes.fetch_sub(1, std::memory_order_acq_rel) == 1) &&
+         !state.cancel.load(std::memory_order_acquire)) {
+       for (index_type edge = node.edge_begin; edge < node.edge_end; ++edge) {
+         if (state.cancel.load(std::memory_order_acquire)) break;
+         const auto j = state.edges[edge];
+-        if (state.runtime[j].predecessors.fetch_sub(
++        // One incoming edge has exactly one releaser. With multiple incoming
++        // edges (including duplicates), the final acq_rel arrival gathers all
++        // predecessor writes before activation; do not weaken that join.
++        if (state.nodes[j].predecessor_count > 1 &&
++            state.runtime[j].predecessors.fetch_sub(
+                 1, std::memory_order_acq_rel) != 1)
+           continue;
+         activate(state, j, credit);

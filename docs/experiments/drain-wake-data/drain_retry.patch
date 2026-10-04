@@ -1,0 +1,133 @@
+--- a/include/dagflow/detail/chase_lev_deque.hpp
++++ b/include/dagflow/detail/chase_lev_deque.hpp
+@@ -23,6 +23,7 @@
+ #include <atomic>
+ #include <cstddef>
+ #include <limits>
++#include <span>
+ #include <type_traits>
+ 
+ #include "dagflow/config.hpp"
+@@ -61,6 +62,22 @@
+     buffer_[static_cast<std::size_t>(b) & (N - 1)].store(
+         value, std::memory_order_relaxed);
+     bottom_.store(b + 1, std::memory_order_release);
++    return true;
++  }
++
++  /// Owner only. Publish all values with one bottom release. No value becomes
++  /// stealable before every slot is initialized. Thieves can only increase
++  /// capacity during this operation; the owner must not reenter before return.
++  [[nodiscard]] bool try_push_batch(std::span<const T> values) noexcept {
++    if (values.empty()) return true;
++    const auto b = bottom_.load(std::memory_order_relaxed);
++    const auto t = top_.load(std::memory_order_acquire);
++    if (values.size() > N - static_cast<std::size_t>(b - t)) return false;
++    for (std::size_t i = 0; i < values.size(); ++i)
++      buffer_[(static_cast<std::size_t>(b) + i) & (N - 1)].store(
++          values[i], std::memory_order_relaxed);
++    bottom_.store(b + static_cast<difference_type>(values.size()),
++                  std::memory_order_release);
+     return true;
+   }
+ 
+--- a/include/dagflow/detail/ring_mpmc.hpp
++++ b/include/dagflow/detail/ring_mpmc.hpp
+@@ -2,6 +2,7 @@
+ 
+ #include <atomic>
+ #include <cstddef>
++#include <span>
+ #include <type_traits>
+ #include <utility>
+ 
+@@ -73,6 +74,44 @@
+     return true;
+   }
+ 
++  /// Claim a contiguous published prefix with one head CAS. A publication gap
++  /// ends the batch: never skip it or wait for a producer to fill it. As with
++  /// scalar pop, only the successful claimant may read/move cell values.
++  [[nodiscard]] size_type try_pop_batch(std::span<T> values) noexcept {
++    const auto limit = values.size() < N ? values.size() : N;
++    if (!limit) return 0;
++    auto position = head_.load(std::memory_order_relaxed);
++    size_type count;
++    for (;;) {
++      count = 0;
++      difference_type difference = 0;
++      while (count < limit) {
++        const auto expected = position + count + 1;
++        const auto sequence = buffer_[(position + count) & mask].sequence.load(
++            std::memory_order_acquire);
++        difference = static_cast<difference_type>(sequence) -
++                     static_cast<difference_type>(expected);
++        if (difference != 0) break;
++        ++count;
++      }
++      if (!count) {
++        if (difference < 0) return 0;
++        position = head_.load(std::memory_order_relaxed);
++      } else if (head_.compare_exchange_weak(position, position + count,
++                                             std::memory_order_relaxed)) {
++        break;
++      }
++      // Another consumer may invalidate the scanned prefix. Retry from the
++      // new head and reacquire its sequences; a failed CAS grants no ownership.
++    }
++    for (size_type i = 0; i < count; ++i) {
++      auto& cell = buffer_[(position + i) & mask];
++      values[i] = std::move(cell.value);
++      cell.sequence.store(position + i + N, std::memory_order_release);
++    }
++    return count;
++  }
++
+   /// Snapshot only: an unpublished head is not proof that a run is finished.
+   [[nodiscard]] bool empty() const noexcept {
+     const auto position = head_.load(std::memory_order_acquire);
+--- a/src/scheduler.cpp
++++ b/src/scheduler.cpp
+@@ -17,6 +17,9 @@
+ constexpr uint32_t splitmix_shift_3 = 31;
+ constexpr uint32_t steal_batch_limit = 4;
+ constexpr uint32_t external_poll_interval = 32;
++// Bound stack scratch and each ingress reservation, independently of the
++// configured total drain budget. Do not hold unpublished tasks across user code.
++constexpr std::size_t drain_transfer_batch = 64;
+ }  // namespace
+ 
+ namespace dagflow::detail {
+@@ -96,16 +99,23 @@
+   auto& central =
+       priority == Priority::High ? shards_[shard].high : shards_[shard].normal;
+   ScheduledTask* first = nullptr;
+-  if (!central.try_pop(first)) return nullptr;
+-  runtime_count(RuntimeEvent::drain_tasks);
+-  if (shard != locals_[id].home_shard) runtime_count(RuntimeEvent::remote_drain_tasks);
+-  const auto limit =
++  auto remaining =
+       std::min<std::size_t>(central_batch_, local.free_capacity() + 1);
+-  ScheduledTask* next = nullptr;
+-  for (std::size_t taken = 1; taken < limit && central.try_pop(next); ++taken) {
+-    runtime_count(RuntimeEvent::drain_tasks);
+-    if (shard != locals_[id].home_shard) runtime_count(RuntimeEvent::remote_drain_tasks);
+-    if (!local.try_push(next)) std::terminate();
++  ScheduledTask* tasks[drain_transfer_batch];
++  while (remaining) {
++    const auto requested = std::min(remaining, drain_transfer_batch);
++    const auto taken = central.try_pop_batch(std::span{tasks, requested});
++    if (!taken) break;
++    runtime_count(RuntimeEvent::drain_tasks, taken);
++    if (shard != locals_[id].home_shard)
++      runtime_count(RuntimeEvent::remote_drain_tasks, taken);
++    const std::size_t skip = first ? 0 : 1;
++    if (!first) first = tasks[0];
++    // Capacity was reserved conservatively by the owner before draining.
++    // Only thieves run concurrently and they can only free additional slots.
++    if (!local.try_push_batch(std::span{tasks + skip, taken - skip}))
++      std::terminate();
++    remaining -= taken;
+   }
+   // Publish the entire batch before user code can help/wait on its siblings.
+   return first;
