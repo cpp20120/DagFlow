@@ -174,6 +174,9 @@ cmake --build --preset bench-pgo-use --target dagflow_benchmarks --parallel 4
 
 Queue and scheduler regression tests:
 
+See the [test suite guide](tests/README.md) for coverage, a build without
+external allocator dependencies, test selection, and sanitizer configurations.
+
 ```sh
 cmake --preset bench-check
 cmake --build --preset bench-check

@@ -1,5 +1,8 @@
 # Adversarial runtime regressions
 
+See the [test suite guide](README.md) for ordinary runtime tests, allocation
+checks, and build integration coverage.
+
 These thirteen executables are normal CTest tests, enabled by
 `DAGFLOW_BUILD_TESTS=ON` when a runtime library is built. They require neither
 `DAGFLOW_FUZZ_HOOKS` nor a fuzzing build. Each has a 60-second CTest timeout;
