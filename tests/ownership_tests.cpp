@@ -5,6 +5,8 @@
 #include <memory>
 #include <thread>
 #include <type_traits>
+#include <utility>
+#include <vector>
 
 #include <dagflow/dagflow.hpp>
 #include "support.hpp"
@@ -201,6 +203,7 @@ void spilled_callable_ownership() {
       ++*calls;
       *address = this;
     }
+    void operator()(int& value) { operator()(); ++value; }
   };
   dagflow::Config config;
   config.threads = 2;
@@ -224,6 +227,58 @@ void spilled_callable_ownership() {
   CHECK(calls == 4 && address == first_address && destroyed == 1);
   graph.clear();
   CHECK(destroyed == 2);
+
+  pool.submit_detached(Body{
+      dagflow::detail::make_owned<Payload>(&destroyed), &calls, &address});
+  pool.wait_idle();
+  CHECK(calls == 5 && destroyed == 3);
+
+  // Exercise every by-reference callable entry point with a move-only,
+  // over-aligned target, including both iterator and range overloads.
+  std::vector<int> values{0};
+  pool.wait_and_rethrow(pool.for_each(values.begin(), values.end(), Body{
+      dagflow::detail::make_owned<Payload>(&destroyed), &calls, &address}));
+  pool.wait_and_rethrow(pool.for_each(values, Body{
+      dagflow::detail::make_owned<Payload>(&destroyed), &calls, &address}));
+  pool.wait_and_rethrow(pool.for_each_ws(values.begin(), values.end(), Body{
+      dagflow::detail::make_owned<Payload>(&destroyed), &calls, &address}));
+  pool.wait_and_rethrow(pool.for_each_ws(values, Body{
+      dagflow::detail::make_owned<Payload>(&destroyed), &calls, &address}));
+  CHECK(calls == 9 && destroyed == 7 && values[0] == 4);
+}
+
+void lvalue_callable_ownership() {
+  struct alignas(128) Body {
+    int* calls;
+    int local_calls = 0;
+    void operator()() {
+      CHECK(reinterpret_cast<std::uintptr_t>(this) % alignof(Body) == 0);
+      CHECK(++local_calls == 1);  // Each submission must own a fresh copy.
+      ++*calls;
+    }
+    void operator()(int&) { operator()(); }
+  };
+  dagflow::Config config;
+  config.threads = 1;
+  config.pin_threads = false;
+  dagflow::Pool pool(config);
+  int calls = 0;
+  auto exercise = [&](auto& body) {
+    pool.wait_and_rethrow(pool.submit(body));
+    pool.submit_detached(body);
+    pool.wait_idle();
+    std::vector<int> values{0};
+    pool.wait_and_rethrow(pool.for_each(values.begin(), values.end(), body));
+    pool.wait_and_rethrow(pool.for_each(values, body));
+    pool.wait_and_rethrow(pool.for_each_ws(values.begin(), values.end(), body));
+    pool.wait_and_rethrow(pool.for_each_ws(values, body));
+    CHECK(body.local_calls == 0);
+  };
+  Body mutable_body{&calls};
+  const Body const_body{&calls};
+  exercise(mutable_body);
+  exercise(const_body);
+  CHECK(calls == 12);
 }
 
 int main() {
@@ -235,4 +290,5 @@ int main() {
   graph_repeated_wide_runs_and_old_results();
   range_payload_released_before_result();
   spilled_callable_ownership();
+  lvalue_callable_ownership();
 }

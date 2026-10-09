@@ -157,18 +157,20 @@ class Pool {
 
   /// External callers wait on queue saturation; workers spill without invoking
   /// the callable in submit(). Closed external admission throws logic_error.
+  /// Owns a copy of an lvalue callable or moves from an rvalue. Reference
+  /// parameters also accept over-aligned callables on MSVC.
   template <class F>
-  Handle submit(F f, SubmitOptions opt = {}) {
+  Handle submit(F&& f, SubmitOptions opt = {}) {
     return submit_impl(
-        [fn = std::move(f)](detail::CompletionCredit&) mutable { fn(); },
+        [fn = std::forward<F>(f)](detail::CompletionCredit&) mutable { fn(); },
         std::move(opt));
   }
 
   /// Submit without a per-task completion handle. Track lifetime at the caller.
   /// Uncaught task exceptions are discarded; capture/report errors explicitly.
   template <class F>
-  void submit_detached(F f, SubmitOptions opt = {}) {
-    enqueue([fn = std::move(f)](detail::CompletionCredit&) mutable { fn(); },
+  void submit_detached(F&& f, SubmitOptions opt = {}) {
+    enqueue([fn = std::forward<F>(f)](detail::CompletionCredit&) mutable { fn(); },
             opt, {});
   }
 
@@ -199,7 +201,7 @@ class Pool {
   template <class F, std::size_t Extent>
     requires (!std::is_const_v<F> && std::is_invocable_r_v<void, F&>)
   void submit_batch_detached(std::span<F, Extent> tasks, SubmitOptions opt = {}) {
-    if (tls_pool_ == this) {
+    if (is_current_worker()) {
       for (auto& task : tasks)
         enqueue([fn = std::move(task)](detail::CompletionCredit&) mutable { fn(); },
                 opt, {});
@@ -224,15 +226,17 @@ class Pool {
 
   /// Process a forward range in approximately 16K-element chunks.
   template <class It, class F>
-  Handle for_each(It begin, It end, F f, SubmitOptions opt = {}) {
+  Handle for_each(It begin, It end, F&& f, SubmitOptions opt = {}) {
     const auto n = static_cast<std::size_t>(std::distance(begin, end));
     if (n == 0) return Handle{};
     const std::size_t target = DAGFLOW_DEFAULT_RANGE_CHUNK;
     std::size_t chunks = (n + target - 1) / target;
     if (chunks == 0) chunks = 1;
 
-    auto callable_owner = detail::make_owned<F>(std::move(f));
-    F* callable = callable_owner.get();  // Borrow protected by every task credit.
+    using Callable = std::decay_t<F>;
+    auto callable_owner = detail::make_owned<Callable>(std::forward<F>(f));
+    // Borrow protected by every task credit.
+    Callable* callable = callable_owner.get();
     auto publication = detail::CompletionCredit::create(std::move(callable_owner));
     auto result = publication.handle();
     try {
@@ -259,12 +263,12 @@ class Pool {
   /// A single callable is shared across tasks; concurrent calls must be safe.
   template <std::ranges::forward_range R, class F>
     requires std::ranges::borrowed_range<R>
-  Handle for_each(R&& range, F f, SubmitOptions opt = {}) {
+  Handle for_each(R&& range, F&& f, SubmitOptions opt = {}) {
     auto begin = std::ranges::begin(range);
     // Materialize an iterator end for sentinel-based ranges. Common ranges
     // simply copy end; a non-common forward range may need a traversal.
     auto end = std::ranges::next(begin, std::ranges::end(range));
-    return for_each(begin, end, std::move(f), opt);
+    return for_each(begin, end, std::forward<F>(f), opt);
   }
 
   /// Number of worker threads.
@@ -274,7 +278,7 @@ class Pool {
 
   /// Recursively split a random-access range, sharing one callable instance.
   template <class It, class F>
-  Handle for_each_ws(It begin, It end, F f, SubmitOptions opt = {},
+  Handle for_each_ws(It begin, It end, F&& f, SubmitOptions opt = {},
                      std::size_t min_grain_hint = DAGFLOW_DEFAULT_RANGE_CHUNK) {
     static_assert(std::random_access_iterator<It>,
                   "for_each_ws requires random-access iterators");
@@ -293,12 +297,12 @@ class Pool {
     struct ProcState {
       Pool* pool;
       It begin;
-      F func;
+      std::decay_t<F> func;
       SubmitOptions opt;
       std::size_t min_grain;
     };
     auto owner = detail::make_owned<ProcState>(
-        ProcState{this, begin, std::move(f), opt, min_grain});
+        ProcState{this, begin, std::forward<F>(f), opt, min_grain});
     ProcState* state = owner.get();
     auto publication = detail::CompletionCredit::create(std::move(owner));
     auto result = publication.handle();
@@ -344,11 +348,11 @@ class Pool {
   /// as for_each(). Owning temporaries are rejected at compile time.
   template <std::ranges::random_access_range R, class F>
     requires std::ranges::borrowed_range<R>
-  Handle for_each_ws(R&& range, F f, SubmitOptions opt = {},
+  Handle for_each_ws(R&& range, F&& f, SubmitOptions opt = {},
                      std::size_t min_grain_hint = DAGFLOW_DEFAULT_RANGE_CHUNK) {
     auto begin = std::ranges::begin(range);
     auto end = std::ranges::next(begin, std::ranges::end(range));
-    return for_each_ws(begin, end, std::move(f), opt, min_grain_hint);
+    return for_each_ws(begin, end, std::forward<F>(f), opt, min_grain_hint);
   }
 
   Handle combine(std::span<const Handle> handles, SubmitOptions opt = {});
@@ -408,6 +412,16 @@ class Pool {
   };
   void enter_publication();
   void leave_publication() noexcept;
+
+  // Windows DLL clients cannot access an auto-exported thread_local data
+  // symbol directly from a header template. Elsewhere keep the TLS check inline.
+#if defined(_WIN32)
+  [[nodiscard]] bool is_current_worker() const noexcept;
+#else
+  [[nodiscard]] bool is_current_worker() const noexcept {
+    return tls_pool_ == this;
+  }
+#endif
 
   template <class Callable>
   Handle submit_impl(Callable&& job, SubmitOptions opt) {

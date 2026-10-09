@@ -41,6 +41,10 @@ constexpr uint32_t backoff_growth_factor = 2;
 thread_local uint32_t Pool::tls_id_ = UINT32_MAX;
 DAGFLOW_TLS_ATTR thread_local Pool* Pool::tls_pool_ = nullptr;
 
+#if defined(_WIN32)
+bool Pool::is_current_worker() const noexcept { return tls_pool_ == this; }
+#endif
+
 static void pin_to_cpu(uint32_t idx) {
   // Placement is best-effort here: the scheduler's worker index is stable, but
   // the OS may expose fewer/irregular CPUs. Failure is intentionally ignored;

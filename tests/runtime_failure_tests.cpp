@@ -1,5 +1,6 @@
 #include <atomic>
 #include <cstdlib>
+#include <limits>
 #include <new>
 
 #include <dagflow/dagflow.hpp>
@@ -11,8 +12,12 @@ thread_local int allocation_budget = -1;
 thread_local bool fail_aligned_allocation = false;
 thread_local bool track_allocations = false;
 thread_local std::size_t largest_allocation = 0;
+thread_local std::size_t allocation_count = 0;
 void* operator new(std::size_t size) {
-  if (track_allocations && size > largest_allocation) largest_allocation = size;
+  if (track_allocations) {
+    ++allocation_count;
+    if (size > largest_allocation) largest_allocation = size;
+  }
   if (allocation_budget == 0) {
     allocation_budget = -1;
     throw std::bad_alloc();
@@ -213,13 +218,25 @@ void scope_publication_failures(dagflow::Pool& pool) {
   }
 }
 
-void pool_construction_failures() {
+void pool_construction_failures(unsigned workers) {
   int failures = 0, successes = 0;
   dagflow::Config config;
-  config.threads = 3;
+  config.threads = workers;
   config.shards = 2;
   config.pin_threads = false;
-  for (int at = 0; at < 16; ++at) {
+  // std::thread startup makes a platform-dependent number of ordinary
+  // allocations. Measure on this thread, matching the injection boundary,
+  // then include the first budget that permits complete construction.
+  allocation_count = 0;
+  track_allocations = true;
+  {
+    dagflow::Pool pool(config);
+    track_allocations = false;
+  }
+  CHECK(allocation_count > 0 &&
+        allocation_count < static_cast<std::size_t>(std::numeric_limits<int>::max()));
+  const auto construction_allocations = static_cast<int>(allocation_count);
+  for (int at = 0; at <= construction_allocations; ++at) {
     allocation_budget = at;
     try {
       dagflow::Pool pool(config);
@@ -261,7 +278,7 @@ void batch_publication_failures(dagflow::Pool& pool) {
 }
 
 int main() {
-  pool_construction_failures();
+  for (unsigned workers : {1u, 3u, 12u}) pool_construction_failures(workers);
   {
     dagflow::Config config;
     config.threads = 1;
