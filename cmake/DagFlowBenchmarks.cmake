@@ -1,8 +1,8 @@
 # Each executable has one main(). All build profiles go through the same rules.
 add_custom_target(dagflow_benchmarks)
 function(dagflow_add_runtime_benchmark target output source)
-  boilerplate_add_executable(${target} SOURCES ${source})
-  boilerplate_set_output_name(${target} ${output})
+  dagflow_add_executable(${target} SOURCES ${source})
+  dagflow_set_output_name(${target} ${output})
   add_dependencies(dagflow_benchmarks ${target})
 endfunction()
 
@@ -15,7 +15,7 @@ function(dagflow_add_benchmark_run target stem default_args)
   set(variable "DAGFLOW_${upper_stem}_ARGS")
   set(${variable} "${default_args}" CACHE STRING "Arguments for dagflow_run_${stem}")
   separate_arguments(arguments NATIVE_COMMAND "${${variable}}")
-  boilerplate_add_scenario(${stem} TARGET ${target} GROUP dagflow
+  dagflow_add_scenario(${stem} TARGET ${target} GROUP dagflow
     ARGS ${arguments} REPEATS 1 WARMUP 0)
   add_custom_target(dagflow_run_${stem} DEPENDS run_${stem})
 endfunction()
@@ -99,7 +99,7 @@ if(DAGFLOW_BUILD_GITHUB_BENCH)
   target_include_directories(dagflow_github_runtime PUBLIC "${DAGFLOW_GITHUB_SOURCE_DIR}/include")
   target_compile_definitions(dagflow_github_runtime PRIVATE DAGFLOW_STATIC)
   target_link_libraries(dagflow_github_runtime PUBLIC Threads::Threads)
-  boilerplate_apply_target_policy(dagflow_github_runtime)
+  dagflow_apply_target_policy(dagflow_github_runtime)
   dagflow_add_runtime_benchmark(dagflow_github_suite dagflow-github-suite bench/runtime_suite.cpp)
   target_compile_definitions(dagflow_github_suite PRIVATE DAGFLOW_SUITE_LEGACY)
   target_link_libraries(dagflow_github_suite PRIVATE dagflow_github_runtime)

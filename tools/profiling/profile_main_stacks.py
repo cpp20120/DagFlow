@@ -53,9 +53,9 @@ def main():
                  '-DCMAKE_CXX_FLAGS_RELEASE=-O3 -g -DNDEBUG -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer',
                  '-DDAGFLOW_BUILD_SHARED=OFF', '-DDAGFLOW_BUILD_STATIC=ON', '-DDAGFLOW_INSTALL=OFF',
                  '-DDAGFLOW_BUILD_EXAMPLES=OFF', '-DDAGFLOW_BUILD_STRESS_BENCH=ON', '-DDAGFLOW_BUILD_TESTS=OFF',
-                 '-DBOILERPLATE_USE_LLD=ON', '-DBOILERPLATE_ENABLE_NATIVE=OFF',
-                 '-DBOILERPLATE_PGO_MODE=none', '-DDAGFLOW_ALLOCATOR=mimalloc',
-                 '-DBOILERPLATE_LTO_MODE=' + lto], 'fp-configure-' + profile)
+                 '-DDAGFLOW_USE_LLD=ON', '-DDAGFLOW_ENABLE_NATIVE=OFF',
+                 '-DDAGFLOW_PGO_MODE=none', '-DDAGFLOW_ALLOCATOR=mimalloc',
+                 '-DDAGFLOW_LTO_MODE=' + lto], 'fp-configure-' + profile)
         command(['cmake', '--build', build, '--target', 'dagflow_stress_bench', '-j', 4], 'fp-build-' + profile)
         binaries[profile] = build / 'dagflow-stress-bench'
     handler = out / 'perf_flamegraph.py'

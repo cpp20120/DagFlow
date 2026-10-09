@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.26)
 include(cmake/DagFlowDependencies.cmake)
-include(cmake/boilerplate/Bootstrap.cmake)
+include(cmake/dagflow/Bootstrap.cmake)
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
-  boilerplate_bootstrap()
+  dagflow_bootstrap()
 endif()
 project(DagFlow VERSION 1.0.0
   DESCRIPTION "Work-stealing thread pool with DAG support" LANGUAGES CXX)
@@ -29,11 +29,11 @@ endif()
 option(DAGFLOW_BUILD_DOCS "Generate API documentation with Doxygen" OFF)
 # The public reference currently permits incomplete comments and links to
 # optional benchmark artifacts. The reusable module keeps strict defaults.
-option(BOILERPLATE_DOC_WARN_IF_DOC_ERROR "Report invalid documentation and unresolved references" OFF)
-option(BOILERPLATE_DOC_WARN_IF_UNDOCUMENTED "Warn about undocumented API symbols" OFF)
-option(BOILERPLATE_DOC_WARN_NO_PARAMDOC "Warn about undocumented parameters and return values" OFF)
-set(BOILERPLATE_DOC_MARKDOWN_ID_STYLE GITHUB CACHE STRING "Markdown heading IDs: DOXYGEN or GITHUB")
-set(BOILERPLATE_DOC_INPUTS
+option(DAGFLOW_DOC_WARN_IF_DOC_ERROR "Report invalid documentation and unresolved references" OFF)
+option(DAGFLOW_DOC_WARN_IF_UNDOCUMENTED "Warn about undocumented API symbols" OFF)
+option(DAGFLOW_DOC_WARN_NO_PARAMDOC "Warn about undocumented parameters and return values" OFF)
+set(DAGFLOW_DOC_MARKDOWN_ID_STYLE GITHUB CACHE STRING "Markdown heading IDs: DOXYGEN or GITHUB")
+set(DAGFLOW_DOC_INPUTS
   "${PROJECT_SOURCE_DIR}/include;${PROJECT_SOURCE_DIR}/docs/api.md;"
   "${PROJECT_SOURCE_DIR}/docs/how_it_works.md;${PROJECT_SOURCE_DIR}/docs/code_organization.md;"
   "${PROJECT_SOURCE_DIR}/docs/concepts.md;${PROJECT_SOURCE_DIR}/docs/pool-lifecycle.md;"
@@ -41,25 +41,29 @@ set(BOILERPLATE_DOC_INPUTS
   "${PROJECT_SOURCE_DIR}/docs/explicit-ownership.md;${PROJECT_SOURCE_DIR}/docs/task-scope-lifetime.md;"
   "${PROJECT_SOURCE_DIR}/docs/batch-submit.md;${PROJECT_SOURCE_DIR}/docs/cmake-capabilities-validation.md"
   CACHE STRING "Public API headers and user documentation")
-set(BOILERPLATE_DOC_EXCLUDE_SYMBOLS "dagflow::detail;dagflow::detail::*"
+set(DAGFLOW_DOC_EXCLUDE_SYMBOLS "dagflow::detail;dagflow::detail::*"
   CACHE STRING "Internal symbols excluded from the documented API")
-set(BOILERPLATE_DOC_MAINPAGE "${PROJECT_SOURCE_DIR}/docs/api.md" CACHE FILEPATH
+set(DAGFLOW_DOC_MAINPAGE "${PROJECT_SOURCE_DIR}/docs/api.md" CACHE FILEPATH
   "DagFlow documentation main page")
 option(DAGFLOW_ENABLE_PACKAGING "Generate CPack packages" OFF)
+option(DAGFLOW_COVERAGE "Instrument DagFlow and generate coverage reports" OFF)
+option(DAGFLOW_REPRODUCIBLE_BUILD "Enable source path remapping and reproducible packaging" OFF)
+option(DAGFLOW_GENERATE_VCPKG_PORT "Generate a local-source vcpkg overlay port" OFF)
+# Project-level capabilities are orthogonal to library compile/link policies.
+# Instrumentation is a policy and must be set before creating targets.
 option(DAGFLOW_BUILD_HARNESS "Enable framework benchmark campaigns" OFF)
 set(DAGFLOW_PROJECT_CAPABILITIES "developer" CACHE STRING "Standalone project capabilities")
 # Keep the default checkout independent of a globally configured compiler
 # cache. Users can explicitly choose ccache or sccache through the framework.
-set(BOILERPLATE_COMPILER_CACHE "none" CACHE STRING "Compiler cache: auto, ccache, sccache, or none")
-if(PROJECT_IS_TOP_LEVEL AND BOILERPLATE_COMPILER_CACHE STREQUAL "none")
+set(DAGFLOW_COMPILER_CACHE "none" CACHE STRING "Compiler cache: auto, ccache, sccache, or none")
+if(PROJECT_IS_TOP_LEVEL AND DAGFLOW_COMPILER_CACHE STREQUAL "none")
   set(CMAKE_CXX_COMPILER_LAUNCHER "" CACHE STRING "C++ compiler launcher" FORCE)
 endif()
 if(PROJECT_IS_TOP_LEVEL)
   include(CTest)
 endif()
-set(BOILERPLATE_INSTALL "${DAGFLOW_INSTALL}")
-include(cmake/boilerplate/Boilerplate.cmake)
-get_property(_dagflow_parent_project GLOBAL PROPERTY BOILERPLATE_PROJECT_CONFIGURED)
+include(cmake/dagflow/DagFlow.cmake)
+get_property(_dagflow_parent_project GLOBAL PROPERTY DAGFLOW_PROJECT_CONFIGURED)
 if(NOT _dagflow_parent_project)
   set(_dagflow_caps ${DAGFLOW_PROJECT_CAPABILITIES})
   if(DAGFLOW_BUILD_FUZZERS)
@@ -71,7 +75,13 @@ if(NOT _dagflow_parent_project)
   if(DAGFLOW_ENABLE_PACKAGING)
     list(APPEND _dagflow_caps packaging)
   endif()
-  boilerplate_project(TOP_LEVEL_CAPABILITIES ${_dagflow_caps}
+  if(DAGFLOW_COVERAGE)
+    list(APPEND _dagflow_caps coverage-report)
+  endif()
+  if(DAGFLOW_REPRODUCIBLE_BUILD)
+    list(APPEND _dagflow_caps reproducible-build)
+  endif()
+  dagflow_project(TOP_LEVEL_CAPABILITIES ${_dagflow_caps}
     EMBEDDED_CAPABILITIES project-minimal)
 endif()
 find_package(Threads REQUIRED)
@@ -92,6 +102,21 @@ endif()
 if(DAGFLOW_BUILD_HARNESS)
   include(cmake/DagFlowHarness.cmake)
 endif()
+# A developer opt-in source-tree overlay port uses the same package export as
+# install() and never makes normal consumers depend on a package manager.
+if(PROJECT_IS_TOP_LEVEL AND DAGFLOW_GENERATE_VCPKG_PORT)
+  if(NOT DAGFLOW_INSTALL)
+    message(FATAL_ERROR "DAGFLOW_GENERATE_VCPKG_PORT requires DAGFLOW_INSTALL=ON")
+  endif()
+  dagflow_vcpkg_port(dagflow VERSION ${PROJECT_VERSION}
+    DESCRIPTION "DagFlow work-stealing scheduler and task graph runtime"
+    SPDX_LICENSE MIT LICENSE_FILE LICENSE
+    SOURCE_DIR "${CMAKE_SOURCE_DIR}" PACKAGES DagFlow
+    OPTIONS "-DDAGFLOW_BUILD_TESTS=OFF" "-DDAGFLOW_BUILD_EXAMPLES=OFF"
+      "-DDAGFLOW_BUILD_BENCH=OFF" "-DDAGFLOW_INSTALL=ON"
+      "-DDAGFLOW_ALLOCATOR=system" "-DDAGFLOW_DEPENDENCY_PROVIDER=system"
+    OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/vcpkg-ports")
+endif()
 if(NOT _dagflow_parent_project)
-  boilerplate_finalize_project()
+  dagflow_finalize_project()
 endif()

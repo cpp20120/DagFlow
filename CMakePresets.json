@@ -17,7 +17,7 @@
         "DAGFLOW_INSTALL": "ON",
         "DAGFLOW_BUILD_PUBLIC_API_BENCH": "ON",
         "DAGFLOW_ALLOCATOR": "system",
-        "BOILERPLATE_COMPILER_CACHE": "none"
+        "DAGFLOW_COMPILER_CACHE": "none"
       }
     },
     {
@@ -44,9 +44,9 @@
       "inherits": "shared-base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "BOILERPLATE_ENABLE_NO_SEMANTIC_INTERPOSITION": "ON",
-        "BOILERPLATE_ENABLE_GC_SECTIONS": "ON",
-        "BOILERPLATE_ENABLE_NO_PLT": "ON"
+        "DAGFLOW_ENABLE_NO_SEMANTIC_INTERPOSITION": "ON",
+        "DAGFLOW_ENABLE_GC_SECTIONS": "ON",
+        "DAGFLOW_ENABLE_NO_PLT": "ON"
       }
     },
     {
@@ -55,8 +55,8 @@
       "inherits": "static-base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "BOILERPLATE_ENABLE_GC_SECTIONS": "ON",
-        "BOILERPLATE_ENABLE_NO_PLT": "ON"
+        "DAGFLOW_ENABLE_GC_SECTIONS": "ON",
+        "DAGFLOW_ENABLE_NO_PLT": "ON"
       }
     },
     {
@@ -66,7 +66,7 @@
       "binaryDir": "${sourceDir}/out/build/debug",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "BOILERPLATE_ARTIFACT_SUFFIX": "-debug",
+        "DAGFLOW_ARTIFACT_SUFFIX": "-debug",
         "DAGFLOW_BUILD_TESTS": "ON"
       }
     },
@@ -77,7 +77,7 @@
       "binaryDir": "${sourceDir}/out/build/relwithdebinfo",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "RelWithDebInfo",
-        "BOILERPLATE_ARTIFACT_SUFFIX": "-relwithdebinfo"
+        "DAGFLOW_ARTIFACT_SUFFIX": "-relwithdebinfo"
       }
     },
     {
@@ -86,7 +86,7 @@
       "inherits": "aggressive-shared",
       "binaryDir": "${sourceDir}/out/build/release",
       "cacheVariables": {
-        "BOILERPLATE_ARTIFACT_SUFFIX": "-release"
+        "DAGFLOW_ARTIFACT_SUFFIX": "-release"
       }
     },
     {
@@ -95,8 +95,8 @@
       "inherits": "aggressive-shared",
       "binaryDir": "${sourceDir}/out/build/release-thinlto",
       "cacheVariables": {
-        "BOILERPLATE_ARTIFACT_SUFFIX": "-release-thinlto",
-        "BOILERPLATE_LTO_MODE": "thin"
+        "DAGFLOW_ARTIFACT_SUFFIX": "-release-thinlto",
+        "DAGFLOW_LTO_MODE": "thin"
       }
     },
     {
@@ -105,8 +105,8 @@
       "inherits": "aggressive-shared",
       "binaryDir": "${sourceDir}/out/build/release-fulllto",
       "cacheVariables": {
-        "BOILERPLATE_ARTIFACT_SUFFIX": "-release-fulllto",
-        "BOILERPLATE_LTO_MODE": "full"
+        "DAGFLOW_ARTIFACT_SUFFIX": "-release-fulllto",
+        "DAGFLOW_LTO_MODE": "full"
       }
     },
     {
@@ -115,8 +115,8 @@
       "inherits": "release-thinlto",
       "binaryDir": "${sourceDir}/out/build/release-native-thinlto",
       "cacheVariables": {
-        "BOILERPLATE_ARTIFACT_SUFFIX": "-release-native-thinlto",
-        "BOILERPLATE_ENABLE_NATIVE": "ON"
+        "DAGFLOW_ARTIFACT_SUFFIX": "-release-native-thinlto",
+        "DAGFLOW_ENABLE_NATIVE": "ON"
       }
     },
     {
@@ -125,8 +125,8 @@
       "inherits": "release-fulllto",
       "binaryDir": "${sourceDir}/out/build/release-native-fulllto",
       "cacheVariables": {
-        "BOILERPLATE_ARTIFACT_SUFFIX": "-release-native-fulllto",
-        "BOILERPLATE_ENABLE_NATIVE": "ON"
+        "DAGFLOW_ARTIFACT_SUFFIX": "-release-native-fulllto",
+        "DAGFLOW_ENABLE_NATIVE": "ON"
       }
     },
     {
@@ -135,7 +135,7 @@
       "inherits": "aggressive-static",
       "binaryDir": "${sourceDir}/out/build/static-release",
       "cacheVariables": {
-        "BOILERPLATE_ARTIFACT_SUFFIX": "-static-release"
+        "DAGFLOW_ARTIFACT_SUFFIX": "-static-release"
       }
     },
     {
@@ -144,8 +144,8 @@
       "inherits": "aggressive-static",
       "binaryDir": "${sourceDir}/out/build/static-thinlto",
       "cacheVariables": {
-        "BOILERPLATE_ARTIFACT_SUFFIX": "-static-thinlto",
-        "BOILERPLATE_LTO_MODE": "thin"
+        "DAGFLOW_ARTIFACT_SUFFIX": "-static-thinlto",
+        "DAGFLOW_LTO_MODE": "thin"
       }
     },
     {
@@ -154,8 +154,8 @@
       "inherits": "aggressive-static",
       "binaryDir": "${sourceDir}/out/build/static-fulllto",
       "cacheVariables": {
-        "BOILERPLATE_ARTIFACT_SUFFIX": "-static-fulllto",
-        "BOILERPLATE_LTO_MODE": "full"
+        "DAGFLOW_ARTIFACT_SUFFIX": "-static-fulllto",
+        "DAGFLOW_LTO_MODE": "full"
       }
     },
     {
@@ -164,8 +164,8 @@
       "inherits": "static-thinlto",
       "binaryDir": "${sourceDir}/out/build/static-native-thinlto",
       "cacheVariables": {
-        "BOILERPLATE_ARTIFACT_SUFFIX": "-static-native-thinlto",
-        "BOILERPLATE_ENABLE_NATIVE": "ON"
+        "DAGFLOW_ARTIFACT_SUFFIX": "-static-native-thinlto",
+        "DAGFLOW_ENABLE_NATIVE": "ON"
       }
     },
     {
@@ -174,8 +174,8 @@
       "inherits": "static-fulllto",
       "binaryDir": "${sourceDir}/out/build/static-native-fulllto",
       "cacheVariables": {
-        "BOILERPLATE_ARTIFACT_SUFFIX": "-static-native-fulllto",
-        "BOILERPLATE_ENABLE_NATIVE": "ON"
+        "DAGFLOW_ARTIFACT_SUFFIX": "-static-native-fulllto",
+        "DAGFLOW_ENABLE_NATIVE": "ON"
       }
     },
     {
@@ -184,10 +184,10 @@
       "inherits": "static-native-fulllto",
       "binaryDir": "${sourceDir}/out/build/pgo-generate",
       "cacheVariables": {
-        "BOILERPLATE_ARTIFACT_SUFFIX": "-pgo-gen",
-        "BOILERPLATE_PGO_MODE": "generate",
-        "BOILERPLATE_PGO_DIR": "${sourceDir}/out/pgo/raw",
-        "BOILERPLATE_PGO_MERGED_PROFILE": "${sourceDir}/out/pgo/dagflow.profdata"
+        "DAGFLOW_ARTIFACT_SUFFIX": "-pgo-gen",
+        "DAGFLOW_PGO_MODE": "generate",
+        "DAGFLOW_PGO_DIR": "${sourceDir}/out/pgo/raw",
+        "DAGFLOW_PGO_MERGED_PROFILE": "${sourceDir}/out/pgo/dagflow.profdata"
       }
     },
     {
@@ -196,10 +196,10 @@
       "inherits": "release-native-fulllto",
       "binaryDir": "${sourceDir}/out/build/pgo-use-shared",
       "cacheVariables": {
-        "BOILERPLATE_ARTIFACT_SUFFIX": "-pgo-shared",
-        "BOILERPLATE_PGO_MODE": "use",
-        "BOILERPLATE_PGO_DIR": "${sourceDir}/out/pgo/raw",
-        "BOILERPLATE_PGO_PROFILE": "${sourceDir}/out/pgo/dagflow.profdata"
+        "DAGFLOW_ARTIFACT_SUFFIX": "-pgo-shared",
+        "DAGFLOW_PGO_MODE": "use",
+        "DAGFLOW_PGO_DIR": "${sourceDir}/out/pgo/raw",
+        "DAGFLOW_PGO_PROFILE": "${sourceDir}/out/pgo/dagflow.profdata"
       }
     },
     {
@@ -208,10 +208,10 @@
       "inherits": "static-native-fulllto",
       "binaryDir": "${sourceDir}/out/build/pgo-use-static",
       "cacheVariables": {
-        "BOILERPLATE_ARTIFACT_SUFFIX": "-pgo-static",
-        "BOILERPLATE_PGO_MODE": "use",
-        "BOILERPLATE_PGO_DIR": "${sourceDir}/out/pgo/raw",
-        "BOILERPLATE_PGO_PROFILE": "${sourceDir}/out/pgo/dagflow.profdata"
+        "DAGFLOW_ARTIFACT_SUFFIX": "-pgo-static",
+        "DAGFLOW_PGO_MODE": "use",
+        "DAGFLOW_PGO_DIR": "${sourceDir}/out/pgo/raw",
+        "DAGFLOW_PGO_PROFILE": "${sourceDir}/out/pgo/dagflow.profdata"
       }
     },
     {
@@ -231,56 +231,56 @@
         "DAGFLOW_BUILD_STRESS_BENCH": "ON",
         "DAGFLOW_BUILD_FUNCTION_BENCH": "ON",
         "DAGFLOW_BUILD_BENCH": "OFF",
-        "BOILERPLATE_COMPILER_CACHE": "none"
+        "DAGFLOW_COMPILER_CACHE": "none"
       }
     },
     {
       "name": "bench-release",
       "inherits": "bench-base",
       "cacheVariables": {
-        "BOILERPLATE_PROFILE": "release"
+        "DAGFLOW_PROFILE": "release"
       }
     },
     {
       "name": "bench-lto",
       "inherits": "bench-base",
       "cacheVariables": {
-        "BOILERPLATE_PROFILE": "lto"
+        "DAGFLOW_PROFILE": "lto"
       }
     },
     {
       "name": "bench-full-lto",
       "inherits": "bench-base",
       "cacheVariables": {
-        "BOILERPLATE_PROFILE": "full-lto"
+        "DAGFLOW_PROFILE": "full-lto"
       }
     },
     {
       "name": "bench-native-thinlto",
       "inherits": "bench-base",
       "cacheVariables": {
-        "BOILERPLATE_PROFILE": "native-thinlto"
+        "DAGFLOW_PROFILE": "native-thinlto"
       }
     },
     {
       "name": "bench-native-full-lto",
       "inherits": "bench-base",
       "cacheVariables": {
-        "BOILERPLATE_PROFILE": "native-full-lto"
+        "DAGFLOW_PROFILE": "native-full-lto"
       }
     },
     {
       "name": "bench-o3",
       "inherits": "bench-base",
       "cacheVariables": {
-        "BOILERPLATE_PROFILE": "o3"
+        "DAGFLOW_PROFILE": "o3"
       }
     },
     {
       "name": "bench-o3-lto",
       "inherits": "bench-base",
       "cacheVariables": {
-        "BOILERPLATE_PROFILE": "o3-lto"
+        "DAGFLOW_PROFILE": "o3-lto"
       }
     },
     {
@@ -327,8 +327,8 @@
         "DAGFLOW_BUILD_RUNTIME_BENCH": "OFF",
         "DAGFLOW_BUILD_PUBLIC_API_BENCH": "OFF",
         "DAGFLOW_INSTALL": "OFF",
-        "BOILERPLATE_FUZZ_BACKEND": "libfuzzer",
-        "BOILERPLATE_FUZZ_SANITIZER": "address-undefined",
+        "DAGFLOW_FUZZ_BACKEND": "libfuzzer",
+        "DAGFLOW_FUZZ_SANITIZER": "address-undefined",
         "DAGFLOW_BUILD_RUNTIME_SUITE": "OFF",
         "CMAKE_CXX_COMPILER": "clang++"
       },
@@ -338,52 +338,52 @@
       "name": "check-asan",
       "inherits": "bench-check",
       "cacheVariables": {
-        "BOILERPLATE_PROFILE": "debug",
-        "BOILERPLATE_SANITIZER": "address-undefined"
+        "DAGFLOW_PROFILE": "debug",
+        "DAGFLOW_SANITIZER": "address-undefined"
       }
     },
     {
       "name": "check-tsan",
       "inherits": "bench-check",
       "cacheVariables": {
-        "BOILERPLATE_PROFILE": "debug",
-        "BOILERPLATE_SANITIZER": "thread"
+        "DAGFLOW_PROFILE": "debug",
+        "DAGFLOW_SANITIZER": "thread"
       }
     },
     {
       "name": "bench-pgo-generate",
       "inherits": "bench-base",
       "cacheVariables": {
-        "BOILERPLATE_PROFILE": "pgo-generate",
-        "BOILERPLATE_PGO_DIR": "${sourceDir}/out/pgo/bench-pgo/raw",
-        "BOILERPLATE_PGO_MERGED_PROFILE": "${sourceDir}/out/pgo/bench-pgo/dagflow.profdata"
+        "DAGFLOW_PROFILE": "pgo-generate",
+        "DAGFLOW_PGO_DIR": "${sourceDir}/out/pgo/bench-pgo/raw",
+        "DAGFLOW_PGO_MERGED_PROFILE": "${sourceDir}/out/pgo/bench-pgo/dagflow.profdata"
       }
     },
     {
       "name": "bench-pgo-use",
       "inherits": "bench-base",
       "cacheVariables": {
-        "BOILERPLATE_PROFILE": "pgo-use",
-        "BOILERPLATE_PGO_DIR": "${sourceDir}/out/pgo/bench-pgo/raw",
-        "BOILERPLATE_PGO_PROFILE": "${sourceDir}/out/pgo/bench-pgo/dagflow.profdata"
+        "DAGFLOW_PROFILE": "pgo-use",
+        "DAGFLOW_PGO_DIR": "${sourceDir}/out/pgo/bench-pgo/raw",
+        "DAGFLOW_PGO_PROFILE": "${sourceDir}/out/pgo/bench-pgo/dagflow.profdata"
       }
     },
     {
       "name": "bench-lto-pgo-generate",
       "inherits": "bench-base",
       "cacheVariables": {
-        "BOILERPLATE_PROFILE": "lto-pgo-generate",
-        "BOILERPLATE_PGO_DIR": "${sourceDir}/out/pgo/bench-lto-pgo/raw",
-        "BOILERPLATE_PGO_MERGED_PROFILE": "${sourceDir}/out/pgo/bench-lto-pgo/dagflow.profdata"
+        "DAGFLOW_PROFILE": "lto-pgo-generate",
+        "DAGFLOW_PGO_DIR": "${sourceDir}/out/pgo/bench-lto-pgo/raw",
+        "DAGFLOW_PGO_MERGED_PROFILE": "${sourceDir}/out/pgo/bench-lto-pgo/dagflow.profdata"
       }
     },
     {
       "name": "bench-lto-pgo-use",
       "inherits": "bench-base",
       "cacheVariables": {
-        "BOILERPLATE_PROFILE": "lto-pgo-use",
-        "BOILERPLATE_PGO_DIR": "${sourceDir}/out/pgo/bench-lto-pgo/raw",
-        "BOILERPLATE_PGO_PROFILE": "${sourceDir}/out/pgo/bench-lto-pgo/dagflow.profdata"
+        "DAGFLOW_PROFILE": "lto-pgo-use",
+        "DAGFLOW_PGO_DIR": "${sourceDir}/out/pgo/bench-lto-pgo/raw",
+        "DAGFLOW_PGO_PROFILE": "${sourceDir}/out/pgo/bench-lto-pgo/dagflow.profdata"
       }
     },
     {
@@ -441,7 +441,7 @@
       "name": "bench-check-vcpkg",
       "inherits": "bench-check",
       "cacheVariables": {
-        "BOILERPLATE_DEPENDENCY_PROVIDER": "vcpkg",
+        "DAGFLOW_DEPENDENCY_PROVIDER": "vcpkg",
         "VCPKG_MANIFEST_FEATURES": "tbb-bench"
       }
     },
@@ -477,6 +477,149 @@
       "generator": "Ninja",
       "cacheVariables": {
         "CMAKE_CXX_COMPILER": "g++"
+      }
+    },
+    {
+      "name": "coverage",
+      "displayName": "GCC coverage / gcov compatible",
+      "inherits": "static-base",
+      "binaryDir": "${sourceDir}/out/build/coverage",
+      "generator": "Ninja",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "DAGFLOW_COVERAGE": "ON",
+        "DAGFLOW_INSTALL": "OFF",
+        "DAGFLOW_BUILD_EXAMPLES": "OFF",
+        "DAGFLOW_BUILD_RUNTIME_BENCH": "OFF",
+        "DAGFLOW_BUILD_PUBLIC_API_BENCH": "OFF",
+        "DAGFLOW_BUILD_TESTS": "ON",
+        "CMAKE_CXX_COMPILER": "g++",
+        "DAGFLOW_COMPILER_CACHE": "none"
+      }
+    },
+    {
+      "name": "ci-debug",
+      "displayName": "CI: tests without developer tooling",
+      "inherits": "debug",
+      "binaryDir": "${sourceDir}/out/build/ci-debug",
+      "cacheVariables": {
+        "DAGFLOW_PROJECT_CAPABILITIES": "ci",
+        "DAGFLOW_COMPILER_CACHE": "none"
+      }
+    },
+    {
+      "name": "distribution",
+      "displayName": "Portable library distribution",
+      "inherits": "static-base",
+      "binaryDir": "${sourceDir}/out/build/distribution",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "DAGFLOW_BUILD_SHARED": "ON",
+        "DAGFLOW_BUILD_STATIC": "ON",
+        "DAGFLOW_INSTALL": "ON",
+        "DAGFLOW_BUILD_TESTS": "OFF",
+        "DAGFLOW_BUILD_EXAMPLES": "OFF",
+        "DAGFLOW_BUILD_RUNTIME_BENCH": "OFF",
+        "DAGFLOW_BUILD_PUBLIC_API_BENCH": "OFF",
+        "DAGFLOW_ENABLE_PACKAGING": "ON",
+        "DAGFLOW_REPRODUCIBLE_BUILD": "ON",
+        "DAGFLOW_PROJECT_CAPABILITIES": "distribution",
+        "DAGFLOW_COMPILER_CACHE": "none"
+      }
+    },
+    {
+      "name": "native-linux-clang",
+      "displayName": "Native Linux Clang (SDK policy)",
+      "inherits": "core",
+      "binaryDir": "${sourceDir}/out/build/native-linux-clang",
+      "toolchainFile": "${sourceDir}/toolchains/native-linux-clang.cmake",
+      "generator": "Ninja",
+      "cacheVariables": {
+        "DAGFLOW_COMPILER_CACHE": "none"
+      }
+    },
+    {
+      "name": "linux-arm64",
+      "displayName": "Cross: linux-arm64 (SDK required)",
+      "binaryDir": "${sourceDir}/out/build/linux-arm64",
+      "toolchainFile": "${sourceDir}/toolchains/linux-aarch64.cmake",
+      "generator": "Ninja",
+      "cacheVariables": {
+        "DAGFLOW_BUILD_TESTS": "OFF",
+        "DAGFLOW_BUILD_EXAMPLES": "OFF",
+        "DAGFLOW_BUILD_RUNTIME_BENCH": "OFF",
+        "DAGFLOW_BUILD_PUBLIC_API_BENCH": "OFF",
+        "DAGFLOW_BUILD_BENCH": "OFF",
+        "DAGFLOW_BUILD_FUZZERS": "OFF",
+        "DAGFLOW_BUILD_STATIC": "ON",
+        "DAGFLOW_BUILD_SHARED": "OFF",
+        "DAGFLOW_INSTALL": "ON",
+        "DAGFLOW_COMPILER_CACHE": "none",
+        "DAGFLOW_PROJECT_CAPABILITIES": "project-minimal",
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "windows-x64-from-linux",
+      "displayName": "Cross: windows-x64-from-linux (SDK required)",
+      "binaryDir": "${sourceDir}/out/build/windows-x64-from-linux",
+      "toolchainFile": "${sourceDir}/toolchains/llvm-mingw-x64.cmake",
+      "generator": "Ninja",
+      "cacheVariables": {
+        "DAGFLOW_BUILD_TESTS": "OFF",
+        "DAGFLOW_BUILD_EXAMPLES": "OFF",
+        "DAGFLOW_BUILD_RUNTIME_BENCH": "OFF",
+        "DAGFLOW_BUILD_PUBLIC_API_BENCH": "OFF",
+        "DAGFLOW_BUILD_BENCH": "OFF",
+        "DAGFLOW_BUILD_FUZZERS": "OFF",
+        "DAGFLOW_BUILD_STATIC": "ON",
+        "DAGFLOW_BUILD_SHARED": "OFF",
+        "DAGFLOW_INSTALL": "ON",
+        "DAGFLOW_COMPILER_CACHE": "none",
+        "DAGFLOW_PROJECT_CAPABILITIES": "project-minimal",
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "android-arm64",
+      "displayName": "Cross: android-arm64 (SDK required)",
+      "binaryDir": "${sourceDir}/out/build/android-arm64",
+      "toolchainFile": "${sourceDir}/toolchains/android-arm64.cmake",
+      "generator": "Ninja",
+      "cacheVariables": {
+        "DAGFLOW_BUILD_TESTS": "OFF",
+        "DAGFLOW_BUILD_EXAMPLES": "OFF",
+        "DAGFLOW_BUILD_RUNTIME_BENCH": "OFF",
+        "DAGFLOW_BUILD_PUBLIC_API_BENCH": "OFF",
+        "DAGFLOW_BUILD_BENCH": "OFF",
+        "DAGFLOW_BUILD_FUZZERS": "OFF",
+        "DAGFLOW_BUILD_STATIC": "ON",
+        "DAGFLOW_BUILD_SHARED": "OFF",
+        "DAGFLOW_INSTALL": "ON",
+        "DAGFLOW_COMPILER_CACHE": "none",
+        "DAGFLOW_PROJECT_CAPABILITIES": "project-minimal",
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "wasm32-emscripten",
+      "displayName": "Cross: wasm32-emscripten (SDK required)",
+      "binaryDir": "${sourceDir}/out/build/wasm32-emscripten",
+      "toolchainFile": "${sourceDir}/toolchains/wasm32-emscripten.cmake",
+      "generator": "Ninja",
+      "cacheVariables": {
+        "DAGFLOW_BUILD_TESTS": "OFF",
+        "DAGFLOW_BUILD_EXAMPLES": "OFF",
+        "DAGFLOW_BUILD_RUNTIME_BENCH": "OFF",
+        "DAGFLOW_BUILD_PUBLIC_API_BENCH": "OFF",
+        "DAGFLOW_BUILD_BENCH": "OFF",
+        "DAGFLOW_BUILD_FUZZERS": "OFF",
+        "DAGFLOW_BUILD_STATIC": "ON",
+        "DAGFLOW_BUILD_SHARED": "OFF",
+        "DAGFLOW_INSTALL": "ON",
+        "DAGFLOW_COMPILER_CACHE": "none",
+        "DAGFLOW_PROJECT_CAPABILITIES": "project-minimal",
+        "CMAKE_BUILD_TYPE": "Release"
       }
     }
   ],
@@ -615,7 +758,7 @@
       "name": "fuzz",
       "configurePreset": "fuzz",
       "targets": [
-        "boilerplate_fuzzers"
+        "dagflow_fuzzers"
       ],
       "configuration": "Debug"
     },
@@ -707,6 +850,46 @@
     {
       "name": "gcc",
       "configurePreset": "gcc",
+      "configuration": "Release"
+    },
+    {
+      "name": "coverage",
+      "configurePreset": "coverage",
+      "configuration": "Debug"
+    },
+    {
+      "name": "ci-debug",
+      "configurePreset": "ci-debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "distribution",
+      "configurePreset": "distribution",
+      "configuration": "Release"
+    },
+    {
+      "name": "native-linux-clang",
+      "configurePreset": "native-linux-clang",
+      "configuration": "Release"
+    },
+    {
+      "name": "linux-arm64",
+      "configurePreset": "linux-arm64",
+      "configuration": "Release"
+    },
+    {
+      "name": "windows-x64-from-linux",
+      "configurePreset": "windows-x64-from-linux",
+      "configuration": "Release"
+    },
+    {
+      "name": "android-arm64",
+      "configurePreset": "android-arm64",
+      "configuration": "Release"
+    },
+    {
+      "name": "wasm32-emscripten",
+      "configurePreset": "wasm32-emscripten",
       "configuration": "Release"
     }
   ],
@@ -1182,6 +1365,149 @@
       "execution": {
         "noTestsAction": "error"
       }
+    },
+    {
+      "name": "coverage",
+      "configurePreset": "coverage",
+      "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "ci-debug",
+      "configurePreset": "ci-debug",
+      "configuration": "Debug",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "native-linux-clang",
+      "configurePreset": "native-linux-clang",
+      "configuration": "Release",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    }
+  ],
+  "workflowPresets": [
+    {
+      "name": "core",
+      "displayName": "core: configure, build, test",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "core"
+        },
+        {
+          "type": "build",
+          "name": "core"
+        },
+        {
+          "type": "test",
+          "name": "core"
+        }
+      ]
+    },
+    {
+      "name": "runtime-check",
+      "displayName": "runtime-check: configure, build, test",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "runtime-check"
+        },
+        {
+          "type": "build",
+          "name": "runtime-check"
+        },
+        {
+          "type": "test",
+          "name": "runtime-check"
+        }
+      ]
+    },
+    {
+      "name": "debug",
+      "displayName": "debug: configure, build, test",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "debug"
+        },
+        {
+          "type": "build",
+          "name": "debug"
+        },
+        {
+          "type": "test",
+          "name": "debug"
+        }
+      ]
+    },
+    {
+      "name": "ci-debug",
+      "displayName": "ci-debug: configure, build, test",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "ci-debug"
+        },
+        {
+          "type": "build",
+          "name": "ci-debug"
+        },
+        {
+          "type": "test",
+          "name": "ci-debug"
+        }
+      ]
+    },
+    {
+      "name": "coverage",
+      "displayName": "coverage: configure, build, test",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "coverage"
+        },
+        {
+          "type": "build",
+          "name": "coverage"
+        },
+        {
+          "type": "test",
+          "name": "coverage"
+        }
+      ]
+    },
+    {
+      "name": "native-linux-clang",
+      "displayName": "native-linux-clang: configure, build, test",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "native-linux-clang"
+        },
+        {
+          "type": "build",
+          "name": "native-linux-clang"
+        },
+        {
+          "type": "test",
+          "name": "native-linux-clang"
+        }
+      ]
     }
   ]
 }

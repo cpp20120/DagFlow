@@ -11,7 +11,7 @@ Linux, perf 7.2.7. Измерен **пользовательский `bench/stre
 ## Условия
 
 - Основные сборки: `-O3 -g -DNDEBUG`, static DagFlow + dynamic mimalloc,
-  одинаковый lld; `BOILERPLATE_LTO_MODE=none` против `full` (`-flto=full`).
+  одинаковый lld; `DAGFLOW_LTO_MODE=none` против `full` (`-flto=full`).
   PGO и native CPU flags выключены. Это Full LTO, не ThinLTO.
 - Зафиксирован снимок исходников в `source/`. В `main.cpp` добавлен только
   выбор `--scenario` / `--workers`; тела нагрузок, размеры, 2 warmup + 7 timed

@@ -1,9 +1,0 @@
-@PACKAGE_INIT@
-include(CMakeFindDependencyMacro)
-# Use PACKAGE_CONFIG to supply a template with find_dependency() calls when needed.
-include("${CMAKE_CURRENT_LIST_DIR}/@BOILERPLATE_PACKAGE_NAME@Targets.cmake")
-if(NOT TARGET @BOILERPLATE_PACKAGE_NAME@::@BOILERPLATE_PACKAGE_NAME@)
-  add_library(@BOILERPLATE_PACKAGE_NAME@::@BOILERPLATE_PACKAGE_NAME@
-    ALIAS @BOILERPLATE_PACKAGE_NAME@::@BOILERPLATE_PACKAGE_PREFERRED@)
-endif()
-check_required_components(@BOILERPLATE_PACKAGE_NAME@)

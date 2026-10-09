@@ -150,7 +150,7 @@ ctest --test-dir out/build/tests --output-on-failure --no-tests=error
 | [`dagflow_campaign_tests`](campaign_tests.cmake) | Campaign summary/manifest generation and rejection of synthetic slowdowns, mismatched arguments, and failed results; requires the runtime suite. |
 | [`dagflow_cmake_configuration_tests`](cmake_configuration_tests.cmake) | Optional dependency handling, invalid settings, PGO dependencies for late-added sources, independent tool lookup, capability registration, and analysis source filtering; registered with Ninja and non-MSVC Clang. |
 | [`install_consumer/`](install_consumer/CMakeLists.txt) | Separate consumer project validates installed package discovery and preferred/shared/static exported targets. CI installs, builds, and runs it separately from the main CTest suite. |
-| [`cmake_capabilities/`](cmake_capabilities/CMakeLists.txt) | Separate project exercises embedded toolkit capabilities, metadata, fuzzing, and optional RapidCheck/CUDA fixtures; see [capability validation](../docs/cmake-capabilities-validation.md). |
+| [`cmake_capabilities/`](cmake_capabilities/CMakeLists.txt) | Separate project exercises embedded toolkit capabilities, metadata, fuzzing, and optional RapidCheck fixtures; see [capability validation](../docs/cmake-capabilities-validation.md). |
 
 These checks validate benchmark behavior and result formats. They do not impose
 a machine-specific throughput baseline. Ordinary CTest registration does not
@@ -173,8 +173,8 @@ ctest --preset check-tsan --no-tests=error
 
 For a runtime-only sanitizer build, reuse the explicit options from the first
 configure command in a fresh directory, select `-DCMAKE_CXX_COMPILER=clang++`,
-and add `-DBOILERPLATE_SANITIZER=address-undefined` or
-`-DBOILERPLATE_SANITIZER=thread`. Build and run CTest in that directory.
+and add `-DDAGFLOW_SANITIZER=address-undefined` or
+`-DDAGFLOW_SANITIZER=thread`. Build and run CTest in that directory.
 
 `adversarial-tiny` builds and runs only the thirteen adversarial regressions
 with two-slot queues and a central batch of one. The ordinary tests use normal

@@ -25,7 +25,7 @@ if(WIN32)
   add_custom_command(TARGET dagflow_install_consumer POST_BUILD
     COMMAND ${CMAKE_COMMAND} "-DRUNTIME_FILES=$<TARGET_RUNTIME_DLLS:dagflow_install_consumer>"
       "-DDESTINATION=$<TARGET_FILE_DIR:dagflow_install_consumer>"
-      -P "${CMAKE_CURRENT_LIST_DIR}/../../cmake/boilerplate/packaging/CopyRuntimeLibraries.cmake"
+      -P "${CMAKE_CURRENT_LIST_DIR}/../../cmake/dagflow/packaging/CopyRuntimeLibraries.cmake"
     VERBATIM)
 endif()
 enable_testing()

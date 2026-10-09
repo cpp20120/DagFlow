@@ -1,7 +1,7 @@
 # Training and merge are explicit framework targets, never part of ALL.
 function(dagflow_register_training target)
   if(TARGET ${target})
-    boilerplate_pgo_workload(${target} ${ARGN})
+    dagflow_pgo_workload(${target} ${ARGN})
   endif()
 endfunction()
 dagflow_register_training(dagflow_runtime_suite --workers 2 --tasks 512

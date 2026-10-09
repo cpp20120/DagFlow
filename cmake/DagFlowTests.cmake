@@ -33,14 +33,14 @@ if(_dagflow_stress_test_target)
       -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/main_harness_tests.cmake")
   set_tests_properties(dagflow_main_harness_tests PROPERTIES TIMEOUT 120 LABELS "benchmark;schema")
   if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    boilerplate_add_test(dagflow_perf_control_tests SOURCES tests/perf_control_tests.cpp
+    dagflow_add_test(dagflow_perf_control_tests SOURCES tests/perf_control_tests.cpp
       ARGS "$<TARGET_FILE:${_dagflow_stress_test_target}>" TIMEOUT 40 LABELS benchmark)
     add_dependencies(dagflow_perf_control_tests ${_dagflow_stress_test_target})
   endif()
 endif()
 
 if(TARGET dagflow_runtime_suite)
-  boilerplate_add_harness(dagflow_campaign_check TARGET dagflow_runtime_suite
+  dagflow_add_harness(dagflow_campaign_check TARGET dagflow_runtime_suite
     CASES "${CMAKE_CURRENT_SOURCE_DIR}/bench/runtime_cases.json"
     ROUNDS 2 WARMUP_RUNS 0 TIMEOUT 10 METRICS run_p50_us payload_tasks_per_second
     INVARIANTS checksum METADATA migration_test=native)
@@ -57,7 +57,7 @@ if(TARGET dagflow_runtime_suite)
 endif()
 
 function(dagflow_add_runtime_unit_test name source)
-  boilerplate_add_test(${name} SOURCES ${source} LIBRARIES Threads::Threads TIMEOUT 60)
+  dagflow_add_test(${name} SOURCES ${source} LIBRARIES Threads::Threads TIMEOUT 60)
   target_include_directories(${name} PRIVATE include)
 endfunction()
 
@@ -80,10 +80,10 @@ target_compile_definitions(dagflow_function_allocation_tests PRIVATE DAGFLOW_FUN
 # TSan provides strong definitions of those operators and cannot interpose them.
 # Keep the tests in ordinary/ASan jobs; queue and runtime tests still run in TSan.
 set(_dagflow_test_allocation_interposition TRUE)
-if(MSVC OR BOILERPLATE_SANITIZER STREQUAL "thread")
+if(MSVC OR DAGFLOW_SANITIZER STREQUAL "thread")
   set(_dagflow_test_allocation_interposition FALSE)
 endif()
-if(BOILERPLATE_SANITIZER STREQUAL "thread")
+if(DAGFLOW_SANITIZER STREQUAL "thread")
   message(STATUS "TSan: allocation-interposition tests are covered by non-TSan configurations")
 endif()
 if(_dagflow_test_allocation_interposition)
@@ -127,7 +127,7 @@ if(DAGFLOW_TARGET)
   target_compile_features(dagflow_adversarial_runtime PUBLIC cxx_std_23)
   target_compile_definitions(dagflow_adversarial_runtime PRIVATE DAGFLOW_STATIC)
   target_link_libraries(dagflow_adversarial_runtime PUBLIC Threads::Threads)
-  boilerplate_apply_optimization(dagflow_adversarial_runtime)
+  dagflow_apply_optimization(dagflow_adversarial_runtime)
   if(DAGFLOW_RUNTIME_DIAGNOSTICS)
     target_compile_definitions(dagflow_adversarial_runtime PUBLIC DAGFLOW_RUNTIME_DIAGNOSTICS=1)
   endif()
@@ -190,6 +190,6 @@ get_property(_dagflow_targets DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
 foreach(_target IN LISTS _dagflow_targets)
   get_target_property(_type ${_target} TYPE)
   if(_type STREQUAL "EXECUTABLE")
-    add_dependencies(boilerplate_tests ${_target})
+    add_dependencies(dagflow_tests ${_target})
   endif()
 endforeach()

@@ -1,0 +1,5 @@
+**/out/**
+**/build/**
+**/third_party/**
+**/vcpkg_installed/**
+**/cmake/dagflow/**

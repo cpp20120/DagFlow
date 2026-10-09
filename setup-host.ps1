@@ -76,7 +76,6 @@ function Refresh-ToolPath {
         # The official NSIS installer defaults to Program Files (x86).
         $paths += Join-Path $installerBase 'NSIS'
         $paths += @(Get-ChildItem (Join-Path $programFilesPath 'Graphviz*/bin') -Directory -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName })
-        $paths += @(Get-ChildItem "$env:SystemDrive/VulkanSDK/*/Bin" -Directory -ErrorAction SilentlyContinue | Sort-Object FullName -Descending | ForEach-Object { $_.FullName })
     }
     $script:activationPaths = @($paths | Where-Object { $_ } | Select-Object -Unique)
     $env:PATH = ($activationPaths -join [IO.Path]::PathSeparator) + [IO.Path]::PathSeparator + $env:PATH
@@ -137,7 +136,6 @@ function Test-HostTools {
         $counts[$status]++
     }
     Write-Host "Summary: already=$($counts.ALREADY) installed=$($counts.INSTALLED) missing=$($counts.MISSING)"
-    Write-Host 'SEPARATE  CUDA, DXC and Emscripten: install separately.'
     return ($counts.MISSING -eq 0)
 }
 if ($mode -eq '--check') { if (Test-HostTools) { exit 0 } else { exit 1 } }

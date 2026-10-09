@@ -12,7 +12,7 @@ bash "$root/build.sh" --dry-run --preset bench-check --jobs 3 --run-target dagfl
 grep -q -- '-DPRESETS=bench-check' "$work/bench"
 grep -q -- '-DRUN_TARGET=dagflow_run_runtime_suite' "$work/bench"
 bash "$root/build.sh" --dry-run --package-format TGZ --no-tests > "$work/package"
-grep -q -- 'DAGFLOW_ENABLE_PACKAGING=ON' "$work/package"
+grep -q -- 'PACKAGING_OPTION=DAGFLOW_ENABLE_PACKAGING' "$work/package"
 grep -q -- 'DAGFLOW_INSTALL=ON' "$work/package"
 grep -q -- '-DRUN_TESTS=OFF' "$work/package"
 for invalid in '--init Demo' '--output x' '--jobs -5' '--preset ../../wrong' '--run-target bad/target' '--package-format BAD'; do
@@ -24,7 +24,7 @@ done
 # Test activation and propagation across actual setup/build entry points using
 # a fake host installer and CMake command. Include quotes/spaces in every path.
 fixture="$work/project ' space"
-mkdir -p "$fixture/scripts" "$fixture/bin" "$fixture/cmake/boilerplate/build"
+mkdir -p "$fixture/scripts" "$fixture/bin" "$fixture/cmake/dagflow/build"
 cp "$root/setup.sh" "$root/build.sh" "$fixture/"
 cp "$root/scripts/entry-options.sh" "$root/scripts/default-preset.txt" "$fixture/scripts/"
 export ENTRY_TEST_ROOT="$fixture" ENTRY_TEST_LOG="$work/commands"

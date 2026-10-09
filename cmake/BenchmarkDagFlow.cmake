@@ -46,7 +46,7 @@ foreach(preset IN LISTS PRESETS)
     set(results "${OUTPUT_DIR}/${preset}/${allocator}/results")
     run("${CMAKE_COMMAND}" --preset "${preset}" -B "${build}"
       -DDAGFLOW_BUILD_HARNESS=ON "-DDAGFLOW_ALLOCATOR=${allocator}"
-      "-DBOILERPLATE_HARNESS_RESULTS_DIR=${results}" ${CONFIGURE_ARGS})
+      "-DDAGFLOW_HARNESS_RESULTS_DIR=${results}" ${CONFIGURE_ARGS})
     file(STRINGS "${build}/CMakeCache.txt" _build_type REGEX "^CMAKE_BUILD_TYPE:STRING=")
     string(REPLACE "CMAKE_BUILD_TYPE:STRING=" "" _config "${_build_type}")
     if(NOT _config)

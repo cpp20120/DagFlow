@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.26)
 include("${CONFIG}")
 execute_process(COMMAND "${CMAKE_COMMAND}" "-DHARNESS_CONFIG=${CONFIG}"
-  -P "${SOURCE_DIR}/cmake/boilerplate/benchmark/HarnessCMake.cmake"
+  -P "${SOURCE_DIR}/cmake/dagflow/benchmark/HarnessCMake.cmake"
   RESULT_VARIABLE rc OUTPUT_VARIABLE out ERROR_VARIABLE err TIMEOUT 30)
 if(NOT "${rc}" STREQUAL "0")
   message(FATAL_ERROR "Native campaign failed: ${out}\n${err}")

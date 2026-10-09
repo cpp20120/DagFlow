@@ -1,0 +1,17 @@
+/.git
+/.idea
+/.vscode
+/.qtcreator
+/.cache
+/out
+/build
+/release_build
+/cmake-build-*
+/scripts/out
+/**/__pycache__
+*.pyc
+*.profraw
+*.profdata
+*.gcda
+*.gcno
+*.patch

@@ -35,7 +35,7 @@ foreach(_kind IN ITEMS runtime stress api tbb github)
   if(DAGFLOW_CAMPAIGN_PERF_EVENTS)
     list(APPEND _perf PERF_EVENTS ${DAGFLOW_CAMPAIGN_PERF_EVENTS})
   endif()
-  boilerplate_add_harness(dagflow_${_kind}_campaign
+  dagflow_add_harness(dagflow_${_kind}_campaign
     TARGET ${_target} CASES "${DAGFLOW_${_upper}_CASES}" ${_group}
     ROUNDS ${DAGFLOW_CAMPAIGN_ROUNDS} WARMUP_RUNS 1 TIMEOUT 120 RANDOMIZE
     AFFINITY ${DAGFLOW_CAMPAIGN_AFFINITY} ${_perf}

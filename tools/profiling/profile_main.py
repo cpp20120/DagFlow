@@ -130,9 +130,9 @@ def main():
                  '-DCMAKE_CXX_FLAGS_RELEASE=-O3 -g -DNDEBUG',
                  '-DDAGFLOW_BUILD_SHARED=OFF', '-DDAGFLOW_BUILD_STATIC=ON', '-DDAGFLOW_INSTALL=OFF',
                  '-DDAGFLOW_BUILD_EXAMPLES=OFF', '-DDAGFLOW_BUILD_STRESS_BENCH=ON', '-DDAGFLOW_BUILD_TESTS=OFF',
-                 '-DBOILERPLATE_USE_LLD=ON', '-DBOILERPLATE_ENABLE_NATIVE=OFF',
-                 '-DBOILERPLATE_PGO_MODE=none', '-DDAGFLOW_ALLOCATOR=mimalloc',
-                 '-DBOILERPLATE_LTO_MODE=' + lto], profile + '-configure')
+                 '-DDAGFLOW_USE_LLD=ON', '-DDAGFLOW_ENABLE_NATIVE=OFF',
+                 '-DDAGFLOW_PGO_MODE=none', '-DDAGFLOW_ALLOCATOR=mimalloc',
+                 '-DDAGFLOW_LTO_MODE=' + lto], profile + '-configure')
         command(['cmake', '--build', build, '--target', 'dagflow_stress_bench', '-j', args.jobs],
                 profile + '-build')
         binaries[profile] = build / 'dagflow-stress-bench'

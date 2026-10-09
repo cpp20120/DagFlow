@@ -1,6 +1,6 @@
 # DagFlow fuzzing by layer
 
-The runtime and harnesses use the boilerplate fuzz API. `dagflow_fuzz_runtime`
+The runtime and harnesses use the dagflow fuzz API. `dagflow_fuzz_runtime`
 is a private instrumented archive compiled from the same source list as the
 production library. Normal shared/static targets, examples and package exports
 remain uninstrumented unless their own build policy requests sanitizers.
@@ -66,9 +66,9 @@ Selecting the disabled `wake_protocol` layer produces a configuration error.
 Old binaries/corpus directories can remain in an existing build tree; use the
 configured targets and CTest registrations rather than discovering targets by
 globbing those leftover directories.
-`BOILERPLATE_FUZZ_RUNTIME` sets the campaign duration and
-`BOILERPLATE_FUZZ_TIMEOUT` the libFuzzer per-input timeout (default 15 seconds).
-`BOILERPLATE_FUZZ_SANITIZER` accepts `none`, `address`, `undefined`, or
+`DAGFLOW_FUZZ_RUNTIME` sets the campaign duration and
+`DAGFLOW_FUZZ_TIMEOUT` the libFuzzer per-input timeout (default 15 seconds).
+`DAGFLOW_FUZZ_SANITIZER` accepts `none`, `address`, `undefined`, or
 `address-undefined` (default). UB is fatal so sanitizer findings stop the run.
 
 Each target copies `fuzz/corpus/<layer>/` into its own build-tree working corpus,
@@ -79,12 +79,12 @@ into the checked-in seeds. Reproduce a finding by passing the artifact directly:
 out/build/fuzz/dagflow_fuzz_graph /path/to/crash-input -runs=1
 ```
 
-`BOILERPLATE_FUZZ_BACKEND` selects `libfuzzer` (the supplied preset), `aflpp` or
+`DAGFLOW_FUZZ_BACKEND` selects `libfuzzer` (the supplied preset), `aflpp` or
 `honggfuzz`. For the latter two, select the corresponding compiler wrapper in a
 fresh build before `project()`. The same backend and sanitizers apply to both
 the instrumented runtime and harnesses. The newest layers have only been built
 with native Clang/libFuzzer; their runtime replay is still pending. The generic
-wrapper checks remain in boilerplate.
+wrapper checks remain in dagflow.
 
 CTest replays the corpus; it is not a long mutation campaign. The CI job also
 budgets 200 additional executions beyond seed initialization per layer and

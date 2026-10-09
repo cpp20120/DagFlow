@@ -1,4 +1,4 @@
-# Build trees and generated artifacts (root-anchored so cmake/boilerplate/build/ is tracked).
+# Build trees and generated artifacts (root-anchored so cmake/dagflow/build/ is tracked).
 /out/
 /build/
 /release_build/
@@ -44,3 +44,7 @@
 
 # Optional adjacent checkout
 /cmake_boilerplate/
+
+# Local cross-SDKs and generated distribution outputs.
+/external/
+/vcpkg_installed/

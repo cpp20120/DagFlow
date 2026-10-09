@@ -1,5 +1,5 @@
 # Private instrumented runtime: production shared/static targets stay untouched.
-boilerplate_add_fuzz_library(dagflow_fuzz_runtime
+dagflow_add_fuzz_library(dagflow_fuzz_runtime
   SOURCES ${DAGFLOW_RUNTIME_SOURCES} LIBRARIES Threads::Threads)
 target_include_directories(dagflow_fuzz_runtime PUBLIC "${PROJECT_SOURCE_DIR}/include")
 target_compile_features(dagflow_fuzz_runtime PUBLIC cxx_std_23)
@@ -26,7 +26,7 @@ foreach(layer IN LISTS _dagflow_fuzz_layers)
   if(NOT layer MATCHES "^(containers|function|queues|scope|pool|graph|parking|lifecycle|accounting|scheduler|credits|allocation|exceptions|ranges|graph_scope|joins|saturation|scope_races)$")
     message(FATAL_ERROR "Unknown DAGFLOW_FUZZ_LAYERS entry: ${layer}")
   endif()
-  boilerplate_add_fuzzer(dagflow_fuzz_${layer}
+  dagflow_add_fuzzer(dagflow_fuzz_${layer}
     SOURCES "fuzz/${layer}_fuzz.cpp" LIBRARIES dagflow_fuzz_runtime
     SEED_CORPUS "fuzz/corpus/${layer}" MAX_LEN 4096)
   target_compile_definitions(dagflow_fuzz_${layer} PRIVATE DAGFLOW_FUZZ_HOOKS=1)

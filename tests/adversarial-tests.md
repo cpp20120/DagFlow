@@ -33,7 +33,7 @@ ctest --test-dir out/build/adversarial-check -L adversarial --output-on-failure
 ```
 
 Use the same label in builds configured with
-`BOILERPLATE_SANITIZER=address-undefined` or `BOILERPLATE_SANITIZER=thread`.
+`DAGFLOW_SANITIZER=address-undefined` or `DAGFLOW_SANITIZER=thread`.
 The two allocation-failure tests link a private copy of the runtime with a
 test allocation backend. It replaces `allocate_bytes`/`deallocate_bytes`, counts
 live runtime allocations, and injects one thread-local failure at an explicit

@@ -11,7 +11,7 @@ ctest --test-dir out/build/examples -R 'dagflow_(example_|api_convenience_tests)
 ```
 
 The default allocator is mimalloc; add `-DDAGFLOW_ALLOCATOR=system` if it is not
-installed. Executable names below assume an empty `BOILERPLATE_ARTIFACT_SUFFIX`.
+installed. Executable names below assume an empty `DAGFLOW_ARTIFACT_SUFFIX`.
 These are short examples with checked results; the separate stress harness lives in `bench/stress_harness.cpp`.
 
 | Source | Executable | Public API demonstrated |

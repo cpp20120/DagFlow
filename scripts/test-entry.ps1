@@ -16,7 +16,7 @@ try {
     Assert (-not (Test-Path (Join-Path $work 'no-sdk'))) 'Dry-run installed vcpkg'
     $package = & $engine -NoProfile -File (Join-Path $root 'build.ps1') -DryRun -PackageFormat ZIP -NoTests
     Assert ($LASTEXITCODE -eq 0) 'Package dry-run failed'
-    Assert (($package -join "`n") -match 'DAGFLOW_ENABLE_PACKAGING=ON') 'Missing DagFlow package option'
+    Assert (($package -join "`n") -match 'PACKAGING_OPTION=DAGFLOW_ENABLE_PACKAGING') 'Missing DagFlow package option'
     Assert (($package -join "`n") -match 'RUN_TESTS=OFF') 'NoTests not forwarded'
     $fixture = Join-Path $work "project ' space"
     New-Item -ItemType Directory -Path (Join-Path $fixture 'scripts') -Force | Out-Null

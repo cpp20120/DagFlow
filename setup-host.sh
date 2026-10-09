@@ -153,7 +153,6 @@ audit() {
   elif [[ "$defer_vcpkg" == true ]]; then echo "DEFERRED  vcpkg executable: its toolchain will bootstrap it."
   else report_tool vcpkg no; fi
   echo "Summary: already=$((ready_count - installed_count)) installed=$installed_count missing=$missing_count"
-  echo 'SEPARATE  CUDA, DXC and Emscripten: install separately.'
   return "$missing"
 }
 if [[ "$mode" == --check ]]; then audit; exit $?; fi

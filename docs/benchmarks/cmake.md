@@ -13,7 +13,7 @@ reports. No benchmark or PGO training runs during an ordinary build.
 DagFlow project switches use the `DAGFLOW_` prefix, including
 `DAGFLOW_BUILD_SHARED`, `DAGFLOW_BUILD_STATIC`, `DAGFLOW_BUILD_TESTS` and
 `DAGFLOW_INSTALL`. Generic profile, policy and harness switches use the
-framework's `BOILERPLATE_` prefix. Reconfigure existing build directories with
+framework's `DAGFLOW_` prefix. Reconfigure existing build directories with
 their preset after updating; old cached option names are no longer read.
 Historical experiment runners translate option names only when building a
 frozen source tree that still declares the old CMake API.
@@ -112,14 +112,14 @@ The same profile definitions work without presets:
 
 ```sh
 cmake -S . -B out/build/my-suite -G Ninja \
-  -DCMAKE_CXX_COMPILER=clang++ -DBOILERPLATE_PROFILE=lto \
-  -DBOILERPLATE_USE_LLD=ON -DDAGFLOW_ALLOCATOR=system \
+  -DCMAKE_CXX_COMPILER=clang++ -DDAGFLOW_PROFILE=lto \
+  -DDAGFLOW_USE_LLD=ON -DDAGFLOW_ALLOCATOR=system \
   -DDAGFLOW_BUILD_SHARED=OFF -DDAGFLOW_BUILD_STATIC=ON -DDAGFLOW_INSTALL=OFF \
   -DDAGFLOW_BUILD_EXAMPLES=OFF -DDAGFLOW_BUILD_RUNTIME_SUITE=ON
 cmake --build out/build/my-suite --target dagflow_runtime_suite
 ```
 
-`BOILERPLATE_PROFILE` selects the build type, LTO and PGO modes. Use `custom` (the
+`DAGFLOW_PROFILE` selects the build type, LTO and PGO modes. Use `custom` (the
 default) to control those switches individually. Allocators remain independent:
 `system`, `mimalloc`, `tbbmalloc`; the latter two require their development
 packages. ThinLTO presets require Clang. Legacy shared/static/native distribution
@@ -131,17 +131,17 @@ Training is an explicit target, separate from timing results:
 
 ```sh
 cmake --preset bench-pgo-generate
-cmake --build --preset bench-pgo-generate --target boilerplate_pgo_merge --parallel 4
+cmake --build --preset bench-pgo-generate --target dagflow_pgo_merge --parallel 4
 cmake --preset bench-pgo-use
 cmake --build --preset bench-pgo-use --target dagflow_benchmarks --parallel 4
 ```
 
-`boilerplate_pgo_merge` builds the enabled current-runtime benchmarks, runs bounded
+`dagflow_pgo_merge` builds the enabled current-runtime benchmarks, runs bounded
 training (including both suite modes), then merges `.profraw` files using
 `llvm-profdata`. Training covers each executable's distinct `main()`; the public
 API/TBB trainers use the chain workload. This is a reproducible starting profile,
 not a substitute for training on the intended production workload.
-`boilerplate_pgo_train` runs training without merging. For ThinLTO + PGO use
+`dagflow_pgo_train` runs training without merging. For ThinLTO + PGO use
 `bench-lto-pgo-generate` and `bench-lto-pgo-use` instead. Each pair has a separate
 profile directory under `out/pgo/`. Configure of the use phase fails clearly if
 the required merged profile is missing. Start with a new profile directory when
@@ -149,9 +149,9 @@ changing training sources; raw files in an existing directory are all merged.
 The merged profile is an explicit object dependency, so updating it at the same
 path also rebuilds the PGO-use objects. Dependencies are assigned after all
 targets have their final source lists, including later `target_sources()` calls.
-`boilerplate_pgo_merge_only` merges existing samples after a custom workload without
+`dagflow_pgo_merge_only` merges existing samples after a custom workload without
 running the bundled trainer. Enabled examples are also trained by the default
-target. Training and merging run through the explicit CMake targets `boilerplate_pgo_train` and `boilerplate_pgo_merge`.
+target. Training and merging run through the explicit CMake targets `dagflow_pgo_train` and `dagflow_pgo_merge`.
 
 ## Correctness checks
 

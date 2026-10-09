@@ -32,7 +32,7 @@ endfunction()
 # Use the framework's shared/static library construction and package exports.
 set(DAGFLOW_TARGET "")
 if(DAGFLOW_BUILD_SHARED OR DAGFLOW_BUILD_STATIC)
-  boilerplate_add_library(DagFlow VERSION ${PROJECT_VERSION}
+  dagflow_add_library(DagFlow VERSION ${PROJECT_VERSION}
     SOURCES ${DAGFLOW_RUNTIME_SOURCES}
     INCLUDE_DIR include PUBLIC_LIBRARIES Threads::Threads
     PACKAGE_CONFIG cmake/DagFlowConfig.cmake.in)
@@ -48,7 +48,7 @@ if(DAGFLOW_BUILD_SHARED OR DAGFLOW_BUILD_STATIC)
         add_library(DagFlow::DagFlow_${_kind} ALIAS ${_target})
       endif()
       target_compile_features(${_target} PUBLIC cxx_std_23)
-      boilerplate_set_output_name(${_target} dagflow)
+      dagflow_set_output_name(${_target} dagflow)
       dagflow_apply_allocator(${_target})
       if(DAGFLOW_RUNTIME_DIAGNOSTICS)
         target_compile_definitions(${_target} PUBLIC DAGFLOW_RUNTIME_DIAGNOSTICS=1)
@@ -64,7 +64,7 @@ if(DAGFLOW_BUILD_SHARED OR DAGFLOW_BUILD_STATIC)
     target_compile_definitions(DagFlow_static PRIVATE DAGFLOW_STATIC)
     # Windows import libraries and static archives must not overwrite each other.
     if(WIN32 AND DAGFLOW_BUILD_SHARED)
-      boilerplate_set_output_name(DagFlow_static dagflow-static)
+      dagflow_set_output_name(DagFlow_static dagflow-static)
     endif()
   endif()
 endif()

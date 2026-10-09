@@ -31,6 +31,8 @@ Mini-runtime for parallel tasks in C++23:
 [Build and repository layout](docs/build-and-layout.md) describes the current
 CMake project structure, public includes, targets and consumer contracts.
 
+[Library builds, coverage, cross-compilation, packaging and CI](docs/build-and-layout.md#library-infrastructure-and-ci) document the reusable CMake library framework and new presets.
+
 [Code organization and API migration](docs/code_organization.md) describes the
 container contracts and API changes. [Runtime architecture](docs/how_it_works.md)
 describes admission, errors, reusable runs, scheduler bypass, and task storage.
@@ -115,27 +117,46 @@ The CMake and stress-harness reports are described in [the benchmark workflow](d
 
 ### Build and usage
 
-DagFlow uses the CMake library toolkit vendored under `cmake/boilerplate/`.
-`Bootstrap.cmake` initializes the project and `Boilerplate.cmake` provides the
+DagFlow keeps its CMake build infrastructure under `cmake/dagflow/`.
+`Bootstrap.cmake` initializes the project and `DagFlow.cmake` provides the
 project, target and profile helpers. The adjacent DagFlow modules describe the
-runtime's sources, allocator and workloads. Common settings use `BOILERPLATE_*`;
-DagFlow component options use `DAGFLOW_*`.
+runtime's sources, allocator and workloads. Build settings and component options use `DAGFLOW_*`.
 
 Builds, tests, PGO, documentation and benchmark campaigns run without Python.
 See [CMake campaigns and migration](docs/benchmarks/campaigns.md) for commands,
 allocator/profile matrices and result comparison. Only the optional specialized
 perf/flamegraph tools still use Python.
 
-Core, tests and runtime benchmarks need only CMake 3.26+, a C++23 compiler
-and its native build tools. The presets use CMake's default compiler/generator;
-Ninja and Clang are optional. On Windows install Visual Studio's C++ workload;
-on macOS use a recent Xcode/Command Line Tools with C++23 library support.
+After cloning, prepare the tools, build, run CTest and execute the basic example:
+
+```sh
+./setup.sh --run                     # Linux / macOS
+./build.sh --run                     # subsequent builds
+```
+
+On Windows, from PowerShell:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1 -Run
+powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 -Run
+```
+
+Setup checks existing tools and reuses them, installs missing prerequisites,
+then calls the separate build script. `--setup-only` (`-SetupOnly`) only prepares
+tools; `--dry-run` (`-DryRun`) previews the commands. First installation needs
+network access and may require OS administrator authorization. See
+[setup profiles and packaging](docs/build-and-layout.md#host-setup-and-build-entry-points).
+
+For manual CMake commands below, supply CMake 3.26+, a C++23 compiler and its
+native build tools. The presets use CMake's default compiler/generator;
+Ninja and Clang are optional for the core build.
 
 System allocation is the default, including plain `cmake -S . -B build`.
 Selecting `DAGFLOW_BUILD_BENCH=ON`, `DAGFLOW_ALLOCATOR=mimalloc` or
 `DAGFLOW_ALLOCATOR=tbbmalloc` automatically selects the matching vcpkg manifest
 features. If no explicit vcpkg root/toolchain is supplied, CMake provisions a
-pinned vcpkg checkout inside the build directory. The first dependency build
+pinned vcpkg checkout (shared under `out/host-tools/` by the build scripts).
+The first dependency build
 needs Git and network access; subsequent builds reuse the checkout and packages.
 No `TBB_DIR`, global package installation or manual vcpkg bootstrap is needed.
 
@@ -152,12 +173,14 @@ Choose `runtime-check` for dependency-free runtime benchmark smoke tests,
 tests, or `mimalloc` / `tbbmalloc` for allocator builds. Each has matching
 configure, build and test presets. `bench-check-vcpkg` explicitly names the
 same automatic dependency path. `clang` and `gcc` select a compiler with Ninja.
+For example, `./setup.sh --preset bench-check` prepares tools and runs the full
+benchmark smoke checks; on Windows use `setup.ps1 -Preset bench-check`.
 
 Presets compose the framework's target policies and profiles. The main switches
 are `DAGFLOW_BUILD_SHARED`, `DAGFLOW_BUILD_STATIC`, `DAGFLOW_BUILD_TESTS`,
 `DAGFLOW_BUILD_EXAMPLES`, `DAGFLOW_INSTALL`, `DAGFLOW_ALLOCATOR` and
-`BOILERPLATE_COMPILER_CACHE`. Use `BOILERPLATE_PROFILE=lto` for an explicit profile or
-`BOILERPLATE_PGO_MODE=generate|use` for PGO. The install tree exports
+`DAGFLOW_COMPILER_CACHE`. Use `DAGFLOW_PROFILE=lto` for an explicit profile or
+`DAGFLOW_PGO_MODE=generate|use` for PGO. The install tree exports
 `DagFlow::DagFlow` and `DagFlow::DagFlow_static` for `find_package` consumers.
 [GitHub Actions](.github/workflows/dagflow-ci.yml) defines fresh-checkout core,
 runtime, oneTBB and allocator jobs on Linux, Windows and macOS, plus Linux
@@ -182,7 +205,7 @@ For a standalone PGO cycle without Python:
 
 ```sh
 cmake --preset bench-pgo-generate
-cmake --build --preset bench-pgo-generate --target boilerplate_pgo_merge --parallel 4
+cmake --build --preset bench-pgo-generate --target dagflow_pgo_merge --parallel 4
 cmake --preset bench-pgo-use
 cmake --build --preset bench-pgo-use --target dagflow_benchmarks --parallel 4
 ```

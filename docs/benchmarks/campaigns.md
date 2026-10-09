@@ -1,9 +1,9 @@
 # CMake benchmark campaigns
 
-DagFlow vendors `cmake_boilerplate/lib/cmake` unchanged under `cmake/boilerplate/`.
+DagFlow maintains its CMake build and benchmark infrastructure under `cmake/dagflow/`.
 The root CMake project describes the runtime, allocator, tests and workloads.
 Build profiles, target policies, PGO, documentation, packaging and the process
-harness use the toolkit's `boilerplate_*` API and `BOILERPLATE_*` options.
+harness use the toolkit's `dagflow_*` API and `DAGFLOW_*` options.
 DagFlow component selection and allocator options remain `DAGFLOW_*`.
 Use a fresh build directory when migrating from the old renamed framework.
 
@@ -74,7 +74,7 @@ across measured processes within each case. Runtime correctness tests also check
 checksums across worker counts and execution modes.
 
 Direct `run_*` targets reuse their output directory. Use a new
-`BOILERPLATE_HARNESS_RESULTS_DIR` for a preserved measurement, or the matrix runner
+`DAGFLOW_HARNESS_RESULTS_DIR` for a preserved measurement, or the matrix runner
 below, which refuses to overwrite an existing output directory.
 
 ## Custom cases, batches, shards and diagnostics
@@ -132,7 +132,7 @@ PGO retains the existing presets and uses the toolkit targets:
 
 ```sh
 cmake --preset bench-pgo-generate
-cmake --build --preset bench-pgo-generate --target boilerplate_pgo_merge --parallel 4
+cmake --build --preset bench-pgo-generate --target dagflow_pgo_merge --parallel 4
 cmake --preset bench-pgo-use
 cmake --build --preset bench-pgo-use --parallel 4
 ```

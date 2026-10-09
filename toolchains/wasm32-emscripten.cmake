@@ -1,0 +1,7 @@
+set(EMSDK "$ENV{EMSDK}" CACHE PATH "Emscripten SDK root")
+list(APPEND CMAKE_TRY_COMPILE_PLATFORM_VARIABLES EMSDK)
+if(NOT EXISTS "${EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake")
+  message(FATAL_ERROR "Activate an Emscripten SDK and set EMSDK")
+endif()
+include("${EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/TargetRoots.cmake")

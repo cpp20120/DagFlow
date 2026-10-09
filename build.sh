@@ -7,12 +7,11 @@ source "$root/scripts/entry-options.sh"
 if [[ "$dry_run" == false && -f "$tools_dir/env.sh" ]]; then
   source "$tools_dir/env.sh"
 fi
-module="$root/lib/cmake/build/BuildMatrix.cmake"
-[[ -f "$module" ]] || module="$root/cmake/boilerplate/build/BuildMatrix.cmake"
+module="$root/cmake/dagflow/build/BuildMatrix.cmake"
 project_options=()
 # Adapt the generic matrix's install/package switches to DagFlow's own options.
 if [[ "$package_artifacts" == true ]]; then
-  project_options+=("-DCONFIGURE_ARGS=-DDAGFLOW_ENABLE_PACKAGING=ON;-DDAGFLOW_INSTALL=ON")
+  project_options+=(-DPACKAGING_OPTION=DAGFLOW_ENABLE_PACKAGING "-DCONFIGURE_ARGS=-DDAGFLOW_INSTALL=ON")
 elif [[ "$install_artifacts" == true ]]; then
   project_options+=("-DCONFIGURE_ARGS=-DDAGFLOW_INSTALL=ON")
 fi
@@ -22,7 +21,7 @@ command_args=(cmake "-DSOURCE_DIR=$root" "-DPRESETS=$preset" "-DJOBS=$jobs"
   "-DRUN_APPLICATION=$([[ "$run_application" == true ]] && echo ON || echo OFF)"
   "-DPACKAGE_ARTIFACTS=$([[ "$package_artifacts" == true ]] && echo ON || echo OFF)"
   "-DPACKAGE_FORMAT=$package_format"
-  "${project_options[@]}" -DBOILERPLATE_VCPKG_BOOTSTRAP=ON "-DRUN_TARGET=$run_target" -P "$module")
+  "${project_options[@]}" -DDAGFLOW_VCPKG_BOOTSTRAP=ON "-DRUN_TARGET=$run_target" -P "$module")
 if [[ "$dry_run" == true ]]; then
   printf '+'; printf ' %q' "${command_args[@]}"; printf '\n'
   exit 0

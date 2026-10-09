@@ -22,16 +22,16 @@ if(DAGFLOW_BUILD_SHARED OR DAGFLOW_BUILD_STATIC OR DAGFLOW_BUILD_TESTS OR DAGFLO
   endif()
 endif()
 
-set(BOILERPLATE_DEPENDENCY_PROVIDER auto CACHE STRING "Dependency provider: auto, system, vcpkg, none, fetchcontent, cpm")
-option(BOILERPLATE_VCPKG_BOOTSTRAP "Provision pinned vcpkg when no explicit root/toolchain is supplied" ON)
-if(BOILERPLATE_DEPENDENCY_PROVIDER STREQUAL "auto")
+set(DAGFLOW_DEPENDENCY_PROVIDER auto CACHE STRING "Dependency provider: auto, system, vcpkg, none, fetchcontent, cpm")
+option(DAGFLOW_VCPKG_BOOTSTRAP "Provision pinned vcpkg when no explicit root/toolchain is supplied" ON)
+if(DAGFLOW_DEPENDENCY_PROVIDER STREQUAL "auto")
   # Keep auto in the cache so reconfiguring the same tree recalculates features.
-  set(BOILERPLATE_DEPENDENCY_PROVIDER system)
+  set(DAGFLOW_DEPENDENCY_PROVIDER system)
   if(_dagflow_features)
-    set(BOILERPLATE_DEPENDENCY_PROVIDER vcpkg)
+    set(DAGFLOW_DEPENDENCY_PROVIDER vcpkg)
   endif()
 endif()
-if(BOILERPLATE_DEPENDENCY_PROVIDER STREQUAL "vcpkg")
+if(DAGFLOW_DEPENDENCY_PROVIDER STREQUAL "vcpkg")
   # Do not cache the derived list: switching allocators must remove old features.
   set(VCPKG_MANIFEST_FEATURES ${VCPKG_MANIFEST_FEATURES} ${_dagflow_features})
   list(REMOVE_DUPLICATES VCPKG_MANIFEST_FEATURES)
