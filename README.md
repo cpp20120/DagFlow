@@ -15,8 +15,8 @@ Mini-runtime for parallel tasks in C++23:
 
 * Bounded ring-buffer MPMC (Vyukov) for central queues — zero per-operation heap allocations.
 
-* Explicit task ownership and move-only completion credits; mimalloc by default,
-  with tbbmalloc and system allocation available through CMake.
+* Explicit task ownership and move-only completion credits; system allocation by default,
+  with mimalloc and tbbmalloc available through CMake.
 
 * Move-only `small_function` with inline storage and runtime-backed spill;
   `inplace_function` for a strict inline-only contract.
@@ -126,19 +126,32 @@ See [CMake campaigns and migration](docs/benchmarks/campaigns.md) for commands,
 allocator/profile matrices and result comparison. Only the optional specialized
 perf/flamegraph tools still use Python.
 
-Install mimalloc with its CMake package for the default build. Alternatively pass
-`-DDAGFLOW_ALLOCATOR=tbbmalloc` (requires oneTBB's malloc component) or
-`-DDAGFLOW_ALLOCATOR=system` (no external allocator dependency). The selection
-applies to runtime objects and `small_vector` heap buffers; it does not replace
-the application's global allocator.
+Core, tests and runtime benchmarks need only CMake 3.26+, a C++23 compiler
+and its native build tools. The presets use CMake's default compiler/generator;
+Ninja and Clang are optional. On Windows install Visual Studio's C++ workload;
+on macOS use a recent Xcode/Command Line Tools with C++23 library support.
+
+System allocation is the default, including plain `cmake -S . -B build`.
+Selecting `DAGFLOW_BUILD_BENCH=ON`, `DAGFLOW_ALLOCATOR=mimalloc` or
+`DAGFLOW_ALLOCATOR=tbbmalloc` automatically selects the matching vcpkg manifest
+features. If no explicit vcpkg root/toolchain is supplied, CMake provisions a
+pinned vcpkg checkout inside the build directory. The first dependency build
+needs Git and network access; subsequent builds reuse the checkout and packages.
+No `TBB_DIR`, global package installation or manual vcpkg bootstrap is needed.
 
 ```sh
 git clone https://github.com/cpp20120/DagFlow.git
 cd DagFlow
-cmake --preset release
-cmake --build --preset release
-ctest --preset release
+cmake --preset core
+cmake --build --preset core
+ctest --preset core
 ```
+
+Choose `runtime-check` for dependency-free runtime benchmark smoke tests,
+`bench-check` for the full C++ benchmark set including oneTBB and correctness
+tests, or `mimalloc` / `tbbmalloc` for allocator builds. Each has matching
+configure, build and test presets. `bench-check-vcpkg` explicitly names the
+same automatic dependency path. `clang` and `gcc` select a compiler with Ninja.
 
 Presets compose the framework's target policies and profiles. The main switches
 are `DAGFLOW_BUILD_SHARED`, `DAGFLOW_BUILD_STATIC`, `DAGFLOW_BUILD_TESTS`,
@@ -146,8 +159,10 @@ are `DAGFLOW_BUILD_SHARED`, `DAGFLOW_BUILD_STATIC`, `DAGFLOW_BUILD_TESTS`,
 `BOILERPLATE_COMPILER_CACHE`. Use `BOILERPLATE_PROFILE=lto` for an explicit profile or
 `BOILERPLATE_PGO_MODE=generate|use` for PGO. The install tree exports
 `DagFlow::DagFlow` and `DagFlow::DagFlow_static` for `find_package` consumers.
-The same presets are exercised by [GitHub Actions](.github/workflows/dagflow-ci.yml)
-on Linux, Windows and macOS, including sanitizer jobs.
+[GitHub Actions](.github/workflows/dagflow-ci.yml) defines fresh-checkout core,
+runtime, oneTBB and allocator jobs on Linux, Windows and macOS, plus Linux
+sanitizer/fuzz jobs. See [dependency and toolchain controls](docs/build-and-layout.md)
+for offline/system builds and compiler-specific profiles.
 
 Build the complete benchmark set through CMake:
 

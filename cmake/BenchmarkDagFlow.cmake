@@ -47,7 +47,13 @@ foreach(preset IN LISTS PRESETS)
     run("${CMAKE_COMMAND}" --preset "${preset}" -B "${build}"
       -DDAGFLOW_BUILD_HARNESS=ON "-DDAGFLOW_ALLOCATOR=${allocator}"
       "-DBOILERPLATE_HARNESS_RESULTS_DIR=${results}" ${CONFIGURE_ARGS})
-    run("${CMAKE_COMMAND}" --build "${build}" --target "${CAMPAIGN_TARGET}" --parallel "${JOBS}")
+    file(STRINGS "${build}/CMakeCache.txt" _build_type REGEX "^CMAKE_BUILD_TYPE:STRING=")
+    string(REPLACE "CMAKE_BUILD_TYPE:STRING=" "" _config "${_build_type}")
+    if(NOT _config)
+      set(_config Release)
+    endif()
+    run("${CMAKE_COMMAND}" --build "${build}" --config "${_config}"
+      --target "${CAMPAIGN_TARGET}" --parallel "${JOBS}")
   endforeach()
 endforeach()
 message(STATUS "Campaign matrix results: ${OUTPUT_DIR}")

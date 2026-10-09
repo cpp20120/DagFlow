@@ -1,12 +1,18 @@
-dagflow_add_benchmark_smoke_tests()
 if(CMAKE_GENERATOR STREQUAL "Ninja" AND CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT MSVC)
   add_test(NAME dagflow_cmake_configuration_tests
     COMMAND ${CMAKE_COMMAND} "-DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}"
       "-DCHECK_DIR=${CMAKE_CURRENT_BINARY_DIR}/cmake-configuration-tests"
       "-DCXX=${CMAKE_CXX_COMPILER}" "-DCHECK_TBB=${DAGFLOW_BUILD_BENCH}"
+      "-DTBB_DIR=${TBB_DIR}"
       -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/cmake_configuration_tests.cmake")
   set_tests_properties(dagflow_cmake_configuration_tests PROPERTIES TIMEOUT 60 LABELS build)
 endif()
+
+add_test(NAME dagflow_dependency_selection_tests COMMAND ${CMAKE_COMMAND}
+  "-DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}"
+  "-DCHECK_DIR=${CMAKE_CURRENT_BINARY_DIR}/dependency-selection-tests"
+  -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/dependency_selection_tests.cmake")
+set_tests_properties(dagflow_dependency_selection_tests PROPERTIES TIMEOUT 30 LABELS build)
 
 if(TARGET dagflow_example)
   add_test(NAME dagflow_example_basic COMMAND dagflow_example)

@@ -1,0 +1,15 @@
+# Generated from configured CMake package metadata. Build was already completed.
+pkgname=@PKGNAME@
+pkgver=@PKGVER@
+pkgrel=1
+pkgdesc=@PKGDESC@
+arch=("$CARCH")
+license=(@PKGLICENSE@)
+source=()
+sha256sums=()
+# Release artifacts have no debuginfo; avoid empty split-debug packages.
+options=('!debug')
+package() {
+  [[ -n "${BOILERPLATE_ARCH_BUILD_DIR:-}" ]] || return 1
+  DESTDIR="$pkgdir" cmake --install "$BOILERPLATE_ARCH_BUILD_DIR" --prefix /usr
+}

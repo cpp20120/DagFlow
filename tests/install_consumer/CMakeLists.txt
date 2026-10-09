@@ -1,7 +1,11 @@
 cmake_minimum_required(VERSION 3.26)
 project(DagFlowInstallConsumer LANGUAGES CXX)
 
-find_package(DagFlow CONFIG REQUIRED)
+if(DAGFLOW_SOURCE_DIR)
+  add_subdirectory("${DAGFLOW_SOURCE_DIR}" dagflow)
+else()
+  find_package(DagFlow CONFIG REQUIRED)
+endif()
 
 add_executable(dagflow_install_consumer main.cpp)
 set(DAGFLOW_CONSUMER_VARIANT "preferred" CACHE STRING "Package variant: preferred, shared or static")
@@ -17,3 +21,12 @@ if(NOT TARGET ${_dagflow_consumer_target})
   message(FATAL_ERROR "Package does not export ${_dagflow_consumer_target}")
 endif()
 target_link_libraries(dagflow_install_consumer PRIVATE ${_dagflow_consumer_target})
+if(WIN32)
+  add_custom_command(TARGET dagflow_install_consumer POST_BUILD
+    COMMAND ${CMAKE_COMMAND} "-DRUNTIME_FILES=$<TARGET_RUNTIME_DLLS:dagflow_install_consumer>"
+      "-DDESTINATION=$<TARGET_FILE_DIR:dagflow_install_consumer>"
+      -P "${CMAKE_CURRENT_LIST_DIR}/../../cmake/boilerplate/packaging/CopyRuntimeLibraries.cmake"
+    VERBATIM)
+endif()
+enable_testing()
+add_test(NAME installed_consumer COMMAND dagflow_install_consumer)

@@ -1,0 +1,31 @@
+# capability|command|apt|dnf|pacman|brew|winget|profiles
+Git|git|git|git|git|git|Git.Git|minimal,package,dev,ci
+CMake|cmake|cmake|cmake|cmake|cmake|Kitware.CMake|minimal,package,dev,ci
+Ninja|ninja|ninja-build|ninja-build|ninja|ninja|Ninja-build.Ninja|minimal,package,dev,ci
+Clang|clang++|clang|clang|clang|llvm|LLVM.LLVM|dev,ci
+clangd|clangd|clangd|clang-tools-extra|clang|llvm|LLVM.clangd|dev
+clang-tidy|clang-tidy|clang-tidy|clang-tools-extra|clang|llvm|LLVM.LLVM|dev,ci
+clang-format|clang-format|clang-format|clang-tools-extra|clang|llvm|LLVM.LLVM|dev
+LLD|ld.lld|lld|lld|lld|lld|LLVM.LLVM|dev,ci
+LLVM coverage|llvm-cov|llvm|llvm|llvm|llvm|LLVM.LLVM|dev,ci
+LLVM profiles|llvm-profdata|llvm|llvm|llvm|llvm|LLVM.LLVM|dev,ci
+ccache|ccache|ccache|ccache|ccache|ccache|Ccache.Ccache|dev,ci
+sccache|sccache|sccache|sccache|sccache|sccache|Mozilla.sccache|dev,ci
+cppcheck|cppcheck|cppcheck|cppcheck|cppcheck|cppcheck|Cppcheck.Cppcheck|dev,ci
+lcov|lcov|lcov|lcov|lcov|lcov|-|dev,ci
+genhtml|genhtml|lcov|lcov|lcov|lcov|-|dev,ci
+Doxygen|doxygen|doxygen|doxygen|doxygen|doxygen|DimitriVanHeesch.Doxygen|dev
+Graphviz|dot|graphviz|graphviz|graphviz|graphviz|Graphviz.Graphviz|dev
+patchelf|patchelf|patchelf|patchelf|patchelf|-|-|dev,package,ci
+RPM packaging|rpmbuild|-|rpm-build|-|-|-|dev,package,ci
+Arch makepkg|makepkg|-|-|base-devel|-|-|package
+Arch fakeroot|fakeroot|-|-|fakeroot|-|-|package
+Arch zstd|zstd|-|-|zstd|-|-|package
+NSIS packaging|makensis|-|-|-|-|NSIS.NSIS|dev,package,ci
+compiler|c++|g++|gcc-c++|gcc|-|-|minimal,package,dev,ci
+curl|curl|curl|curl|curl|curl|-|minimal,package,dev,ci
+zip|zip|zip|zip|zip|zip|-|minimal,package,dev,ci
+unzip|unzip|unzip|unzip|unzip|unzip|-|minimal,package,dev,ci
+tar|tar|tar|tar|tar|-|-|minimal,package,dev,ci
+pkg-config|pkg-config|pkg-config|pkgconf-pkg-config|pkgconf|pkgconf|-|minimal,package,dev,ci
+make|make|make|make|make|-|-|minimal,package,dev,ci

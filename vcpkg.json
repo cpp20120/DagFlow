@@ -1,0 +1,20 @@
+{
+  "name": "dagflow",
+  "version-string": "1.0.0",
+  "builtin-baseline": "3b6ec96bfa4d7dacd8ab1a97676a82c9cb18111e",
+  "dependencies": [],
+  "features": {
+    "tbb-bench": {
+      "description": "oneTBB comparison benchmarks",
+      "dependencies": ["tbb"]
+    },
+    "mimalloc": {
+      "description": "mimalloc runtime allocator",
+      "dependencies": ["mimalloc"]
+    },
+    "tbbmalloc": {
+      "description": "oneTBB scalable runtime allocator",
+      "dependencies": ["tbb"]
+    }
+  }
+}

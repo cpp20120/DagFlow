@@ -9,14 +9,12 @@
     {
       "name": "base",
       "hidden": true,
-      "generator": "Ninja",
       "cacheVariables": {
         "DAGFLOW_BUILD_EXAMPLES": "ON",
         "DAGFLOW_BUILD_BENCH": "OFF",
         "DAGFLOW_BUILD_RUNTIME_BENCH": "ON",
         "DAGFLOW_BUILD_TESTS": "ON",
         "DAGFLOW_INSTALL": "ON",
-        "CMAKE_CXX_COMPILER": "clang++",
         "DAGFLOW_BUILD_PUBLIC_API_BENCH": "ON",
         "DAGFLOW_ALLOCATOR": "system",
         "BOILERPLATE_COMPILER_CACHE": "none"
@@ -98,9 +96,7 @@
       "binaryDir": "${sourceDir}/out/build/release-thinlto",
       "cacheVariables": {
         "BOILERPLATE_ARTIFACT_SUFFIX": "-release-thinlto",
-        "BOILERPLATE_LTO_MODE": "thin",
-        "BOILERPLATE_USE_LLD": "ON",
-        "BOILERPLATE_ENABLE_ICF": "ON"
+        "BOILERPLATE_LTO_MODE": "thin"
       }
     },
     {
@@ -110,9 +106,7 @@
       "binaryDir": "${sourceDir}/out/build/release-fulllto",
       "cacheVariables": {
         "BOILERPLATE_ARTIFACT_SUFFIX": "-release-fulllto",
-        "BOILERPLATE_LTO_MODE": "full",
-        "BOILERPLATE_USE_LLD": "ON",
-        "BOILERPLATE_ENABLE_ICF": "ON"
+        "BOILERPLATE_LTO_MODE": "full"
       }
     },
     {
@@ -151,9 +145,7 @@
       "binaryDir": "${sourceDir}/out/build/static-thinlto",
       "cacheVariables": {
         "BOILERPLATE_ARTIFACT_SUFFIX": "-static-thinlto",
-        "BOILERPLATE_LTO_MODE": "thin",
-        "BOILERPLATE_USE_LLD": "ON",
-        "BOILERPLATE_ENABLE_ICF": "ON"
+        "BOILERPLATE_LTO_MODE": "thin"
       }
     },
     {
@@ -163,9 +155,7 @@
       "binaryDir": "${sourceDir}/out/build/static-fulllto",
       "cacheVariables": {
         "BOILERPLATE_ARTIFACT_SUFFIX": "-static-fulllto",
-        "BOILERPLATE_LTO_MODE": "full",
-        "BOILERPLATE_USE_LLD": "ON",
-        "BOILERPLATE_ENABLE_ICF": "ON"
+        "BOILERPLATE_LTO_MODE": "full"
       }
     },
     {
@@ -227,12 +217,9 @@
     {
       "name": "bench-base",
       "hidden": true,
-      "generator": "Ninja",
       "binaryDir": "${sourceDir}/out/build/${presetName}",
       "cacheVariables": {
-        "CMAKE_CXX_COMPILER": "clang++",
         "DAGFLOW_ALLOCATOR": "system",
-        "BOILERPLATE_USE_LLD": "ON",
         "DAGFLOW_BUILD_STATIC": "ON",
         "DAGFLOW_BUILD_SHARED": "OFF",
         "DAGFLOW_INSTALL": "OFF",
@@ -342,8 +329,10 @@
         "DAGFLOW_INSTALL": "OFF",
         "BOILERPLATE_FUZZ_BACKEND": "libfuzzer",
         "BOILERPLATE_FUZZ_SANITIZER": "address-undefined",
-        "DAGFLOW_BUILD_RUNTIME_SUITE": "OFF"
-      }
+        "DAGFLOW_BUILD_RUNTIME_SUITE": "OFF",
+        "CMAKE_CXX_COMPILER": "clang++"
+      },
+      "generator": "Ninja"
     },
     {
       "name": "check-asan",
@@ -429,157 +418,252 @@
         "DAGFLOW_BUILD_FUNCTION_BENCH": "OFF",
         "DAGFLOW_INSTALL": "OFF"
       }
+    },
+    {
+      "name": "core",
+      "inherits": "shared-base",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "DAGFLOW_BUILD_RUNTIME_BENCH": "OFF",
+        "DAGFLOW_BUILD_RUNTIME_SUITE": "OFF",
+        "DAGFLOW_BUILD_PUBLIC_API_BENCH": "OFF"
+      }
+    },
+    {
+      "name": "runtime-check",
+      "inherits": "bench-release",
+      "cacheVariables": {
+        "DAGFLOW_BUILD_TESTS": "ON"
+      }
+    },
+    {
+      "name": "bench-check-vcpkg",
+      "inherits": "bench-check",
+      "cacheVariables": {
+        "BOILERPLATE_DEPENDENCY_PROVIDER": "vcpkg",
+        "VCPKG_MANIFEST_FEATURES": "tbb-bench"
+      }
+    },
+    {
+      "name": "mimalloc",
+      "inherits": "core",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "cacheVariables": {
+        "DAGFLOW_ALLOCATOR": "mimalloc"
+      }
+    },
+    {
+      "name": "tbbmalloc",
+      "inherits": "core",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "cacheVariables": {
+        "DAGFLOW_ALLOCATOR": "tbbmalloc"
+      }
+    },
+    {
+      "name": "clang",
+      "inherits": "core",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "generator": "Ninja",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "clang++"
+      }
+    },
+    {
+      "name": "gcc",
+      "inherits": "core",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "generator": "Ninja",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "g++"
+      }
     }
   ],
   "buildPresets": [
     {
       "name": "debug",
-      "configurePreset": "debug"
+      "configurePreset": "debug",
+      "configuration": "Debug"
     },
     {
       "name": "relwithdebinfo",
-      "configurePreset": "relwithdebinfo"
+      "configurePreset": "relwithdebinfo",
+      "configuration": "RelWithDebInfo"
     },
     {
       "name": "release",
-      "configurePreset": "release"
+      "configurePreset": "release",
+      "configuration": "Release"
     },
     {
       "name": "release-thinlto",
-      "configurePreset": "release-thinlto"
+      "configurePreset": "release-thinlto",
+      "configuration": "Release"
     },
     {
       "name": "release-fulllto",
-      "configurePreset": "release-fulllto"
+      "configurePreset": "release-fulllto",
+      "configuration": "Release"
     },
     {
       "name": "release-native-thinlto",
-      "configurePreset": "release-native-thinlto"
+      "configurePreset": "release-native-thinlto",
+      "configuration": "Release"
     },
     {
       "name": "release-native-fulllto",
-      "configurePreset": "release-native-fulllto"
+      "configurePreset": "release-native-fulllto",
+      "configuration": "Release"
     },
     {
       "name": "static-release",
-      "configurePreset": "static-release"
+      "configurePreset": "static-release",
+      "configuration": "Release"
     },
     {
       "name": "static-thinlto",
-      "configurePreset": "static-thinlto"
+      "configurePreset": "static-thinlto",
+      "configuration": "Release"
     },
     {
       "name": "static-fulllto",
-      "configurePreset": "static-fulllto"
+      "configurePreset": "static-fulllto",
+      "configuration": "Release"
     },
     {
       "name": "static-native-thinlto",
-      "configurePreset": "static-native-thinlto"
+      "configurePreset": "static-native-thinlto",
+      "configuration": "Release"
     },
     {
       "name": "static-native-fulllto",
-      "configurePreset": "static-native-fulllto"
+      "configurePreset": "static-native-fulllto",
+      "configuration": "Release"
     },
     {
       "name": "pgo-generate",
-      "configurePreset": "pgo-generate"
+      "configurePreset": "pgo-generate",
+      "configuration": "Release"
     },
     {
       "name": "pgo-use-shared",
-      "configurePreset": "pgo-use-shared"
+      "configurePreset": "pgo-use-shared",
+      "configuration": "Release"
     },
     {
       "name": "pgo-use-static",
-      "configurePreset": "pgo-use-static"
+      "configurePreset": "pgo-use-static",
+      "configuration": "Release"
     },
     {
       "name": "bench-release",
-      "configurePreset": "bench-release"
+      "configurePreset": "bench-release",
+      "configuration": "Release"
     },
     {
       "name": "bench-lto",
-      "configurePreset": "bench-lto"
+      "configurePreset": "bench-lto",
+      "configuration": "Release"
     },
     {
       "name": "bench-full-lto",
-      "configurePreset": "bench-full-lto"
+      "configurePreset": "bench-full-lto",
+      "configuration": "Release"
     },
     {
       "name": "bench-native-thinlto",
-      "configurePreset": "bench-native-thinlto"
+      "configurePreset": "bench-native-thinlto",
+      "configuration": "Release"
     },
     {
       "name": "bench-native-full-lto",
-      "configurePreset": "bench-native-full-lto"
+      "configurePreset": "bench-native-full-lto",
+      "configuration": "Release"
     },
     {
       "name": "bench-o3",
-      "configurePreset": "bench-o3"
+      "configurePreset": "bench-o3",
+      "configuration": "Release"
     },
     {
       "name": "bench-o3-lto",
-      "configurePreset": "bench-o3-lto"
+      "configurePreset": "bench-o3-lto",
+      "configuration": "Release"
     },
     {
       "name": "bench-all",
-      "configurePreset": "bench-all"
+      "configurePreset": "bench-all",
+      "configuration": "Release"
     },
     {
       "name": "bench-github",
-      "configurePreset": "bench-github"
+      "configurePreset": "bench-github",
+      "configuration": "Release"
     },
     {
       "name": "bench-diagnostics",
-      "configurePreset": "bench-diagnostics"
+      "configurePreset": "bench-diagnostics",
+      "configuration": "Release"
     },
     {
       "name": "bench-check",
-      "configurePreset": "bench-check"
+      "configurePreset": "bench-check",
+      "configuration": "Release"
     },
     {
       "name": "fuzz",
       "configurePreset": "fuzz",
       "targets": [
         "boilerplate_fuzzers"
-      ]
+      ],
+      "configuration": "Debug"
     },
     {
       "name": "check-asan",
-      "configurePreset": "check-asan"
+      "configurePreset": "check-asan",
+      "configuration": "Debug"
     },
     {
       "name": "check-tsan",
-      "configurePreset": "check-tsan"
+      "configurePreset": "check-tsan",
+      "configuration": "Debug"
     },
     {
       "name": "bench-pgo-generate",
-      "configurePreset": "bench-pgo-generate"
+      "configurePreset": "bench-pgo-generate",
+      "configuration": "Release"
     },
     {
       "name": "bench-pgo-use",
-      "configurePreset": "bench-pgo-use"
+      "configurePreset": "bench-pgo-use",
+      "configuration": "Release"
     },
     {
       "name": "bench-lto-pgo-generate",
-      "configurePreset": "bench-lto-pgo-generate"
+      "configurePreset": "bench-lto-pgo-generate",
+      "configuration": "Release"
     },
     {
       "name": "bench-lto-pgo-use",
-      "configurePreset": "bench-lto-pgo-use"
+      "configurePreset": "bench-lto-pgo-use",
+      "configuration": "Release"
     },
     {
       "name": "runtime-campaign",
       "configurePreset": "runtime-campaign",
       "targets": [
         "run_dagflow_runtime_campaign"
-      ]
+      ],
+      "configuration": "Release"
     },
     {
       "name": "campaigns",
       "configurePreset": "campaigns",
       "targets": [
         "dagflow_campaigns"
-      ]
+      ],
+      "configuration": "Release"
     },
     {
       "name": "adversarial-tiny",
@@ -587,7 +671,43 @@
       "targets": [
         "dagflow_adversarial_tests"
       ],
-      "jobs": 4
+      "jobs": 4,
+      "configuration": "Debug"
+    },
+    {
+      "name": "core",
+      "configurePreset": "core",
+      "configuration": "Release"
+    },
+    {
+      "name": "runtime-check",
+      "configurePreset": "runtime-check",
+      "configuration": "Release"
+    },
+    {
+      "name": "bench-check-vcpkg",
+      "configurePreset": "bench-check-vcpkg",
+      "configuration": "Release"
+    },
+    {
+      "name": "mimalloc",
+      "configurePreset": "mimalloc",
+      "configuration": "Release"
+    },
+    {
+      "name": "tbbmalloc",
+      "configurePreset": "tbbmalloc",
+      "configuration": "Release"
+    },
+    {
+      "name": "clang",
+      "configurePreset": "clang",
+      "configuration": "Release"
+    },
+    {
+      "name": "gcc",
+      "configurePreset": "gcc",
+      "configuration": "Release"
     }
   ],
   "testPresets": [
@@ -596,6 +716,10 @@
       "configurePreset": "debug",
       "output": {
         "outputOnFailure": true
+      },
+      "configuration": "Debug",
+      "execution": {
+        "noTestsAction": "error"
       }
     },
     {
@@ -603,6 +727,10 @@
       "configurePreset": "bench-check",
       "output": {
         "outputOnFailure": true
+      },
+      "configuration": "Release",
+      "execution": {
+        "noTestsAction": "error"
       }
     },
     {
@@ -610,6 +738,10 @@
       "configurePreset": "check-asan",
       "output": {
         "outputOnFailure": true
+      },
+      "configuration": "Debug",
+      "execution": {
+        "noTestsAction": "error"
       }
     },
     {
@@ -617,6 +749,10 @@
       "configurePreset": "check-tsan",
       "output": {
         "outputOnFailure": true
+      },
+      "configuration": "Debug",
+      "execution": {
+        "noTestsAction": "error"
       }
     },
     {
@@ -624,6 +760,10 @@
       "configurePreset": "debug",
       "output": {
         "outputOnFailure": true
+      },
+      "configuration": "Debug",
+      "execution": {
+        "noTestsAction": "error"
       }
     },
     {
@@ -631,6 +771,10 @@
       "configurePreset": "relwithdebinfo",
       "output": {
         "outputOnFailure": true
+      },
+      "configuration": "RelWithDebInfo",
+      "execution": {
+        "noTestsAction": "error"
       }
     },
     {
@@ -638,6 +782,10 @@
       "configurePreset": "release",
       "output": {
         "outputOnFailure": true
+      },
+      "configuration": "Release",
+      "execution": {
+        "noTestsAction": "error"
       }
     },
     {
@@ -645,6 +793,10 @@
       "configurePreset": "release-thinlto",
       "output": {
         "outputOnFailure": true
+      },
+      "configuration": "Release",
+      "execution": {
+        "noTestsAction": "error"
       }
     },
     {
@@ -652,6 +804,10 @@
       "configurePreset": "release-fulllto",
       "output": {
         "outputOnFailure": true
+      },
+      "configuration": "Release",
+      "execution": {
+        "noTestsAction": "error"
       }
     },
     {
@@ -659,6 +815,10 @@
       "configurePreset": "release-native-thinlto",
       "output": {
         "outputOnFailure": true
+      },
+      "configuration": "Release",
+      "execution": {
+        "noTestsAction": "error"
       }
     },
     {
@@ -666,6 +826,10 @@
       "configurePreset": "release-native-fulllto",
       "output": {
         "outputOnFailure": true
+      },
+      "configuration": "Release",
+      "execution": {
+        "noTestsAction": "error"
       }
     },
     {
@@ -673,6 +837,10 @@
       "configurePreset": "static-release",
       "output": {
         "outputOnFailure": true
+      },
+      "configuration": "Release",
+      "execution": {
+        "noTestsAction": "error"
       }
     },
     {
@@ -680,6 +848,10 @@
       "configurePreset": "static-thinlto",
       "output": {
         "outputOnFailure": true
+      },
+      "configuration": "Release",
+      "execution": {
+        "noTestsAction": "error"
       }
     },
     {
@@ -687,6 +859,10 @@
       "configurePreset": "static-fulllto",
       "output": {
         "outputOnFailure": true
+      },
+      "configuration": "Release",
+      "execution": {
+        "noTestsAction": "error"
       }
     },
     {
@@ -694,6 +870,10 @@
       "configurePreset": "static-native-thinlto",
       "output": {
         "outputOnFailure": true
+      },
+      "configuration": "Release",
+      "execution": {
+        "noTestsAction": "error"
       }
     },
     {
@@ -701,6 +881,10 @@
       "configurePreset": "static-native-fulllto",
       "output": {
         "outputOnFailure": true
+      },
+      "configuration": "Release",
+      "execution": {
+        "noTestsAction": "error"
       }
     },
     {
@@ -708,6 +892,10 @@
       "configurePreset": "pgo-generate",
       "output": {
         "outputOnFailure": true
+      },
+      "configuration": "Release",
+      "execution": {
+        "noTestsAction": "error"
       }
     },
     {
@@ -715,6 +903,10 @@
       "configurePreset": "pgo-use-shared",
       "output": {
         "outputOnFailure": true
+      },
+      "configuration": "Release",
+      "execution": {
+        "noTestsAction": "error"
       }
     },
     {
@@ -722,6 +914,10 @@
       "configurePreset": "pgo-use-static",
       "output": {
         "outputOnFailure": true
+      },
+      "configuration": "Release",
+      "execution": {
+        "noTestsAction": "error"
       }
     },
     {
@@ -729,6 +925,10 @@
       "configurePreset": "bench-release",
       "output": {
         "outputOnFailure": true
+      },
+      "configuration": "Release",
+      "execution": {
+        "noTestsAction": "error"
       }
     },
     {
@@ -736,6 +936,10 @@
       "configurePreset": "bench-lto",
       "output": {
         "outputOnFailure": true
+      },
+      "configuration": "Release",
+      "execution": {
+        "noTestsAction": "error"
       }
     },
     {
@@ -743,6 +947,10 @@
       "configurePreset": "bench-full-lto",
       "output": {
         "outputOnFailure": true
+      },
+      "configuration": "Release",
+      "execution": {
+        "noTestsAction": "error"
       }
     },
     {
@@ -750,6 +958,10 @@
       "configurePreset": "bench-native-thinlto",
       "output": {
         "outputOnFailure": true
+      },
+      "configuration": "Release",
+      "execution": {
+        "noTestsAction": "error"
       }
     },
     {
@@ -757,6 +969,10 @@
       "configurePreset": "bench-native-full-lto",
       "output": {
         "outputOnFailure": true
+      },
+      "configuration": "Release",
+      "execution": {
+        "noTestsAction": "error"
       }
     },
     {
@@ -764,6 +980,10 @@
       "configurePreset": "bench-o3",
       "output": {
         "outputOnFailure": true
+      },
+      "configuration": "Release",
+      "execution": {
+        "noTestsAction": "error"
       }
     },
     {
@@ -771,6 +991,10 @@
       "configurePreset": "bench-o3-lto",
       "output": {
         "outputOnFailure": true
+      },
+      "configuration": "Release",
+      "execution": {
+        "noTestsAction": "error"
       }
     },
     {
@@ -778,6 +1002,10 @@
       "configurePreset": "bench-all",
       "output": {
         "outputOnFailure": true
+      },
+      "configuration": "Release",
+      "execution": {
+        "noTestsAction": "error"
       }
     },
     {
@@ -785,6 +1013,10 @@
       "configurePreset": "bench-github",
       "output": {
         "outputOnFailure": true
+      },
+      "configuration": "Release",
+      "execution": {
+        "noTestsAction": "error"
       }
     },
     {
@@ -792,6 +1024,10 @@
       "configurePreset": "bench-diagnostics",
       "output": {
         "outputOnFailure": true
+      },
+      "configuration": "Release",
+      "execution": {
+        "noTestsAction": "error"
       }
     },
     {
@@ -799,6 +1035,10 @@
       "configurePreset": "bench-pgo-generate",
       "output": {
         "outputOnFailure": true
+      },
+      "configuration": "Release",
+      "execution": {
+        "noTestsAction": "error"
       }
     },
     {
@@ -806,6 +1046,10 @@
       "configurePreset": "bench-pgo-use",
       "output": {
         "outputOnFailure": true
+      },
+      "configuration": "Release",
+      "execution": {
+        "noTestsAction": "error"
       }
     },
     {
@@ -813,6 +1057,10 @@
       "configurePreset": "bench-lto-pgo-generate",
       "output": {
         "outputOnFailure": true
+      },
+      "configuration": "Release",
+      "execution": {
+        "noTestsAction": "error"
       }
     },
     {
@@ -820,6 +1068,10 @@
       "configurePreset": "bench-lto-pgo-use",
       "output": {
         "outputOnFailure": true
+      },
+      "configuration": "Release",
+      "execution": {
+        "noTestsAction": "error"
       }
     },
     {
@@ -832,6 +1084,10 @@
       },
       "output": {
         "outputOnFailure": true
+      },
+      "configuration": "Debug",
+      "execution": {
+        "noTestsAction": "error"
       }
     },
     {
@@ -844,6 +1100,87 @@
       },
       "output": {
         "outputOnFailure": true
+      },
+      "configuration": "Debug",
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "core",
+      "configurePreset": "core",
+      "output": {
+        "outputOnFailure": true
+      },
+      "configuration": "Release",
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "runtime-check",
+      "configurePreset": "runtime-check",
+      "output": {
+        "outputOnFailure": true
+      },
+      "configuration": "Release",
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "bench-check-vcpkg",
+      "configurePreset": "bench-check-vcpkg",
+      "output": {
+        "outputOnFailure": true
+      },
+      "configuration": "Release",
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "mimalloc",
+      "configurePreset": "mimalloc",
+      "output": {
+        "outputOnFailure": true
+      },
+      "configuration": "Release",
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "tbbmalloc",
+      "configurePreset": "tbbmalloc",
+      "output": {
+        "outputOnFailure": true
+      },
+      "configuration": "Release",
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "clang",
+      "configurePreset": "clang",
+      "output": {
+        "outputOnFailure": true
+      },
+      "configuration": "Release",
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "gcc",
+      "configurePreset": "gcc",
+      "output": {
+        "outputOnFailure": true
+      },
+      "configuration": "Release",
+      "execution": {
+        "noTestsAction": "error"
       }
     }
   ]

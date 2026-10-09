@@ -112,7 +112,7 @@ cmake '-DPRESETS=bench-release;bench-lto' \
   -P cmake/BenchmarkDagFlow.cmake
 ```
 
-Install the allocator packages before selecting mimalloc or tbbmalloc. Each
+Selecting mimalloc or tbbmalloc automatically provisions its vcpkg feature. Each
 preset/allocator pair gets an independent build and result directory. Use
 `SOURCE_DIR` to run another checkout; use the same cases and payload iterations
 for baseline and candidate. The same runner handles the current/legacy suite

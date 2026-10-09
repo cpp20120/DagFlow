@@ -1,0 +1,56 @@
+cmake_minimum_required(VERSION 3.26)
+# Build the native .pkg.tar.zst with makepkg rather than pretending CPack has
+# an Arch Linux generator. Invoked after configure/build/test by BuildMatrix.
+if(NOT CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
+  message(FATAL_ERROR "ARCH packaging requires Linux with makepkg")
+endif()
+if(NOT BUILD_DIR OR NOT PACKAGE_DIR OR NOT EXISTS "${BUILD_DIR}/CPackConfig.cmake")
+  message(FATAL_ERROR "Set BUILD_DIR to a configured packaging build and PACKAGE_DIR to its output")
+endif()
+find_program(_makepkg makepkg REQUIRED)
+find_program(_fakeroot fakeroot REQUIRED)
+find_program(_zstd zstd REQUIRED)
+execute_process(COMMAND id -u OUTPUT_VARIABLE _uid OUTPUT_STRIP_TRAILING_WHITESPACE RESULT_VARIABLE _id_rc)
+if(NOT _id_rc EQUAL 0 OR _uid STREQUAL "0")
+  message(FATAL_ERROR "makepkg cannot run as root. Run the bootstrap as a regular user; it elevates only package-manager installation.")
+endif()
+include("${BUILD_DIR}/CPackConfig.cmake")
+string(REGEX REPLACE "([a-z0-9])([A-Z])" "\\1-\\2" _pkgname "${CPACK_PACKAGE_NAME}")
+string(TOLOWER "${_pkgname}" _pkgname)
+string(REGEX REPLACE "[^a-z0-9@._+-]" "-" _pkgname "${_pkgname}")
+if(NOT _pkgname MATCHES "^[a-z0-9@._+-]+$" OR NOT CPACK_PACKAGE_VERSION MATCHES "^[0-9]+([._+][A-Za-z0-9]+)*$")
+  message(FATAL_ERROR "Invalid Arch package name/version: ${_pkgname}/${CPACK_PACKAGE_VERSION}")
+endif()
+# Quote untrusted strings as single-quoted shell values; do not embed build paths
+# into the PKGBUILD. Environment variables carry paths, including spaces.
+function(_shell_quote output value)
+  string(REPLACE "'" "'\\''" _value "${value}")
+  set(${output} "'${_value}'" PARENT_SCOPE)
+endfunction()
+_shell_quote(_name "${_pkgname}")
+_shell_quote(_version "${CPACK_PACKAGE_VERSION}")
+_shell_quote(_desc "${CPACK_PACKAGE_DESCRIPTION_SUMMARY}")
+_shell_quote(_license "custom")
+set(_work "${PACKAGE_DIR}/arch-build")
+file(MAKE_DIRECTORY "${_work}")
+set(PKGNAME "${_name}")
+set(PKGVER "${_version}")
+set(PKGDESC "${_desc}")
+set(PKGLICENSE "${_license}")
+configure_file("${CMAKE_CURRENT_LIST_DIR}/PKGBUILD.in" "${_work}/PKGBUILD" @ONLY)
+# An empty source list means makepkg never attempts to fetch or recompile.
+execute_process(
+  COMMAND "${CMAKE_COMMAND}" -E env
+    "BOILERPLATE_ARCH_BUILD_DIR=${BUILD_DIR}" "PKGDEST=${PACKAGE_DIR}"
+    "${_makepkg}" --force --noconfirm --clean
+  WORKING_DIRECTORY "${_work}"
+  RESULT_VARIABLE _rc)
+if(NOT _rc EQUAL 0)
+  message(FATAL_ERROR "makepkg failed (${_rc}): ${_work}/PKGBUILD")
+endif()
+file(GLOB _packages "${PACKAGE_DIR}/*.pkg.tar.zst")
+if(NOT _packages)
+  message(FATAL_ERROR "makepkg finished without a .pkg.tar.zst in ${PACKAGE_DIR}")
+endif()
+message(STATUS "Arch package: ${_packages}")
+file(REMOVE_RECURSE "${_work}")

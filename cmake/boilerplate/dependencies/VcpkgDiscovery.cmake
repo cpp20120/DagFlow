@@ -1,7 +1,8 @@
 include_guard(GLOBAL)
+include("${CMAKE_CURRENT_LIST_DIR}/VcpkgBootstrap.cmake")
 
 # Shared by the pre-project bootstrap and the build matrix. Only inspect known
-# locations; never download vcpkg or recursively search the user's drives.
+# locations. Provisioning is explicit opt-in; never search drives recursively.
 function(boilerplate_find_vcpkg output source_dir)
   set(_explicit "${BOILERPLATE_VCPKG_ROOT}")
   if(NOT _explicit)
@@ -15,6 +16,12 @@ function(boilerplate_find_vcpkg output source_dir)
     if(NOT EXISTS "${_root}/scripts/buildsystems/vcpkg.cmake")
       message(FATAL_ERROR "Explicit vcpkg root has no scripts/buildsystems/vcpkg.cmake: ${_root}")
     endif()
+    set(${output} "${_root}" PARENT_SCOPE)
+    return()
+  endif()
+
+  if(BOILERPLATE_VCPKG_BOOTSTRAP)
+    boilerplate_provision_vcpkg(_root "${source_dir}")
     set(${output} "${_root}" PARENT_SCOPE)
     return()
   endif()

@@ -10,6 +10,7 @@ function(configure_case name expected)
     -DDAGFLOW_BUILD_RUNTIME_BENCH=OFF -DDAGFLOW_BUILD_RUNTIME_SUITE=OFF
     -DBOILERPLATE_COMPILER_CACHE=none -DDAGFLOW_PROJECT_CAPABILITIES=project-minimal
     -DDAGFLOW_ALLOCATOR=mimalloc -DCMAKE_DISABLE_FIND_PACKAGE_mimalloc=ON
+    -DBOILERPLATE_DEPENDENCY_PROVIDER=system "-DTBB_DIR=${TBB_DIR}"
     ${ARGN} RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE error)
   file(WRITE "${CHECK_DIR}/${name}.log" "${output}\n${error}")
   if(expected STREQUAL "success")
