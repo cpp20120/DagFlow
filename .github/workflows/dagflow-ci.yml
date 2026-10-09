@@ -1,3 +1,4 @@
+
 name: DagFlow CI
 
 on:
@@ -111,16 +112,21 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+
       - name: Install fuzz toolchain
         run: |
           sudo apt-get update
           sudo apt-get install -y clang ninja-build
+
       - name: Configure
         run: cmake --preset fuzz
+
       - name: Build instrumented runtime and harnesses
         run: cmake --build --preset fuzz --parallel 2
+
       - name: Replay seed corpora
         run: ctest --preset fuzz --no-tests=error
+
       - name: Bounded mutation checks
         run: |
           for layer in containers function queues scope pool graph parking lifecycle accounting scheduler credits allocation exceptions ranges graph_scope joins saturation scope_races; do
@@ -130,6 +136,7 @@ jobs:
               "-artifact_prefix=out/build/fuzz/dagflow_fuzz_${layer}-artifacts/" \
               "-runs=$((seed_count + 201))" -max_len=4096 -timeout=15
           done
+
       - name: Preserve fuzz artifacts
         if: failure()
         uses: actions/upload-artifact@v4
@@ -150,7 +157,7 @@ jobs:
           - os: windows-latest
             shell: pwsh
             cmake_args: -A x64
-          - os: macos-14
+          - os: macos-26
             shell: zsh -e {0}
             cmake_args: -G Ninja
     steps:
@@ -159,6 +166,15 @@ jobs:
       - name: Install Ninja (macOS)
         if: runner.os == 'macOS'
         run: brew install ninja
+
+      - name: Print Apple toolchain
+        if: runner.os == 'macOS'
+        run: |
+          sw_vers
+          uname -m
+          xcodebuild -version
+          xcrun clang++ --version
+          xcrun --show-sdk-path
 
       - name: Configure
         run: >-
