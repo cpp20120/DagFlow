@@ -1,8 +1,54 @@
-if(NOT TARGET dagflow_runtime_suite)
-  message(FATAL_ERROR "DAGFLOW_BUILD_HARNESS requires DAGFLOW_BUILD_RUNTIME_SUITE=ON")
+include("${CMAKE_CURRENT_LIST_DIR}/DagFlowCases.cmake")
+set(_dagflow_campaign_commands)
+set(_dagflow_campaign_targets)
+set(_dagflow_campaign_count 0)
+foreach(_kind IN ITEMS runtime stress api tbb github)
+  if(_kind STREQUAL "runtime" OR _kind STREQUAL "github")
+    set(_target dagflow_${_kind}_suite)
+    set(_metrics run_p50_us payload_tasks_per_second)
+    set(_invariants checksum)
+  elseif(_kind STREQUAL "stress")
+    set(_target dagflow_stress_bench)
+    set(_metrics run_p50_us run_p99_us)
+    set(_invariants checksum logical_tasks)
+  else()
+    if(_kind STREQUAL "api")
+      set(_target dagflow_public_api_bench)
+    else()
+      set(_target dagflow_tbb_bench)
+    endif()
+    set(_metrics mean_s throughput_per_s)
+    set(_invariants logical_units)
+  endif()
+  if(NOT TARGET ${_target})
+    continue()
+  endif()
+  math(EXPR _dagflow_campaign_count "${_dagflow_campaign_count}+1")
+  dagflow_campaign_cases(${_kind} _default_cases)
+  string(TOUPPER "${_kind}" _upper)
+  set(DAGFLOW_${_upper}_CASES "${_default_cases}" CACHE FILEPATH "Cases JSON for the ${_kind} campaign")
+  set(_group)
+  if(DAGFLOW_CAMPAIGN_GROUP)
+    list(APPEND _group CASE_GROUP "${DAGFLOW_CAMPAIGN_GROUP}")
+  endif()
+  set(_perf)
+  if(DAGFLOW_CAMPAIGN_PERF_EVENTS)
+    list(APPEND _perf PERF_EVENTS ${DAGFLOW_CAMPAIGN_PERF_EVENTS})
+  endif()
+  boilerplate_add_harness(dagflow_${_kind}_campaign
+    TARGET ${_target} CASES "${DAGFLOW_${_upper}_CASES}" ${_group}
+    ROUNDS ${DAGFLOW_CAMPAIGN_ROUNDS} WARMUP_RUNS 1 TIMEOUT 120 RANDOMIZE
+    AFFINITY ${DAGFLOW_CAMPAIGN_AFFINITY} ${_perf}
+    METRICS ${_metrics} INVARIANTS ${_invariants}
+    METADATA "allocator=${DAGFLOW_ALLOCATOR}" "diagnostics=${DAGFLOW_RUNTIME_DIAGNOSTICS}")
+  list(APPEND _dagflow_campaign_commands COMMAND "${CMAKE_COMMAND}" --build
+    "${CMAKE_BINARY_DIR}" --config "$<CONFIG>" --target run_dagflow_${_kind}_campaign)
+  list(APPEND _dagflow_campaign_targets ${_target})
+endforeach()
+if(NOT _dagflow_campaign_count)
+  message(FATAL_ERROR "DAGFLOW_BUILD_HARNESS requires a runtime, stress, public API, TBB or GitHub benchmark")
 endif()
-dagflow_add_harness(dagflow_runtime_campaign
-  TARGET dagflow_runtime_suite CASES "${PROJECT_SOURCE_DIR}/bench/runtime_cases.json"
-  ROUNDS 3 WARMUP_RUNS 1 TIMEOUT 60 RANDOMIZE
-  METRICS run_p50_us payload_tasks_per_second INVARIANTS checksum
-  METADATA "allocator=${DAGFLOW_ALLOCATOR}")
+
+# Keep measurements sequential even when the parent build uses --parallel.
+add_custom_target(dagflow_campaigns ${_dagflow_campaign_commands}
+  DEPENDS ${_dagflow_campaign_targets} USES_TERMINAL VERBATIM)

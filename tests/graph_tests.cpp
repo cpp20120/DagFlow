@@ -6,9 +6,9 @@
 #include <stdexcept>
 #include <vector>
 
-#include "dagflow/dagflow.hpp"
+#include <dagflow/dagflow.hpp>
 #include "support.hpp"
-#include "dagflow/graph_scope.hpp"
+#include <dagflow/graph_scope.hpp>
 
 void graph_dependencies(dagflow::Pool& pool) {
   dagflow::TaskGraph graph(pool);

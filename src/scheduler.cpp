@@ -1,4 +1,5 @@
-#include "dagflow/detail/scheduler.hpp"
+#include <dagflow/detail/scheduler.hpp>
+#include <dagflow/detail/fuzz_points.hpp>
 
 #include <algorithm>
 #include <exception>
@@ -86,6 +87,7 @@ bool Scheduler::try_submit_external(uint32_t shard, ScheduledTask* task) {
   auto& queues = shards_[shard];
   const bool accepted = (task->prio == Priority::High ? queues.high : queues.normal).try_push(task);
   runtime_count(accepted ? RuntimeEvent::ingress_push : RuntimeEvent::ingress_full);
+  // if (accepted) DAGFLOW_FUZZ_POINT(external_publish);
   return accepted;
 }
 

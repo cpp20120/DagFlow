@@ -1,0 +1,614 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 26,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "lib-base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "cacheVariables": {
+        "BOILERPLATE_LIBRARIES_ONLY": "ON",
+        "BOILERPLATE_BUILD_TESTS": "ON",
+        "BOILERPLATE_BUILD_SHARED": "ON",
+        "BOILERPLATE_BUILD_STATIC": "ON",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "lib-debug",
+      "inherits": "lib-base",
+      "cacheVariables": {
+        "BOILERPLATE_PROFILE": "debug"
+      }
+    },
+    {
+      "name": "lib-relwithdebinfo",
+      "inherits": "lib-base",
+      "cacheVariables": {
+        "BOILERPLATE_PROFILE": "relwithdebinfo"
+      }
+    },
+    {
+      "name": "lib-release",
+      "inherits": "lib-base",
+      "cacheVariables": {
+        "BOILERPLATE_PROFILE": "release"
+      }
+    },
+    {
+      "name": "lib-lto",
+      "inherits": "lib-base",
+      "cacheVariables": {
+        "BOILERPLATE_PROFILE": "lto",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "BOILERPLATE_USE_LLD": "ON"
+      }
+    },
+    {
+      "name": "lib-full-lto",
+      "inherits": "lib-base",
+      "cacheVariables": {
+        "BOILERPLATE_PROFILE": "full-lto",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "BOILERPLATE_USE_LLD": "ON"
+      }
+    },
+    {
+      "name": "lib-native-thinlto",
+      "inherits": "lib-base",
+      "cacheVariables": {
+        "BOILERPLATE_PROFILE": "native-thinlto",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "BOILERPLATE_USE_LLD": "ON"
+      }
+    },
+    {
+      "name": "lib-native-full-lto",
+      "inherits": "lib-base",
+      "cacheVariables": {
+        "BOILERPLATE_PROFILE": "native-full-lto",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "BOILERPLATE_USE_LLD": "ON"
+      }
+    },
+    {
+      "name": "lib-o3",
+      "inherits": "lib-base",
+      "cacheVariables": {
+        "BOILERPLATE_PROFILE": "o3"
+      }
+    },
+    {
+      "name": "lib-o3-lto",
+      "inherits": "lib-base",
+      "cacheVariables": {
+        "BOILERPLATE_PROFILE": "o3-lto",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "BOILERPLATE_USE_LLD": "ON"
+      }
+    },
+    {
+      "name": "lib-pgo-generate",
+      "inherits": "lib-base",
+      "cacheVariables": {
+        "BOILERPLATE_PROFILE": "pgo-generate",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "BOILERPLATE_USE_LLD": "ON"
+      }
+    },
+    {
+      "name": "lib-pgo-use",
+      "inherits": "lib-base",
+      "cacheVariables": {
+        "BOILERPLATE_PROFILE": "pgo-use",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "BOILERPLATE_USE_LLD": "ON",
+        "BOILERPLATE_PGO_PROFILE": "${sourceDir}/out/build/lib-pgo-generate/pgo/merged.profdata"
+      }
+    },
+    {
+      "name": "lib-lto-pgo-generate",
+      "inherits": "lib-base",
+      "cacheVariables": {
+        "BOILERPLATE_PROFILE": "lto-pgo-generate",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "BOILERPLATE_USE_LLD": "ON"
+      }
+    },
+    {
+      "name": "lib-lto-pgo-use",
+      "inherits": "lib-base",
+      "cacheVariables": {
+        "BOILERPLATE_PROFILE": "lto-pgo-use",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "BOILERPLATE_USE_LLD": "ON",
+        "BOILERPLATE_PGO_PROFILE": "${sourceDir}/out/build/lib-lto-pgo-generate/pgo/merged.profdata"
+      }
+    },
+    {
+      "name": "lib-address-undefined",
+      "inherits": "lib-debug",
+      "cacheVariables": {
+        "BOILERPLATE_SANITIZER": "address-undefined"
+      }
+    },
+    {
+      "name": "lib-thread",
+      "inherits": "lib-debug",
+      "cacheVariables": {
+        "BOILERPLATE_SANITIZER": "thread"
+      }
+    },
+    {
+      "name": "lib-bench",
+      "inherits": "lib-release",
+      "cacheVariables": {
+        "BOILERPLATE_BUILD_BENCHMARKS": "ON"
+      }
+    },
+    {
+      "name": "lib-native-full-lto-pgo-generate",
+      "inherits": "lib-base",
+      "cacheVariables": {
+        "BOILERPLATE_PROFILE": "native-full-lto-pgo-generate",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "BOILERPLATE_USE_LLD": "ON"
+      }
+    },
+    {
+      "name": "lib-native-full-lto-pgo-use",
+      "inherits": "lib-base",
+      "cacheVariables": {
+        "BOILERPLATE_PROFILE": "native-full-lto-pgo-use",
+        "CMAKE_CXX_COMPILER": "clang++",
+        "BOILERPLATE_USE_LLD": "ON",
+        "BOILERPLATE_PGO_PROFILE": "${sourceDir}/out/build/lib-native-full-lto-pgo-generate/pgo/merged.profdata"
+      }
+    },
+    {
+      "name": "lib-aggressive",
+      "inherits": "lib-native-full-lto",
+      "cacheVariables": {
+        "BOILERPLATE_ENABLE_GC_SECTIONS": "ON",
+        "BOILERPLATE_ENABLE_NO_PLT": "ON",
+        "BOILERPLATE_ENABLE_NO_SEMANTIC_INTERPOSITION": "ON",
+        "BOILERPLATE_ENABLE_ICF": "ON"
+      }
+    },
+    {
+      "name": "lib-static",
+      "inherits": "lib-release",
+      "cacheVariables": {
+        "BOILERPLATE_BUILD_SHARED": "OFF",
+        "BOILERPLATE_BUILD_STATIC": "ON"
+      }
+    },
+    {
+      "name": "lib-shared",
+      "inherits": "lib-release",
+      "cacheVariables": {
+        "BOILERPLATE_BUILD_SHARED": "ON",
+        "BOILERPLATE_BUILD_STATIC": "OFF"
+      }
+    },
+    {
+      "name": "lib-bench-google",
+      "inherits": "lib-release",
+      "cacheVariables": {
+        "BOILERPLATE_BUILD_GOOGLE_BENCHMARKS": "ON"
+      }
+    },
+    {
+      "name": "lib-bench-both",
+      "inherits": "lib-bench",
+      "cacheVariables": {
+        "BOILERPLATE_BUILD_GOOGLE_BENCHMARKS": "ON"
+      }
+    },
+    {
+      "name": "lib-google-tests",
+      "inherits": "lib-debug",
+      "cacheVariables": {
+        "BOILERPLATE_BUILD_GOOGLE_TESTS": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "lib-debug",
+      "configurePreset": "lib-debug"
+    },
+    {
+      "name": "lib-relwithdebinfo",
+      "configurePreset": "lib-relwithdebinfo"
+    },
+    {
+      "name": "lib-release",
+      "configurePreset": "lib-release"
+    },
+    {
+      "name": "lib-lto",
+      "configurePreset": "lib-lto"
+    },
+    {
+      "name": "lib-full-lto",
+      "configurePreset": "lib-full-lto"
+    },
+    {
+      "name": "lib-native-thinlto",
+      "configurePreset": "lib-native-thinlto"
+    },
+    {
+      "name": "lib-native-full-lto",
+      "configurePreset": "lib-native-full-lto"
+    },
+    {
+      "name": "lib-o3",
+      "configurePreset": "lib-o3"
+    },
+    {
+      "name": "lib-o3-lto",
+      "configurePreset": "lib-o3-lto"
+    },
+    {
+      "name": "lib-pgo-generate",
+      "configurePreset": "lib-pgo-generate"
+    },
+    {
+      "name": "lib-pgo-use",
+      "configurePreset": "lib-pgo-use"
+    },
+    {
+      "name": "lib-lto-pgo-generate",
+      "configurePreset": "lib-lto-pgo-generate"
+    },
+    {
+      "name": "lib-lto-pgo-use",
+      "configurePreset": "lib-lto-pgo-use"
+    },
+    {
+      "name": "lib-address-undefined",
+      "configurePreset": "lib-address-undefined"
+    },
+    {
+      "name": "lib-thread",
+      "configurePreset": "lib-thread"
+    },
+    {
+      "name": "lib-bench",
+      "configurePreset": "lib-bench"
+    },
+    {
+      "name": "lib-native-full-lto-pgo-generate",
+      "configurePreset": "lib-native-full-lto-pgo-generate"
+    },
+    {
+      "name": "lib-native-full-lto-pgo-use",
+      "configurePreset": "lib-native-full-lto-pgo-use"
+    },
+    {
+      "name": "lib-aggressive",
+      "configurePreset": "lib-aggressive"
+    },
+    {
+      "name": "lib-static",
+      "configurePreset": "lib-static"
+    },
+    {
+      "name": "lib-shared",
+      "configurePreset": "lib-shared"
+    },
+    {
+      "name": "lib-bench-google",
+      "configurePreset": "lib-bench-google"
+    },
+    {
+      "name": "lib-bench-both",
+      "configurePreset": "lib-bench-both"
+    },
+    {
+      "name": "lib-google-tests",
+      "configurePreset": "lib-google-tests"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "lib-debug",
+      "configurePreset": "lib-debug",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "lib-relwithdebinfo",
+      "configurePreset": "lib-relwithdebinfo",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "lib-release",
+      "configurePreset": "lib-release",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "lib-lto",
+      "configurePreset": "lib-lto",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "lib-full-lto",
+      "configurePreset": "lib-full-lto",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "lib-native-thinlto",
+      "configurePreset": "lib-native-thinlto",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "lib-native-full-lto",
+      "configurePreset": "lib-native-full-lto",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "lib-o3",
+      "configurePreset": "lib-o3",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "lib-o3-lto",
+      "configurePreset": "lib-o3-lto",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "lib-pgo-generate",
+      "configurePreset": "lib-pgo-generate",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "lib-pgo-use",
+      "configurePreset": "lib-pgo-use",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "lib-lto-pgo-generate",
+      "configurePreset": "lib-lto-pgo-generate",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "lib-lto-pgo-use",
+      "configurePreset": "lib-lto-pgo-use",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "lib-address-undefined",
+      "configurePreset": "lib-address-undefined",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "lib-thread",
+      "configurePreset": "lib-thread",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "lib-bench",
+      "configurePreset": "lib-bench",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "lib-native-full-lto-pgo-generate",
+      "configurePreset": "lib-native-full-lto-pgo-generate",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "lib-native-full-lto-pgo-use",
+      "configurePreset": "lib-native-full-lto-pgo-use",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "lib-aggressive",
+      "configurePreset": "lib-aggressive",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "lib-static",
+      "configurePreset": "lib-static",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "lib-shared",
+      "configurePreset": "lib-shared",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "lib-bench-google",
+      "configurePreset": "lib-bench-google",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "lib-bench-both",
+      "configurePreset": "lib-bench-both",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "lib-google-tests",
+      "configurePreset": "lib-google-tests",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    }
+  ],
+  "workflowPresets": [
+    {
+      "name": "lib-release",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "lib-release"
+        },
+        {
+          "type": "build",
+          "name": "lib-release"
+        },
+        {
+          "type": "test",
+          "name": "lib-release"
+        }
+      ]
+    },
+    {
+      "name": "lib-debug",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "lib-debug"
+        },
+        {
+          "type": "build",
+          "name": "lib-debug"
+        },
+        {
+          "type": "test",
+          "name": "lib-debug"
+        }
+      ]
+    },
+    {
+      "name": "lib-bench-both",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "lib-bench-both"
+        },
+        {
+          "type": "build",
+          "name": "lib-bench-both"
+        },
+        {
+          "type": "test",
+          "name": "lib-bench-both"
+        }
+      ]
+    }
+  ]
+}

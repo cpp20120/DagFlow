@@ -6,12 +6,11 @@
 #include <optional>
 #include <span>
 
-#include "dagflow/detail/chase_lev_deque.hpp"
-#include "dagflow/detail/ring_mpmc.hpp"
-#include "dagflow/detail/runtime_memory.hpp"
-#include "dagflow/detail/runtime_diagnostics.hpp"
-#include "dagflow/thread_pool.hpp"
-
+#include <dagflow/detail/chase_lev_deque.hpp>
+#include <dagflow/detail/ring_mpmc.hpp>
+#include <dagflow/detail/runtime_memory.hpp>
+#include <dagflow/detail/runtime_diagnostics.hpp>
+#include <dagflow/thread_pool.hpp>
 namespace dagflow::detail {
 /// Immutable placement domains plus owner queues and shared ingress. Every
 /// worker has one home shard; shards may have no resident worker. ParkingLot

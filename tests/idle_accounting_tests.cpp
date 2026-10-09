@@ -6,9 +6,9 @@
 #include <thread>
 #include <vector>
 
-#include "dagflow/detail/idle_accounting.hpp"
+#include <dagflow/detail/idle_accounting.hpp>
 #include "support.hpp"
-#include "dagflow/thread_pool.hpp"
+#include <dagflow/thread_pool.hpp>
 
 using namespace std::chrono_literals;
 

@@ -1,5 +1,11 @@
 # Runtime benchmark suite
 
+> **Historical workflow note (October 2026).** This report preserves its original
+> benchmark commands and measurements. The former `scripts/benchmark_*.py`
+> orchestration is retired; those commands are not part of the current build.
+> For reproducible runs use [CMake benchmark campaigns](campaigns.md).
+
+
 `bench/runtime_suite.cpp` supplies checked workloads; `scripts/benchmark_suite.py`
 builds and runs the matrix sequentially and saves JSONL/CSV results and provenance.
 The earlier `dagflow-runtime-bench` executable and historical reports remain
@@ -11,7 +17,7 @@ for paired before/after runs across all three allocation backends. Its dedicated
 runner preserves source snapshots and changes only the runtime STL allocator uses.
 
 The [main.cpp O3/Full LTO profile](main-o3-lto.md) is a separate experiment using
-the stress workloads in `src/main.cpp`, with perf counters and flamegraphs.
+the stress workloads in `bench/stress_harness.cpp`, with perf counters and flamegraphs.
 Its whole-process counters and timing boundaries differ from this suite.
 
 ## Quick start

@@ -4,19 +4,19 @@ Build all examples and their smoke checks:
 
 ```sh
 cmake -S . -B out/build/examples -G Ninja \
-  -DCMAKE_BUILD_TYPE=Release -DTP_BUILD_EXAMPLES=ON -DTP_BUILD_TESTS=ON
+  -DCMAKE_BUILD_TYPE=Release -DDAGFLOW_BUILD_EXAMPLES=ON -DDAGFLOW_BUILD_TESTS=ON
 cmake --build out/build/examples -j 4
 ctest --test-dir out/build/examples -R 'dagflow_(example_|api_convenience_tests)' \
   --output-on-failure
 ```
 
 The default allocator is mimalloc; add `-DDAGFLOW_ALLOCATOR=system` if it is not
-installed. Executable names below assume an empty `DAGFLOW_ARTIFACT_SUFFIX`.
-These are short examples with checked results; performance workloads live in `bench/`.
+installed. Executable names below assume an empty `BOILERPLATE_ARTIFACT_SUFFIX`.
+These are short examples with checked results; the separate stress harness lives in `bench/stress_harness.cpp`.
 
 | Source | Executable | Public API demonstrated |
 | --- | --- | --- |
-| [Quick start](../src/main.cpp) | `dagflow-example` | `Pool::submit`, move-only capture, `combine`, `wait_and_rethrow`, task errors |
+| [Quick start](basic.cpp) | `dagflow-example` | `Pool::submit`, move-only capture, `combine`, `wait_and_rethrow`, task errors |
 | [Task scope](task_scope.cpp) | `dagflow-example-task_scope` | `TaskScope::spawn`, `Context::spawn`, `close`, `join`, errors |
 | [Cancellation](cancellation.cpp) | `dagflow-example-cancellation` | Cooperative cancellation of a running callback, rejected submission |
 | [Graphs](graph.cpp) | `dagflow-example-graph` | `GraphScope::emplace/then/when_all`, explicit `TaskGraph` edges/seal, repeated runs |

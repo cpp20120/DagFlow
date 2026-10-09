@@ -1,4 +1,5 @@
-#include "dagflow/detail/idle_accounting.hpp"
+#include <dagflow/detail/idle_accounting.hpp>
+#include <dagflow/detail/fuzz_points.hpp>
 
 #include <exception>
 #include <limits>
@@ -60,7 +61,10 @@ IdleAccounting::Lane& IdleAccounting::producer_lane() {
   entry = {identity_, &producers_->lane};
   return *entry.lane;
 }
-void IdleAccounting::publish_external() { publish(producer_lane()); }
+void IdleAccounting::publish_external() {
+  publish(producer_lane());
+  // DAGFLOW_FUZZ_POINT(external_publish);
+}
 bool IdleAccounting::idle_locked() const noexcept {
   // Registry is fixed under mutex_. Retirements are monotonic: equal totals
   // in both collections mean every observed retirement lane stayed stable.

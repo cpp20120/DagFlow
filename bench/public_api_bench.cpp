@@ -17,8 +17,8 @@
 #include <string_view>
 #include <vector>
 
-#include "dagflow/graph_scope.hpp"
-#include "dagflow/task_graph.hpp"
+#include <dagflow/graph_scope.hpp>
+#include <dagflow/task_graph.hpp>
 
 namespace dagflow {
 class Pool;

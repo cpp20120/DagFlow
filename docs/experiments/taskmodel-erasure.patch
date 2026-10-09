@@ -1,0 +1,505 @@
+diff -ruN '--exclude=build-*' dagflow_original/include/dagflow/detail/scheduler.hpp dagflow_taskmodel/include/dagflow/detail/scheduler.hpp
+--- dagflow_original/include/dagflow/detail/scheduler.hpp	2026-09-30 09:12:35.000000000 +0000
++++ dagflow_taskmodel/include/dagflow/detail/scheduler.hpp	2026-09-30 10:05:12.827689396 +0000
+@@ -12,15 +12,6 @@
+ #include "dagflow/thread_pool.hpp"
+ 
+ namespace dagflow::detail {
+-struct ScheduledTask {
+-  small_function<void(CompletionCredit&)> fn;
+-  Priority prio{Priority::Normal};
+-  CompletionCredit done;
+-#if defined(DAGFLOW_RUNTIME_DIAGNOSTICS)
+-  uint64_t allocating_thread{runtime_diagnostic_thread()};
+-#endif
+-};
+-
+ /// Immutable placement domains plus owner queues and shared ingress. Every
+ /// worker has one home shard; shards may have no resident worker. ParkingLot
+ /// uses this same membership map. CPU/NUMA placement remains a separate
+diff -ruN '--exclude=build-*' dagflow_original/include/dagflow/task_scope.hpp dagflow_taskmodel/include/dagflow/task_scope.hpp
+--- dagflow_original/include/dagflow/task_scope.hpp	2026-09-30 05:20:01.000000000 +0000
++++ dagflow_taskmodel/include/dagflow/task_scope.hpp	2026-09-30 10:05:13.798570656 +0000
+@@ -154,10 +154,10 @@
+                   "Scope callback destruction must not throw");
+     ActiveFrame publishing(state);
+     try {
+-      Pool::TaskFunction job{ScopedTask<Fn>{state, std::forward<F>(function)}};
+-      // Keep publication alive until the job parameter has been cleaned up,
+-      // including when enqueue allocation fails before accepting its credit.
+-      pool(state).enqueue(std::move(job), options, publication.fork());
++      // Keep publication alive until task construction has cleaned up the
++      // concrete callable, including when packet allocation/construction fails.
++      pool(state).enqueue(ScopedTask<Fn>{state, std::forward<F>(function)},
++                          options, publication.fork());
+     } catch (...) {
+       record_error(state, publication, std::current_exception());
+       throw;
+diff -ruN '--exclude=build-*' dagflow_original/include/dagflow/thread_pool.hpp dagflow_taskmodel/include/dagflow/thread_pool.hpp
+--- dagflow_original/include/dagflow/thread_pool.hpp	2026-09-30 07:55:24.000000000 +0000
++++ dagflow_taskmodel/include/dagflow/thread_pool.hpp	2026-09-30 10:05:11.881746821 +0000
+@@ -4,6 +4,7 @@
+ #include <atomic>
+ #include <cstddef>
+ #include <cstdint>
++#include <functional>
+ #include <initializer_list>
+ #include <iterator>
+ #include <memory>
+@@ -17,7 +18,7 @@
+ 
+ #include "dagflow/config.hpp"
+ #include "dagflow/handle.hpp"
+-#include "dagflow/detail/small_function.hpp"
++#include "dagflow/detail/runtime_diagnostics.hpp"
+ 
+ namespace dagflow {
+ 
+@@ -25,7 +26,6 @@
+ class Scheduler;
+ class ParkingLot;
+ class IdleAccounting;
+-struct ScheduledTask;
+ }  // namespace detail
+ 
+ enum class Priority : uint8_t { High = 0, Normal = 1 };
+@@ -55,6 +55,81 @@
+   SubmissionMode mode = SubmissionMode::Spawn;
+ };
+ 
++namespace detail {
++struct ScheduledTask;
++
++struct ScheduledTaskOps {
++  void (*invoke)(ScheduledTask*);
++  void (*destroy)(ScheduledTask*) noexcept;
++};
++
++/// Common scheduler-visible prefix. The concrete callable lives inline in a
++/// ScheduledTaskModel<Callable> allocation; queues move only this base pointer.
++struct ScheduledTask {
++  const ScheduledTaskOps* ops{};
++  Priority prio{Priority::Normal};
++  CompletionCredit done;
++#if defined(DAGFLOW_RUNTIME_DIAGNOSTICS)
++  uint64_t allocating_thread{runtime_diagnostic_thread()};
++#endif
++
++  ScheduledTask() = default;
++  ScheduledTask(const ScheduledTaskOps* task_ops, Priority priority,
++                CompletionCredit completion) noexcept
++      : ops(task_ops), prio(priority), done(std::move(completion)) {}
++};
++
++struct ScheduledTaskDeleter {
++  void operator()(ScheduledTask* task) const noexcept {
++    if (task) task->ops->destroy(task);
++  }
++};
++
++using OwnedScheduledTask =
++    std::unique_ptr<ScheduledTask, ScheduledTaskDeleter>;
++
++template <class Callable>
++struct ScheduledTaskModel final : ScheduledTask {
++  static_assert(std::is_nothrow_destructible_v<Callable>,
++                "task callable destruction must not throw");
++
++  template <class Function>
++  ScheduledTaskModel(Function&& function, Priority priority,
++                     CompletionCredit completion)
++      : ScheduledTask(&operations, priority, std::move(completion)),
++        callable(std::forward<Function>(function)) {}
++
++  static void invoke(ScheduledTask* task) {
++    auto* self = static_cast<ScheduledTaskModel*>(task);
++    std::invoke(self->callable, self->done);
++  }
++
++  static void destroy(ScheduledTask* task) noexcept {
++    auto* self = static_cast<ScheduledTaskModel*>(task);
++    std::destroy_at(self);
++    deallocate_bytes(self, alignof(ScheduledTaskModel));
++  }
++
++  inline static constexpr ScheduledTaskOps operations{&invoke, &destroy};
++  [[no_unique_address]] Callable callable;
++};
++
++template <class Callable>
++[[nodiscard]] OwnedScheduledTask make_scheduled_task(
++    Callable&& callable, Priority priority, CompletionCredit completion) {
++  using Model = ScheduledTaskModel<std::decay_t<Callable>>;
++  void* storage = allocate_bytes(sizeof(Model), alignof(Model));
++  try {
++    return OwnedScheduledTask{std::construct_at(
++        static_cast<Model*>(storage), std::forward<Callable>(callable), priority,
++        std::move(completion))};
++  } catch (...) {
++    deallocate_bytes(storage, alignof(Model));
++    throw;
++  }
++}
++}  // namespace detail
++
+ /// Raw function signature for low-level submission.
+ using Fn = void (*)(void*);
+ 
+@@ -73,14 +148,17 @@
+   /// External callers wait on queue saturation. Workers may execute inline.
+   template <class F>
+   Handle submit(F f, SubmitOptions opt = {}) {
+-    return submit_impl(TaskFunction{[fn = std::move(f)](detail::CompletionCredit&) mutable { fn(); }}, std::move(opt));
++    return submit_impl(
++        [fn = std::move(f)](detail::CompletionCredit&) mutable { fn(); },
++        std::move(opt));
+   }
+ 
+   /// Submit without a per-task completion handle. Track lifetime at the caller.
+   /// Uncaught task exceptions are discarded; capture/report errors explicitly.
+   template <class F>
+   void submit_detached(F f, SubmitOptions opt = {}) {
+-    enqueue(TaskFunction{[fn = std::move(f)](detail::CompletionCredit&) mutable { fn(); }}, opt, {});
++    enqueue([fn = std::move(f)](detail::CompletionCredit&) mutable { fn(); },
++            opt, {});
+   }
+ 
+   /// Consume callable objects by move; no per-task completion state is created.
+@@ -110,9 +188,27 @@
+   template <class F, std::size_t Extent>
+     requires (!std::is_const_v<F> && std::is_invocable_r_v<void, F&>)
+   void submit_batch_detached(std::span<F, Extent> tasks, SubmitOptions opt = {}) {
+-    enqueue_batch(tasks.size(), tasks.data(), [](void* data, std::size_t i) {
+-      return TaskFunction{[fn = std::move(static_cast<F*>(data)[i])](detail::CompletionCredit&) mutable { fn(); }};
+-    }, opt);
++    if (tls_pool_ == this) {
++      for (auto& task : tasks)
++        enqueue([fn = std::move(task)](detail::CompletionCredit&) mutable { fn(); },
++                opt, {});
++      return;
++    }
++
++    constexpr std::size_t batch_limit = 64;
++    for (std::size_t base = 0; base < tasks.size();) {
++      const auto size = std::min(batch_limit, tasks.size() - base);
++      detail::OwnedScheduledTask pending[batch_limit];
++      for (std::size_t i = 0; i < size; ++i) {
++        pending[i] = detail::make_scheduled_task(
++            [fn = std::move(tasks[base + i])](detail::CompletionCredit&) mutable {
++              fn();
++            },
++            opt.priority, {});
++      }
++      enqueue_batch_prepared(std::span{pending, size}, opt);
++      base += size;
++    }
+   }
+ 
+   /// Process a forward range in approximately 16K-element chunks.
+@@ -133,10 +229,10 @@
+         const std::size_t lo = c * n / chunks;
+         const std::size_t hi = (c + 1) * n / chunks;
+         auto base = std::next(begin, static_cast<std::iter_difference_t<It>>(lo));
+-        enqueue(TaskFunction{[base, count = hi - lo, callable](detail::CompletionCredit&) mutable {
+-                  auto it = base;
+-                  for (std::size_t i = 0; i < count; ++i, ++it) (*callable)(*it);
+-                }}, opt, publication.fork());
++        enqueue([base, count = hi - lo, callable](detail::CompletionCredit&) mutable {
++          auto it = base;
++          for (std::size_t i = 0; i < count; ++i, ++it) (*callable)(*it);
++        }, opt, publication.fork());
+       }
+     } catch (...) {
+       publication.finish();
+@@ -207,9 +303,9 @@
+           range.hi = mid;
+           Exec continuation{state};
+           state->pool->enqueue(
+-              TaskFunction{[continuation, upper](detail::CompletionCredit& child) {
++              [continuation, upper](detail::CompletionCredit& child) {
+                 continuation(upper, child);
+-              }}, state->opt, credit.fork());
++              }, state->opt, credit.fork());
+         }
+         auto it = std::next(state->begin, static_cast<std::iter_difference_t<It>>(range.lo));
+         for (std::size_t i = range.lo; i < range.hi; ++i, ++it) state->func(*it);
+@@ -222,9 +318,9 @@
+         const Range range{n * t / tiles, n * (t + 1) / tiles};
+         auto local_options = state->opt;
+         if (tiles > 1) local_options.affinity = static_cast<uint32_t>(t);
+-        enqueue(TaskFunction{[exec = Exec{state}, range](detail::CompletionCredit& credit) {
+-                  exec(range, credit);
+-                }}, local_options, publication.fork());
++        enqueue([exec = Exec{state}, range](detail::CompletionCredit& credit) {
++          exec(range, credit);
++        }, local_options, publication.fork());
+       }
+     } catch (...) {
+       publication.finish();
+@@ -273,16 +369,31 @@
+   friend class TaskGraph;
+   friend class TaskScope;
+   using Task = detail::ScheduledTask;
+-  using TaskFunction = small_function<void(detail::CompletionCredit&)>;
+ 
+-  Handle submit_impl(TaskFunction job, SubmitOptions opt);
+-  /// Consumes completion on both success and failure; publication transfers
+-  /// packet custody, while allocation failure retires the unaccepted credit.
+-  void enqueue(TaskFunction job, SubmitOptions opt, detail::CompletionCredit completion);
+-
+-  void enqueue_batch(std::size_t count, void* data,
+-                     TaskFunction (*make_job)(void*, std::size_t),
+-                     const SubmitOptions& opt);
++  template <class Callable>
++  Handle submit_impl(Callable&& job, SubmitOptions opt) {
++    auto credit = detail::CompletionCredit::create();
++    auto handle = credit.handle();
++    enqueue(std::forward<Callable>(job), opt, std::move(credit));
++    return handle;
++  }
++
++  /// Consumes completion on both success and failure. The concrete callable is
++  /// constructed directly inside one variable-sized task allocation; scheduler
++  /// queues erase only the resulting ScheduledTask* pointer.
++  template <class Callable>
++  void enqueue(Callable&& job, SubmitOptions opt,
++               detail::CompletionCredit completion) {
++    auto task = detail::make_scheduled_task(
++        std::forward<Callable>(job), opt.priority, std::move(completion));
++    enqueue_prepared(std::move(task), opt);
++  }
++
++  void enqueue_prepared(detail::OwnedScheduledTask task,
++                        const SubmitOptions& opt);
++  void enqueue_batch_prepared(
++      std::span<detail::OwnedScheduledTask> tasks,
++      const SubmitOptions& opt);
+ 
+   void dispatch(Task* task, const SubmitOptions& opt);
+ 
+diff -ruN '--exclude=build-*' dagflow_original/src/task_graph.cpp dagflow_taskmodel/src/task_graph.cpp
+--- dagflow_original/src/task_graph.cpp	2026-09-30 07:28:40.000000000 +0000
++++ dagflow_taskmodel/src/task_graph.cpp	2026-09-30 10:05:14.695251948 +0000
+@@ -199,10 +199,9 @@
+   const auto opt = state.nodes[i].submit;
+   try {
+     state.pool->enqueue(
+-        Pool::TaskFunction{
+-            [borrowed = &state, i](detail::CompletionCredit& accepted) {
+-              execute(*borrowed, i, accepted);
+-            }},
++        [borrowed = &state, i](detail::CompletionCredit& accepted) {
++          execute(*borrowed, i, accepted);
++        },
+         opt, credit.fork());
+   } catch (...) {
+     // Failed publication has already retired its child credit. The caller's
+diff -ruN '--exclude=build-*' dagflow_original/src/thread_pool.cpp dagflow_taskmodel/src/thread_pool.cpp
+--- dagflow_original/src/thread_pool.cpp	2026-09-30 09:12:35.000000000 +0000
++++ dagflow_taskmodel/src/thread_pool.cpp	2026-09-30 10:07:15.350324109 +0000
+@@ -34,7 +34,6 @@
+ namespace dagflow {
+ namespace {
+ constexpr uint32_t wake_retry_mask = 63U;
+-constexpr std::size_t batch_publication_limit = 64;
+ constexpr uint32_t backoff_growth_factor = 2;
+ }  // namespace
+ 
+@@ -108,41 +107,23 @@
+ // the returned handle is ready; no special C-ABI completion path exists.
+ Handle Pool::submit(Fn function, void* arg, SubmitOptions opt) {
+   return submit_impl(
+-      TaskFunction{[=](detail::CompletionCredit&) { function(arg); }}, opt);
++      [=](detail::CompletionCredit&) { function(arg); }, std::move(opt));
+ }
+ 
+-// Allocate the observer credit before enqueue so a publication failure leaves
+-// a valid, destructible local owner. `handle` is a non-owning observation;
+-// the credit held by the packet is what keeps completion state alive.
+-Handle Pool::submit_impl(TaskFunction job, SubmitOptions opt) {
+-  auto credit = detail::CompletionCredit::create();
+-  auto handle = credit.handle();
+-  enqueue(std::move(job), opt, std::move(credit));
+-  return handle;
+-}
+-
+-void Pool::enqueue(TaskFunction job, SubmitOptions opt,
+-                   detail::CompletionCredit completion) {
+-  // Build the complete packet while this producer owns it. Accounting is
+-  // published only after preparation succeeds and before queue publication;
+-  // dispatch consumes the packet pointer on success. If anything before that
+-  // transfer throws, RAII destroys both callable and credit with no phantom
+-  // publication.
+-  auto owned = detail::make_owned<Task>();
++void Pool::enqueue_prepared(detail::OwnedScheduledTask owned,
++                            const SubmitOptions& opt) {
++  // The concrete callable already lives inline in the variable-sized packet.
++  // Accounting is published only after construction succeeds and before queue
++  // publication. If producer registration throws, the erased owner destroys
++  // the exact TaskModel type and retires its unaccepted completion credit.
+   detail::runtime_count(detail::RuntimeEvent::packets);
+   detail::runtime_count(tls_pool_ == this ? detail::RuntimeEvent::worker_submit
+-                                        : detail::RuntimeEvent::external_submit);
+-  Task* task = owned.get();
+-  // The packet owns its credit before producer registration, which can throw.
+-  // Any preparation failure destroys the unpublished packet and its credit.
+-  task->fn = std::move(job);
+-  task->prio = opt.priority;
+-  task->done = std::move(completion);
++                                          : detail::RuntimeEvent::external_submit);
+   if (tls_pool_ == this)
+     accounting_->publish_worker(tls_id_);
+   else
+     accounting_->publish_external();
+-  // Successful publication revokes all access to task, including its credit.
++  // Successful publication revokes all producer access to packet state.
+   dispatch(owned.release(), opt);
+ }
+ 
+@@ -184,71 +165,43 @@
+   parking_->wake_one(shard);
+ }
+ 
+-void Pool::enqueue_batch(std::size_t count, void* data,
+-                         TaskFunction (*make_job)(void*, std::size_t),
+-                         const SubmitOptions& opt) {
+-  // This function intentionally has two different protocols. A worker already
+-  // participates in local Chase-Lev ownership and may be the only executor
+-  // able to make progress; routing its children through a second batch state
+-  // would change cooperative waits and the tested inline-overflow behavior.
+-  if (tls_pool_ == this) {
+-    for (std::size_t i = 0; i < count; ++i) enqueue(make_job(data, i), opt, {});
+-    return;
++void Pool::enqueue_batch_prepared(
++    std::span<detail::OwnedScheduledTask> pending,
++    const SubmitOptions& opt) {
++  // The caller has fully constructed the <=64 packet group before entering
++  // this function. Every entry is a concrete TaskModel allocation owned by the
++  // span until queue publication transfers custody.
++  detail::runtime_count(detail::RuntimeEvent::external_batch);
++  for (std::size_t i = 0; i < pending.size(); ++i) {
++    detail::runtime_count(detail::RuntimeEvent::packets);
++    detail::runtime_count(detail::RuntimeEvent::external_submit);
++    detail::runtime_count(detail::RuntimeEvent::batch_tasks);
+   }
+-  constexpr std::size_t batch_limit = batch_publication_limit;
+-  for (std::size_t base = 0; base < count;) {
+-    const auto size = std::min(batch_limit, count - base);
+-    detail::runtime_count(detail::RuntimeEvent::external_batch);
+-    detail::OwnedObject<Task> pending[batch_limit];
+-    // Invariant: before the first publish, every packet in this group is owned
+-    // by `pending`; a throwing callable/packet allocation cannot strand queue
+-    // state or create an accounting publication with no packet. The fixed
+-    // pointer array is stack staging, not a producer-side task buffer: return
+-    // and throw paths both leave no unpublished task owned by the pool.
+-    for (std::size_t i = 0; i < size; ++i) {
+-      pending[i] = detail::make_owned<Task>();
+-      detail::runtime_count(detail::RuntimeEvent::packets);
+-      detail::runtime_count(detail::RuntimeEvent::external_submit);
+-      detail::runtime_count(detail::RuntimeEvent::batch_tasks);
+-      pending[i]->fn = make_job(data, base + i);
+-      pending[i]->prio = opt.priority;
+-    }
+-    const auto shard = scheduler_->select_shard(opt.affinity);
+-    bool published = false;
+-    try {
+-      for (std::size_t i = 0; i < size; ++i) {
+-        // Publish accounting before queue ownership is transferred. Once
+-        // release of the queue slot succeeds, `pending[i]` must never be
+-        // touched again by this producer. This is why a failed registration
+-        // is handled before release and why there is no rollback of a prefix.
+-        accounting_->publish_external();
+-        auto* task = pending[i].release();
+-        uint32_t retries = 0;
+-        while (!scheduler_->try_submit_external(shard, task)) {
+-    detail::runtime_count(detail::RuntimeEvent::external_retry);
+-          // Backpressure is real for external callers. Wake before yielding so
+-          // a full queue cannot wait for the end-of-batch wake. A single final
+-          // wake is safe only after all slots are accepted; it would deadlock
+-          // when a worker must drain this queue to make room for the next slot.
+-          if ((retries++ & wake_retry_mask) == 0) parking_->wake_one(shard);
+-          std::this_thread::yield();
+-        }
+-        published = true;
++
++  const auto shard = scheduler_->select_shard(opt.affinity);
++  bool published = false;
++  try {
++    for (auto& owned : pending) {
++      // Publish accounting before queue ownership is transferred. Registration
++      // can still fail while `owned` protects the packet; after release, the
++      // accepted packet belongs exclusively to the scheduler/executor path.
++      accounting_->publish_external();
++      auto* task = owned.release();
++      uint32_t retries = 0;
++      while (!scheduler_->try_submit_external(shard, task)) {
++        detail::runtime_count(detail::RuntimeEvent::external_retry);
++        if ((retries++ & wake_retry_mask) == 0) parking_->wake_one(shard);
++        std::this_thread::yield();
+       }
+-    } catch (...) {
+-      // There is no transactional undo: accepted packets own their storage
+-      // and accounting credits now. The wake makes that accepted prefix
+-      // visible even when preparation/publication of a later group failed.
+-      if (published) parking_->wake_one(shard);
+-      throw;
++      published = true;
+     }
+-    // wake_one contains the existing publisher-side fence. It pairs with the
+-    // waiter's idle announcement/final acquisition scan; replacing this with a
+-    // relaxed flag or a TLS `need_wake` bit would require a second rearm/lost-
+-    // wake protocol and is deliberately not part of this optimization.
+-    parking_->wake_one(shard);
+-    base += size;
++  } catch (...) {
++    // Accepted prefix packets already own their accounting publications. The
++    // remaining erased owners destroy their concrete models during unwinding.
++    if (published) parking_->wake_one(shard);
++    throw;
+   }
++  parking_->wake_one(shard);
+ }
+ 
+ Handle Pool::combine(std::span<const Handle> handles, SubmitOptions opt) {
+@@ -459,8 +412,9 @@
+   // destroy callable/packet -> finish completion -> retire executor lane.
+   // Retiring earlier would let wait_idle() return while packet state is still
+   // being touched; destroying after retire would create a use-after-idle.
++  const auto* ops = task->ops;
+   try {
+-    if (task->fn) task->fn(task->done);
++    ops->invoke(task);
+   } catch (...) {
+     // Detached tasks have no error observer. Handled tasks preserve the first
+     // exception, including execution caused by queue overflow.
+@@ -468,8 +422,9 @@
+   }
+ 
+   auto done = std::move(task->done);
+-  task->fn.reset();
+-  detail::ObjectDeleter<Task>{}(task);
++  // `destroy` runs the concrete callable destructor and releases the exact
++  // variable-sized TaskModel allocation. The base pointer is dead afterward.
++  ops->destroy(task);
+   done.finish();
+ 
+   accounting_->retire(id);
+diff -ruN '--exclude=build-*' dagflow_original/tests/runtime_failure_tests.cpp dagflow_taskmodel/tests/runtime_failure_tests.cpp
+--- dagflow_original/tests/runtime_failure_tests.cpp	2026-09-30 04:38:15.000000000 +0000
++++ dagflow_taskmodel/tests/runtime_failure_tests.cpp	2026-09-30 10:07:15.350145354 +0000
+@@ -118,10 +118,11 @@
+     char large[256]{};
+     void operator()() { CHECK(false); }
+   };
+-  // Failure before either the callable spill or the packet is allocated.
+-  // Both must close admission, retain the error, and release captures before
+-  // the completion observer becomes ready.
+-  for (int fail_at : {0, 1}) {
++  // The concrete callable now lives inline in the variable-sized task packet,
++  // so publication has one allocation failure point instead of callable spill
++  // plus packet allocation. Failure must still close admission, retain the
++  // error, and release captures before the completion observer becomes ready.
++  for (int fail_at : {0}) {
+     dagflow::TaskScope scope(pool);
+     auto payload = std::make_shared<int>(42);
+     std::weak_ptr<int> weak = payload;

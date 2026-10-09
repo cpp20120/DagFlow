@@ -4,8 +4,8 @@
 #include <cstdint>
 #include <mutex>
 
-#include "dagflow/detail/runtime_memory.hpp"
-#include "dagflow/detail/scheduler.hpp"
+#include <dagflow/detail/runtime_memory.hpp>
+#include <dagflow/detail/scheduler.hpp>
 
 namespace dagflow::detail {
 /// Shares immutable membership with Scheduler; owns all wait state. Runtime
@@ -27,6 +27,14 @@ class ParkingLot {
             const std::atomic<bool>& stop);
   void wake_one(uint32_t shard);
   void wake_all();
+#if defined(DAGFLOW_FUZZ_HOOKS)
+  [[nodiscard]] uint64_t fuzz_epoch(uint32_t worker) const noexcept {
+    return waiters_[worker].epoch.load(std::memory_order_seq_cst);
+  }
+  [[nodiscard]] bool fuzz_sleeping(uint32_t worker) const noexcept {
+    return waiters_[worker].sleeping.load(std::memory_order_seq_cst);
+  }
+#endif
 
  private:
   struct Waiter {

@@ -1,5 +1,11 @@
 # STL allocator routing: paired measurements
 
+> **Historical workflow note (October 2026).** This report preserves its original
+> benchmark commands and measurements. The former `scripts/benchmark_*.py`
+> orchestration is retired; those commands are not part of the current build.
+> For reproducible runs use [CMake benchmark campaigns](campaigns.md).
+
+
 Measured 2026-09-30 on AMD Ryzen 7 6800H, Clang 22.1.8, Linux.
 
 Routing runtime-owned STL vectors through `RuntimeAllocator` substantially reduces
@@ -130,7 +136,7 @@ installed mimalloc/tbbmalloc. Output must be a new directory. The baseline recip
 intentionally fails if the allocator uses change instead of silently benchmarking
 a different patch.
 
-[Runner](../../scripts/benchmark_allocators.py),
+[Current runner](campaigns.md),
 [raw process results](stl-allocator-routing-data/paired.jsonl),
 [summary JSON](stl-allocator-routing-data/summary.json),
 [manifest](stl-allocator-routing-data/manifest.json), and

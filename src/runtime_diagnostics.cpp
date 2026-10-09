@@ -1,4 +1,4 @@
-#include "dagflow/detail/runtime_diagnostics.hpp"
+#include <dagflow/detail/runtime_diagnostics.hpp>
 
 #if defined(DAGFLOW_RUNTIME_DIAGNOSTICS)
 #include <algorithm>

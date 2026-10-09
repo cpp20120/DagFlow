@@ -2,7 +2,7 @@
 #include <cstdlib>
 #include <new>
 
-#include "dagflow/dagflow.hpp"
+#include <dagflow/dagflow.hpp>
 #include "support.hpp"
 
 // Inject a single allocation failure only on the submitting thread. Subsequent

@@ -6,7 +6,7 @@
 #include <thread>
 #include <type_traits>
 
-#include "dagflow/dagflow.hpp"
+#include <dagflow/dagflow.hpp>
 #include "support.hpp"
 
 using Credit = dagflow::detail::CompletionCredit;

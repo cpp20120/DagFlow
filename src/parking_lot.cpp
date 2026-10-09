@@ -1,4 +1,5 @@
-#include "dagflow/detail/parking_lot.hpp"
+#include <dagflow/detail/parking_lot.hpp>
+#include <dagflow/detail/fuzz_points.hpp>
 
 #include <bit>
 #include <chrono>
@@ -71,6 +72,7 @@ uint64_t ParkingLot::prepare(uint32_t worker) noexcept {
   idle_[waiter.word_index].fetch_or(waiter.bit, std::memory_order_seq_cst);
   // Pair with the publisher fence: registration precedes the final queue scan.
   std::atomic_thread_fence(std::memory_order_seq_cst);
+  // DAGFLOW_FUZZ_POINT(idle_announce);
   return epoch;
 }
 void ParkingLot::cancel(uint32_t worker) noexcept {
@@ -88,6 +90,7 @@ void ParkingLot::wait(uint32_t worker, uint64_t epoch, uint32_t timeout_us,
     }
     spin_pause();
   }
+  // DAGFLOW_FUZZ_POINT(before_cv);
   std::unique_lock lock(waiter.mutex);
   // SC pairs with signal's epoch increment followed by its sleeping probe:
   // either this predicate observes the signal or the notifier takes the mutex.
@@ -118,6 +121,7 @@ void ParkingLot::signal(uint32_t worker, bool claimed) {
              ~waiter.bit, std::memory_order_seq_cst) &
          waiter.bit) != 0;
   waiter.epoch.fetch_add(1, std::memory_order_seq_cst);
+  // DAGFLOW_FUZZ_POINT(wake_claim);
   if (!claimed) return;
   runtime_count(RuntimeEvent::wake_signal);
   // Announced workers that are scanning/spinning observe the epoch directly.

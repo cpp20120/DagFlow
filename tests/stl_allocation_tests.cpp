@@ -5,7 +5,7 @@
 #include <type_traits>
 #include <vector>
 
-#include "dagflow/thread_pool.hpp"
+#include <dagflow/thread_pool.hpp>
 #include "support.hpp"
 
 using dagflow::detail::RuntimeAllocator;

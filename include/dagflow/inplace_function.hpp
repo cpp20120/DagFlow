@@ -1,6 +1,6 @@
 #pragma once
 
-#include "dagflow/detail/small_function.hpp"
+#include <dagflow/detail/small_function.hpp>
 
 namespace dagflow {
 

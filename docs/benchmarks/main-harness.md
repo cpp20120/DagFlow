@@ -1,4 +1,10 @@
-# Measurement harness for `src/main.cpp`
+# Measurement harness for `bench/stress_harness.cpp`
+
+> **Historical workflow note (October 2026).** This report preserves its original
+> benchmark commands and measurements. The former `scripts/benchmark_*.py`
+> orchestration is retired; those commands are not part of the current build.
+> For reproducible runs use [CMake benchmark campaigns](campaigns.md).
+
 
 `dagflow-example` is the stress harness. Everyday API examples live in
 [`examples/`](../../examples/README.md). The separate

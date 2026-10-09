@@ -6,8 +6,9 @@
 #include <type_traits>
 #include <utility>
 
-#include "dagflow/detail/runtime_memory.hpp"
-#include "dagflow/thread_pool.hpp"
+
+#include <dagflow/detail/runtime_memory.hpp>
+#include <dagflow/thread_pool.hpp>
 
 namespace dagflow {
 

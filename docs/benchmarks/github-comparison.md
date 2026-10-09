@@ -1,5 +1,11 @@
 # Local GitHub snapshot vs current DagFlow
 
+> **Historical workflow note (October 2026).** This report preserves its original
+> benchmark commands and measurements. The former `scripts/benchmark_*.py`
+> orchestration is retired; those commands are not part of the current build.
+> For reproducible runs use [CMake benchmark campaigns](campaigns.md).
+
+
 Measured from the actual sources formerly in `dagflowoldfromgithub`, without consulting
 its README. Current means the working tree after the park/wake, empty-steal and
 scope/completion changes. This is not an isolated before/after measurement of

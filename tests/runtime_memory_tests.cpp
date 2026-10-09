@@ -5,7 +5,7 @@
 #include <thread>
 #include <vector>
 
-#include "dagflow/detail/runtime_memory.hpp"
+#include <dagflow/detail/runtime_memory.hpp>
 #include "support.hpp"
 
 struct alignas(256) Object {

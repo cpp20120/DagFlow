@@ -1,5 +1,6 @@
-#include "dagflow/detail/runtime_memory.hpp"
-#include "dagflow/detail/runtime_diagnostics.hpp"
+#include <dagflow/detail/runtime_memory.hpp>
+#include <dagflow/detail/fuzz_points.hpp>
+#include <dagflow/detail/runtime_diagnostics.hpp>
 
 #include <new>
 
@@ -12,6 +13,11 @@
 namespace dagflow::detail {
 
 void* allocate_bytes(std::size_t bytes, std::size_t alignment) {
+#if defined(DAGFLOW_FUZZ_HOOKS)
+  auto& budget = fuzz_points::allocation_budget;
+  if (budget == 0) { budget = -1; throw std::bad_alloc{}; }
+  if (budget > 0) --budget;
+#endif
   // STL allocators may receive count == 0. tbbmalloc's aligned API rejects
   // zero bytes; reserve a minimal block so all backends share the same contract.
   if (bytes == 0) bytes = 1;

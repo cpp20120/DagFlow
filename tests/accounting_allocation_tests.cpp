@@ -2,7 +2,7 @@
 #include <cstddef>
 #include <new>
 
-#include "dagflow/detail/idle_accounting.hpp"
+#include <dagflow/detail/idle_accounting.hpp>
 #include "support.hpp"
 
 static int budget = -1;

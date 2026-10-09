@@ -8,7 +8,7 @@
 #include <utility>
 #include <vector>
 
-#include "dagflow/dagflow.hpp"
+#include <dagflow/dagflow.hpp>
 #include "support.hpp"
 
 using namespace std::chrono_literals;

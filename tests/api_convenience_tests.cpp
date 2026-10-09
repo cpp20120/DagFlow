@@ -11,7 +11,7 @@
 #include <utility>
 #include <vector>
 
-#include "dagflow/dagflow.hpp"
+#include <dagflow/dagflow.hpp>
 #include "support.hpp"
 
 namespace {

@@ -3,8 +3,8 @@
 #include <cstdlib>
 #include <new>
 
-#include "dagflow/detail/chase_lev_deque.hpp"
-#include "dagflow/detail/ring_mpmc.hpp"
+#include <dagflow/detail/chase_lev_deque.hpp>
+#include <dagflow/detail/ring_mpmc.hpp>
 
 namespace {
 std::atomic<bool> tracking{false};

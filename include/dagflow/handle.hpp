@@ -10,7 +10,7 @@
 #include <vector>
 #include <type_traits>
 
-#include "dagflow/detail/runtime_memory.hpp"
+#include <dagflow/detail/runtime_memory.hpp>
 
 namespace dagflow {
 

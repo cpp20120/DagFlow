@@ -1,6 +1,6 @@
 #include <cstdio>
 
-#include "dagflow/detail/scheduler.hpp"
+#include <dagflow/detail/scheduler.hpp>
 #include "support.hpp"
 
 using dagflow::Priority;

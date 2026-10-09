@@ -5,8 +5,8 @@
 #include <type_traits>
 #include <utility>
 
-#include "dagflow/inplace_function.hpp"
-#include "dagflow/detail/small_function.hpp"
+#include <dagflow/inplace_function.hpp>
+#include <dagflow/detail/small_function.hpp>
 #include "support.hpp"
 
 namespace {

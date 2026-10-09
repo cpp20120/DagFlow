@@ -7,7 +7,7 @@
 #include <thread>
 #include <vector>
 
-#include "dagflow/dagflow.hpp"
+#include <dagflow/dagflow.hpp>
 #include "support.hpp"
 
 using Scope = dagflow::TaskScope;

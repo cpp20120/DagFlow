@@ -5,7 +5,7 @@
 #include <type_traits>
 #include <utility>
 
-#include "dagflow/config.hpp"
+#include <dagflow/config.hpp>
 
 namespace dagflow::detail {
 

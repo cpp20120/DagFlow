@@ -1,7 +1,7 @@
-# Профиль src/main.cpp: O3 и Full LTO
+# Профиль bench/stress_harness.cpp: O3 и Full LTO
 
 Замер 2026-09-30: AMD Ryzen 7 6800H (8 ядер / 16 потоков), Clang 22.1.8,
-Linux, perf 7.2.7. Измерен **пользовательский `src/main.cpp`** с шестью
+Linux, perf 7.2.7. Измерен **пользовательский `bench/stress_harness.cpp`** с шестью
 нагрузками, на 1 и 4 workers. `bench/runtime_suite.cpp` здесь не используется.
 
 [Открыть таблицу и все flamegraph/call graph](../../out/profiles/main-o3-lto/index.html) ·
@@ -11,7 +11,7 @@ Linux, perf 7.2.7. Измерен **пользовательский `src/main.c
 ## Условия
 
 - Основные сборки: `-O3 -g -DNDEBUG`, static DagFlow + dynamic mimalloc,
-  одинаковый lld; `DAGFLOW_LTO_MODE=none` против `full` (`-flto=full`).
+  одинаковый lld; `BOILERPLATE_LTO_MODE=none` против `full` (`-flto=full`).
   PGO и native CPU flags выключены. Это Full LTO, не ThinLTO.
 - Зафиксирован снимок исходников в `source/`. В `main.cpp` добавлен только
   выбор `--scenario` / `--workers`; тела нагрузок, размеры, 2 warmup + 7 timed
@@ -166,9 +166,9 @@ CPU flamegraph вообще не показывает время, когда п�
 ## Повторить
 
 ```sh
-python3 scripts/profile_main.py --output out/profiles/main-o3-lto-repeat
-python3 scripts/profile_main_stacks.py out/profiles/main-o3-lto-repeat
-python3 scripts/render_main_profile.py out/profiles/main-o3-lto-repeat
+python3 tools/profiling/profile_main.py --output out/profiles/main-o3-lto-repeat
+python3 tools/profiling/profile_main_stacks.py out/profiles/main-o3-lto-repeat
+python3 tools/profiling/render_main_profile.py out/profiles/main-o3-lto-repeat
 ```
 
 Нужны Linux perf с Python/DWARF support и доступом к userspace PMU,

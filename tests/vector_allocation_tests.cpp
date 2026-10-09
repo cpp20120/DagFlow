@@ -3,7 +3,7 @@
 #include <stdexcept>
 #include <utility>
 
-#include "dagflow/detail/small_vector.hpp"
+#include <dagflow/detail/small_vector.hpp>
 #include "support.hpp"
 
 namespace {

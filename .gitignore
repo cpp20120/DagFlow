@@ -1,56 +1,46 @@
-# Prerequisites
-*.d
+# Build trees and generated artifacts (root-anchored so cmake/boilerplate/build/ is tracked).
+/out/
+/build/
+/release_build/
+/cmake-build-*/
+/CMakeUserPresets.json
+/CMakeSettings.json.user
+/CMakeFiles/
+/CMakeCache.txt
+/compile_commands.json
+/install/
+/doxygen_output/
+/docs/doxygen_output/
+/scripts/out/
 
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
+# Local patch exports; keep documented experiment patches under docs/.
+/DagFlow-*.patch
 
-# Precompiled Headers
-*.gch
-*.pch
-
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
-
-# Executables
-*.exe
-*.out
-*.app
-
-#Build
-out
-build
-cmake-build-*
-
-# The vendored framework includes Python helpers; their bytecode is generated
-# only when benchmark harnesses are run.
-cmake/harness/**/__pycache__/
-cmake/harness/**/*.pyc
-
-# A local checkout of the framework may be kept beside DagFlow while working;
-# DagFlow vendors the framework directly under cmake/.
-cmake_boilerplate/
+# Local tooling state
+/.idea/
+/.vscode/
+/.qtcreator/
+/.cache/
+/.vs/
 **/__pycache__/
 *.pyc
 
-#docs
-doxygen_output
+# Compiled objects / executables outside the build tree
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.so.*
+*.dll
+*.dylib
+*.exe
+*.out
+*.pdb
+*.gcda
+*.gcno
+*.profraw
+*.profdata
 
-# ide
-.vs
-.vscode
-.idea
+# Optional adjacent checkout
+/cmake_boilerplate/

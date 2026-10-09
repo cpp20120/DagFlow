@@ -8,7 +8,7 @@
 #include <vector>
 
 #include "support.hpp"
-#include "dagflow/thread_pool.hpp"
+#include <dagflow/thread_pool.hpp>
 
 using namespace std::chrono_literals;
 

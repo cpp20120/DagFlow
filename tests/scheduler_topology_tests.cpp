@@ -7,10 +7,10 @@
 #include <thread>
 #include <vector>
 
-#include "dagflow/detail/parking_lot.hpp"
-#include "dagflow/detail/scheduler.hpp"
+#include <dagflow/detail/parking_lot.hpp>
+#include <dagflow/detail/scheduler.hpp>
 #include "support.hpp"
-#include "dagflow/task_scope.hpp"
+#include <dagflow/task_scope.hpp>
 
 using dagflow::detail::ParkingLot;
 using dagflow::detail::ScheduledTask;

@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "support.hpp"
-#include "dagflow/thread_pool.hpp"
+#include <dagflow/thread_pool.hpp>
 
 void worker_overflow(dagflow::Priority priority) {
   constexpr std::size_t queued =

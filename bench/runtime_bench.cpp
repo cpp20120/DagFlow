@@ -10,8 +10,8 @@
 #include <string>
 #include <vector>
 
-#include "dagflow/task_graph.hpp"
-#include "dagflow/thread_pool.hpp"
+#include <dagflow/task_graph.hpp>
+#include <dagflow/thread_pool.hpp>
 
 // Optional instrumentation of ordinary operator new calls in this executable
 // and interposed library calls. This does not measure malloc, aligned new, or

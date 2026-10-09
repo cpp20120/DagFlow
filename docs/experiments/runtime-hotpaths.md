@@ -1,5 +1,11 @@
 # Scope admission, completion and park/wake hot paths
 
+> **Historical workflow note (October 2026).** This report preserves its original
+> benchmark commands and measurements. The former `scripts/benchmark_*.py`
+> orchestration is retired; those commands are not part of the current build.
+> For reproducible runs use [CMake benchmark campaigns](../benchmarks/campaigns.md).
+
+
 This change follows the observations in
 [the complete-run analysis](../benchmarks/complete-run-analysis.md).
 No performance measurements were run for this change; the existing results

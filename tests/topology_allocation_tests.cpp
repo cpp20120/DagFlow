@@ -1,8 +1,8 @@
 #include <cstddef>
 #include <new>
 
-#include "dagflow/detail/parking_lot.hpp"
-#include "dagflow/detail/scheduler.hpp"
+#include <dagflow/detail/parking_lot.hpp>
+#include <dagflow/detail/scheduler.hpp>
 #include "support.hpp"
 
 std::size_t allocations = 0, live = 0;

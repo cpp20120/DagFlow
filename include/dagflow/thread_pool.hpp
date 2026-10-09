@@ -17,9 +17,11 @@
 #include <utility>
 #include <vector>
 
-#include "dagflow/config.hpp"
-#include "dagflow/handle.hpp"
-#include "dagflow/detail/runtime_diagnostics.hpp"
+
+#include <dagflow/config.hpp>
+#include <dagflow/handle.hpp>
+#include <dagflow/detail/runtime_diagnostics.hpp>
+
 
 namespace dagflow {
 
@@ -114,7 +116,7 @@ struct ScheduledTaskModel final : ScheduledTask {
     deallocate_bytes(self, alignof(ScheduledTaskModel));
   }
 
-  inline static constexpr ScheduledTaskOps operations{&invoke, &destroy};
+  static constexpr ScheduledTaskOps operations{&invoke, &destroy};
   [[no_unique_address]] Callable callable;
 };
 
@@ -274,8 +276,7 @@ class Pool {
   template <class It, class F>
   Handle for_each_ws(It begin, It end, F f, SubmitOptions opt = {},
                      std::size_t min_grain_hint = DAGFLOW_DEFAULT_RANGE_CHUNK) {
-    using Cat = std::iterator_traits<It>::iterator_category;
-    static_assert(std::is_base_of_v<std::random_access_iterator_tag, Cat>,
+    static_assert(std::random_access_iterator<It>,
                   "for_each_ws requires random-access iterators");
 
     const auto n = static_cast<std::size_t>(end - begin);

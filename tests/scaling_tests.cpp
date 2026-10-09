@@ -10,11 +10,11 @@
 #include <thread>
 #include <vector>
 
-#include "dagflow/dagflow.hpp"
-#include "dagflow/detail/idle_accounting.hpp"
-#include "dagflow/detail/parking_lot.hpp"
-#include "dagflow/detail/small_function.hpp"
-#include "dagflow/detail/small_vector.hpp"
+#include <dagflow/dagflow.hpp>
+#include <dagflow/detail/idle_accounting.hpp>
+#include <dagflow/detail/parking_lot.hpp>
+#include <dagflow/detail/small_function.hpp>
+#include <dagflow/detail/small_vector.hpp>
 #include "support.hpp"
 
 namespace {

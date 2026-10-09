@@ -1,5 +1,11 @@
 # Graph allocation experiment
 
+> **Historical workflow note (October 2026).** This report preserves its original
+> benchmark commands and measurements. The former `scripts/benchmark_*.py`
+> orchestration is retired; those commands are not part of the current build.
+> For reproducible runs use [CMake benchmark campaigns](../benchmarks/campaigns.md).
+
+
 ## Frozen starting point
 
 The retained scalar drain, wake relay and single-invocation graph execution were

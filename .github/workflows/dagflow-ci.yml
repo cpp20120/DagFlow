@@ -43,14 +43,17 @@ jobs:
         run: ctest --preset "${{ matrix.preset }}" --output-on-failure --no-tests=error
 
       - name: Install and compile package consumer
-        if: matrix.preset == 'release'
+        if: matrix.preset == 'release' || matrix.preset == 'static-release'
         shell: bash
         run: |
           install_root="$RUNNER_TEMP/dagflow-install"
           consumer_build="$RUNNER_TEMP/dagflow-consumer"
           cmake --install "out/build/${{ matrix.preset }}" --prefix "$install_root"
+          variant=preferred
+          if [ "${{ matrix.preset }}" = "static-release" ]; then variant=static; fi
           cmake -S tests/install_consumer -B "$consumer_build" -G Ninja \
-            -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_PREFIX_PATH="$install_root"
+            -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_PREFIX_PATH="$install_root" \
+            -DDAGFLOW_CONSUMER_VARIANT="$variant"
           cmake --build "$consumer_build" --parallel 2
           LD_LIBRARY_PATH="$install_root/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
             "$consumer_build/dagflow_install_consumer"
@@ -67,7 +70,7 @@ jobs:
           sudo apt-get install -y clang lld ninja-build libtbb-dev
 
       - name: Configure
-        run: cmake --preset bench-check -DCMAKE_CXX_COMPILER=clang++
+        run: cmake --preset bench-check -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_DISABLE_FIND_PACKAGE_Python3=ON
 
       - name: Build benchmark and correctness targets
         run: cmake --build --preset bench-check --parallel 2
@@ -103,6 +106,37 @@ jobs:
           TSAN_OPTIONS: halt_on_error=1
         run: ctest --preset "${{ matrix.preset }}" --output-on-failure --no-tests=error
 
+  fuzz:
+    name: Linux / fuzz layers
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install fuzz toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang ninja-build
+      - name: Configure
+        run: cmake --preset fuzz
+      - name: Build instrumented runtime and harnesses
+        run: cmake --build --preset fuzz --parallel 2
+      - name: Replay seed corpora
+        run: ctest --preset fuzz --no-tests=error
+      - name: Bounded mutation checks
+        run: |
+          for layer in containers function queues scope pool graph parking lifecycle accounting scheduler credits allocation exceptions ranges graph_scope joins saturation scope_races; do
+            seed_count=$(find "out/build/fuzz/dagflow_fuzz_${layer}-corpus" -maxdepth 1 -type f | wc -l)
+            "out/build/fuzz/dagflow_fuzz_${layer}" \
+              "out/build/fuzz/dagflow_fuzz_${layer}-corpus" \
+              "-artifact_prefix=out/build/fuzz/dagflow_fuzz_${layer}-artifacts/" \
+              "-runs=$((seed_count + 201))" -max_len=4096 -timeout=15
+          done
+      - name: Preserve fuzz artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-artifacts
+          path: out/build/fuzz/*-artifacts/
+
   portability:
     name: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -136,7 +170,7 @@ jobs:
           -DDAGFLOW_BUILD_PUBLIC_API_BENCH=OFF -DDAGFLOW_BUILD_FUNCTION_BENCH=OFF
           -DDAGFLOW_BUILD_STRESS_BENCH=OFF -DDAGFLOW_BUILD_BENCH=OFF
           -DDAGFLOW_BUILD_GITHUB_BENCH=OFF -DDAGFLOW_ALLOCATOR=system
-          -DDAGFLOW_INSTALL=OFF -DDAGFLOW_COMPILER_CACHE=none
+          -DDAGFLOW_INSTALL=OFF -DBOILERPLATE_COMPILER_CACHE=none
 
       - name: Build
         run: cmake --build build/portability --config RelWithDebInfo --parallel 2

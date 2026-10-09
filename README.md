@@ -28,12 +28,20 @@ Mini-runtime for parallel tasks in C++23:
 * Dynamic structured tasks: `TaskScope::spawn`, child spawning through `Context`,
   cooperative cancellation, and joining on destruction.
 
+[Build and repository layout](docs/build-and-layout.md) describes the current
+CMake project structure, public includes, targets and consumer contracts.
+
 [Code organization and API migration](docs/code_organization.md) describes the
 container contracts and API changes. [Runtime architecture](docs/how_it_works.md)
 describes admission, errors, reusable runs, scheduler bypass, and task storage.
 
 [CMake capability validation](docs/cmake-capabilities-validation.md) records the
 DagFlow integration checks, remaining gaps, and commands to repeat them.
+
+[Coverage-guided fuzzing](fuzz/README.md) uses instrumented libFuzzer
+targets for TaskGraph topology/token/lifetime invariants, Pool publication,
+quiescence, shutdown, ParkingLot wakeups, accounting, completion credits,
+scheduler custody and fault injection (`cmake --preset fuzz`).
 
 ### [Design](https://github.com/cpp20120/DagFlow/blob/main/docs/how_it_works.md)
 * Scheduler: local deques (Chase–Lev) + central ring-buffer MPMC shards for external submissions; contiguous Local/Shard arrays; worker drains home ingress and steals within its domain before remote domains.
@@ -80,7 +88,7 @@ throughput/latency passes and Release/LTO/PGO matrices.
 The [`main.cpp` stress harness](docs/benchmarks/main-harness.md) adds independent
 producer/worker controls, payload verification, phase-gated perf counters,
 callgraphs/flamegraphs and separate runtime path diagnostics. Run its O3/LTO
-matrix with `python3 scripts/benchmark_main.py --out out/profiles/main-harness`.
+matrix with the [CMake campaign targets](docs/benchmarks/campaigns.md).
 
 ### Latest benchmark run
 
@@ -107,11 +115,16 @@ The CMake and stress-harness reports are described in [the benchmark workflow](d
 
 ### Build and usage
 
-DagFlow uses the reusable CMake library framework vendored directly under
-`cmake/`. `Bootstrap.cmake` initializes the project, `DagFlow.cmake` exposes the
-project/target/profile helpers, and the DagFlow modules only describe this
-runtime's sources and workloads. A normal build and PGO flow stay in CMake;
-Python is only needed for optional large benchmark campaigns.
+DagFlow uses the CMake library toolkit vendored under `cmake/boilerplate/`.
+`Bootstrap.cmake` initializes the project and `Boilerplate.cmake` provides the
+project, target and profile helpers. The adjacent DagFlow modules describe the
+runtime's sources, allocator and workloads. Common settings use `BOILERPLATE_*`;
+DagFlow component options use `DAGFLOW_*`.
+
+Builds, tests, PGO, documentation and benchmark campaigns run without Python.
+See [CMake campaigns and migration](docs/benchmarks/campaigns.md) for commands,
+allocator/profile matrices and result comparison. Only the optional specialized
+perf/flamegraph tools still use Python.
 
 Install mimalloc with its CMake package for the default build. Alternatively pass
 `-DDAGFLOW_ALLOCATOR=tbbmalloc` (requires oneTBB's malloc component) or
@@ -130,8 +143,8 @@ ctest --preset release
 Presets compose the framework's target policies and profiles. The main switches
 are `DAGFLOW_BUILD_SHARED`, `DAGFLOW_BUILD_STATIC`, `DAGFLOW_BUILD_TESTS`,
 `DAGFLOW_BUILD_EXAMPLES`, `DAGFLOW_INSTALL`, `DAGFLOW_ALLOCATOR` and
-`DAGFLOW_COMPILER_CACHE`. Use `DAGFLOW_PROFILE=lto` for an explicit profile or
-`DAGFLOW_PGO_MODE=generate|use` for PGO. The install tree exports
+`BOILERPLATE_COMPILER_CACHE`. Use `BOILERPLATE_PROFILE=lto` for an explicit profile or
+`BOILERPLATE_PGO_MODE=generate|use` for PGO. The install tree exports
 `DagFlow::DagFlow` and `DagFlow::DagFlow_static` for `find_package` consumers.
 The same presets are exercised by [GitHub Actions](.github/workflows/dagflow-ci.yml)
 on Linux, Windows and macOS, including sanitizer jobs.
@@ -154,7 +167,7 @@ For a standalone PGO cycle without Python:
 
 ```sh
 cmake --preset bench-pgo-generate
-cmake --build --preset bench-pgo-generate --target dagflow_pgo_merge --parallel 4
+cmake --build --preset bench-pgo-generate --target boilerplate_pgo_merge --parallel 4
 cmake --preset bench-pgo-use
 cmake --build --preset bench-pgo-use --target dagflow_benchmarks --parallel 4
 ```

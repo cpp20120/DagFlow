@@ -7,8 +7,8 @@
 #include <limits>
 #include <mutex>
 
-#include "dagflow/config.hpp"
-#include "dagflow/detail/runtime_memory.hpp"
+#include <dagflow/config.hpp>
+#include <dagflow/detail/runtime_memory.hpp>
 
 namespace dagflow::detail {
 // Each lane has exactly one writer. Observers read only while waiting for idle.

@@ -5,9 +5,9 @@
 #include <type_traits>
 #include <utility>
 
-#include "dagflow/detail/ring_mpmc.hpp"
-#include "dagflow/detail/small_function.hpp"
-#include "dagflow/detail/small_vector.hpp"
+#include <dagflow/detail/ring_mpmc.hpp>
+#include <dagflow/detail/small_function.hpp>
+#include <dagflow/detail/small_vector.hpp>
 #include "support.hpp"
 
 void vector_storage() {

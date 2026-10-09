@@ -1,5 +1,8 @@
 # Scheduler domains and memory
 
+> Migration: Python benchmark commands below describe the original measurement workflow.
+> Use [CMake campaigns](benchmarks/campaigns.md) for current runs and result comparison.
+
 Scheduler construction allocates three contiguous arrays through `runtime_memory`:
 `Local[]`, `Shard[]`, and a CSR list of worker IDs. Every worker has an immutable
 `home_shard`. Parking uses the same membership map, so a shard is an injection,

@@ -15,11 +15,11 @@
 #include <utility>
 #include <vector>
 
-#include "dagflow/config.hpp"
-#include "dagflow/detail/runtime_memory.hpp"
-#include "dagflow/detail/small_function.hpp"
-#include "dagflow/detail/small_vector.hpp"
-#include "dagflow/thread_pool.hpp"
+#include <dagflow/config.hpp>
+#include <dagflow/detail/runtime_memory.hpp>
+#include <dagflow/detail/small_function.hpp>
+#include <dagflow/detail/small_vector.hpp>
+#include <dagflow/thread_pool.hpp>
 
 namespace dagflow {
 

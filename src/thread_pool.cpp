@@ -1,4 +1,3 @@
-#include "dagflow/thread_pool.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -9,10 +8,12 @@
 #include <stdexcept>
 #include <utility>
 
-#include "dagflow/detail/scheduler.hpp"
-#include "dagflow/detail/parking_lot.hpp"
-#include "dagflow/detail/idle_accounting.hpp"
-#include "dagflow/detail/runtime_memory.hpp"
+#include <dagflow/detail/fuzz_points.hpp>
+#include <dagflow/detail/scheduler.hpp>
+#include <dagflow/detail/parking_lot.hpp>
+#include <dagflow/detail/idle_accounting.hpp>
+#include <dagflow/detail/runtime_memory.hpp>
+#include <dagflow/thread_pool.hpp>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -226,6 +227,7 @@ void Pool::dispatch(Task* task, const SubmitOptions& opt) {
   const auto shard = scheduler_->select_shard(opt.affinity);
   uint32_t retries = 0;
   while (!scheduler_->try_submit_external(shard, task)) {
+    // DAGFLOW_FUZZ_POINT(external_retry);
     detail::runtime_count(detail::RuntimeEvent::external_retry);
     if ((retries++ & wake_retry_mask) == 0) parking_->wake_one(shard);
     std::this_thread::yield();
@@ -260,6 +262,7 @@ void Pool::enqueue_batch_prepared(
       auto* task = owned.release();
       uint32_t retries = 0;
       while (!scheduler_->try_submit_external(shard, task)) {
+        // DAGFLOW_FUZZ_POINT(external_retry);
         detail::runtime_count(detail::RuntimeEvent::external_retry);
         if ((retries++ & wake_retry_mask) == 0) parking_->wake_one(shard);
         std::this_thread::yield();
@@ -484,6 +487,7 @@ void Pool::wait_idle() {
 }
 // Ordering below is part of the lifetime protocol. Do not reorder.
 void Pool::execute_task(uint32_t id, Task* task) {
+  // DAGFLOW_FUZZ_POINT(before_execute);
   detail::runtime_count(detail::RuntimeEvent::executed);
 #if defined(DAGFLOW_RUNTIME_DIAGNOSTICS)
   if (task->allocating_thread != UINT64_MAX &&
@@ -509,7 +513,8 @@ void Pool::execute_task(uint32_t id, Task* task) {
   // In both cases the executor must never access the base pointer afterward.
   ops->destroy(task);
   done.finish();
-
+  // The handle may now be ready while pool quiescence still waits for retirement.
+  // DAGFLOW_FUZZ_POINT(before_retire);
   accounting_->retire(id);
 }
 

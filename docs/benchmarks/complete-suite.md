@@ -1,5 +1,11 @@
 # Complete benchmark run
 
+> **Historical workflow note (October 2026).** This report preserves its original
+> benchmark commands and measurements. The former `scripts/benchmark_*.py`
+> orchestration is retired; those commands are not part of the current build.
+> For reproducible runs use [CMake benchmark campaigns](campaigns.md).
+
+
 For individual CMake build/run targets, optimization presets and PGO without
 Python, see [CMake benchmark workflows](cmake.md).
 

@@ -1,0 +1,28 @@
+include_guard(GLOBAL)
+set(BOILERPLATE_WEB_DIST "${CMAKE_BINARY_DIR}/web-dist" CACHE PATH "Emscripten deployment output")
+
+function(boilerplate_register_web_target target)
+  if(NOT TARGET ${target})
+    message(FATAL_ERROR "boilerplate_register_web_target: unknown target ${target}")
+  endif()
+  set_property(GLOBAL APPEND PROPERTY BOILERPLATE_WEB_TARGETS ${target})
+endfunction()
+
+function(_boilerplate_project_web_finalize)
+  if(NOT EMSCRIPTEN)
+    message(STATUS "Boilerplate: web-deployment capability is inactive outside Emscripten")
+    return()
+  endif()
+  get_property(_targets GLOBAL PROPERTY BOILERPLATE_WEB_TARGETS)
+  if(NOT _targets)
+    return()
+  endif()
+  file(MAKE_DIRECTORY "${BOILERPLATE_WEB_DIST}")
+  add_custom_target(web-dist)
+  foreach(_target IN LISTS _targets)
+    add_custom_command(TARGET ${_target} POST_BUILD
+      COMMAND "${CMAKE_COMMAND}" -E copy_if_different "$<TARGET_FILE:${_target}>" "${BOILERPLATE_WEB_DIST}/"
+      VERBATIM)
+    add_dependencies(web-dist ${_target})
+  endforeach()
+endfunction()

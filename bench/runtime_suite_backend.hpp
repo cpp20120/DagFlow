@@ -49,8 +49,8 @@ inline constexpr std::array<const char*, 0> runtime_event_names{};
 inline const char* allocator_backend() { return "system"; }
 }  // namespace dagflow::detail
 #else
-#include "dagflow/dagflow.hpp"
-#include "dagflow/detail/runtime_diagnostics.hpp"
+#include <dagflow/dagflow.hpp>
+#include <dagflow/detail/runtime_diagnostics.hpp>
 namespace suite_backend {
 inline constexpr const char* name = "current";
 using Pool = dagflow::Pool;
