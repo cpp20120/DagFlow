@@ -1,3 +1,4 @@
+
 #include <cstdint>
 #include <limits>
 #include <list>
@@ -43,6 +44,7 @@ void* allocate_bytes(std::size_t bytes, std::size_t alignment) {
   last_alignment = alignment;
   return storage;
 }
+
 void deallocate_bytes(void* storage, std::size_t alignment) noexcept {
   CHECK(live > 0);
   --live;
@@ -63,18 +65,22 @@ int main() {
   static_assert(std::is_same_v<
                 decltype(dagflow::detail::CompletionState::dependents)::allocator_type,
                 RuntimeAllocator<dagflow::detail::CompletionCredit>>);
+
   {
     Vector source(3);
     CHECK(live == 1 && allocations == 1);
     CHECK(last_bytes == 3 * sizeof(AlignedValue));
     CHECK(last_alignment == alignof(AlignedValue));
+
     auto* storage = source.data();
     CHECK(reinterpret_cast<std::uintptr_t>(storage) % alignof(AlignedValue) == 0);
+
     Vector destination(1);
     const auto before_move = allocations;
     destination = std::move(source);
     CHECK(destination.data() == storage && destination[2].value == 42);
     CHECK(allocations == before_move && live == 1);
+
     Vector swapped;
     swapped.swap(destination);
     CHECK(swapped.data() == storage && allocations == before_move);
@@ -87,15 +93,19 @@ int main() {
     CHECK(caught && swapped.data() == storage && swapped.size() == 3);
   }
   CHECK(live == 0);
+
   {
     // A node container exercises allocator_traits rebind and converting ctor.
+    // Some STL implementations also allocate a sentinel/head node.
     std::list<AlignedValue, RuntimeAllocator<AlignedValue>> nodes;
+    const auto before_emplace = live;
     nodes.emplace_back();
-    CHECK(live == 1 && last_alignment >= alignof(AlignedValue));
+    CHECK(live > before_emplace && last_alignment >= alignof(AlignedValue));
     CHECK(reinterpret_cast<std::uintptr_t>(&nodes.front()) %
               alignof(AlignedValue) == 0);
   }
   CHECK(live == 0);
+
   {
     std::vector<ThrowsOnCopy, RuntimeAllocator<ThrowsOnCopy>> values(1);
     auto* storage = values.data();
@@ -106,6 +116,7 @@ int main() {
     CHECK(live == 1 && ThrowsOnCopy::alive == 1);
   }
   CHECK(live == 0 && ThrowsOnCopy::alive == 0);
+
   {
     dagflow::Config config;
     const auto before = allocations;
@@ -115,10 +126,12 @@ int main() {
     CHECK(copy.worker_shards == config.worker_shards);
   }
   CHECK(live == 0);
+
   RuntimeAllocator<AlignedValue> allocator;
   auto* empty = allocator.allocate(0);
   allocator.deallocate(empty, 0);
   CHECK(live == 0);
+
   const auto before_overflow = allocations;
   bool caught = false;
   try {
