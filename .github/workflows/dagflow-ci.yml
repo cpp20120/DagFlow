@@ -186,11 +186,26 @@ jobs:
   portability:
     name: ${{ matrix.os }} / ${{ matrix.preset }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04, macos-26, windows-latest]
         preset: [core, runtime-check, bench-check, mimalloc, tbbmalloc]
+        # Run the full core suite on both architectures of each desktop OS.
+        # Windows ARM64 must build ARM64 binaries, not emulated x64 binaries.
+        include:
+          - os: macos-26
+            preset: core
+            configure_args: -DCMAKE_OSX_ARCHITECTURES=arm64
+          - os: ubuntu-24.04-arm
+            preset: core
+          - os: macos-26-intel
+            preset: core
+            configure_args: -DCMAKE_OSX_ARCHITECTURES=x86_64
+          - os: windows-11-arm
+            preset: core
+            configure_args: -A ARM64
     steps:
       - uses: actions/checkout@v4
 
@@ -203,6 +218,7 @@ jobs:
           CMAKE_TOOLCHAIN_FILE: ''
         run: >-
           cmake --preset ${{ matrix.preset }}
+          ${{ matrix.configure_args }}
           -DCMAKE_DISABLE_FIND_PACKAGE_TBB=ON
           -DCMAKE_DISABLE_FIND_PACKAGE_mimalloc=ON
 
@@ -225,6 +241,28 @@ jobs:
       - name: CTest including benchmark smoke
         run: ctest --preset ${{ matrix.preset }} --output-on-failure --no-tests=error
 
+      - name: Repeat publication, completion and parking regressions
+        if: matrix.preset == 'core'
+        run: >-
+          ctest --preset core -L concurrency --repeat until-fail:10
+          --schedule-random --parallel 2 --output-on-failure --no-tests=error
+
+      - name: Configure optimized runtime with two-slot queues
+        if: matrix.preset == 'core'
+        run: >-
+          cmake --preset adversarial-tiny -DCMAKE_BUILD_TYPE=Release
+          ${{ matrix.configure_args }}
+
+      - name: Build two-slot queue regressions
+        if: matrix.preset == 'core'
+        run: cmake --build --preset adversarial-tiny --config Release --parallel 2
+
+      - name: Repeat two-slot queue regressions
+        if: matrix.preset == 'core'
+        run: >-
+          ctest --preset adversarial-tiny -C Release --repeat until-fail:10
+          --schedule-random --parallel 2 --output-on-failure --no-tests=error
+
       - name: Reconfigure to verify bootstrap reuse
         if: matrix.preset == 'bench-check'
         env:
@@ -240,6 +278,7 @@ jobs:
         if: matrix.preset == 'core'
         run: >-
           cmake -S tests/install_consumer -B out/build/consumer
+          ${{ matrix.configure_args }}
           -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=${{ github.workspace }}/out/install/core
 
       - name: Build and run package consumer
@@ -253,9 +292,21 @@ jobs:
         env:
           VCPKG_ROOT: /dagflow-no-vcpkg
         run: |
-          cmake -S tests/install_consumer -B out/build/embedded -DCMAKE_BUILD_TYPE=Release -DDAGFLOW_SOURCE_DIR=${{ github.workspace }}
+          cmake -S tests/install_consumer -B out/build/embedded ${{ matrix.configure_args }} -DCMAKE_BUILD_TYPE=Release -DDAGFLOW_SOURCE_DIR=${{ github.workspace }}
           cmake --build out/build/embedded --config Release --parallel 2
           ctest --test-dir out/build/embedded -C Release --output-on-failure --no-tests=error
+
+      - name: Preserve portability test logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: portability-tests-${{ matrix.os }}-${{ matrix.preset }}
+          path: |
+            out/build/${{ matrix.preset }}/Testing/Temporary/
+            out/build/adversarial-tiny/Testing/Temporary/
+            out/build/consumer/Testing/Temporary/
+            out/build/embedded/Testing/Temporary/
+          if-no-files-found: ignore
 
   # The library framework already supports gcov-compatible instrumentation.
   # Keep coverage separate from sanitizers and release timing baselines.

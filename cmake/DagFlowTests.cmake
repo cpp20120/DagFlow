@@ -62,6 +62,7 @@ function(dagflow_add_runtime_unit_test name source)
 endfunction()
 
 dagflow_add_runtime_unit_test(dagflow_queue_tests tests/queue_tests.cpp)
+set_property(TEST dagflow_queue_tests APPEND PROPERTY LABELS concurrency)
 dagflow_add_runtime_unit_test(dagflow_container_tests tests/container_tests.cpp)
 if(DAGFLOW_TARGET)
   target_link_libraries(dagflow_container_tests PRIVATE ${DAGFLOW_TARGET})
@@ -113,7 +114,7 @@ if(DAGFLOW_TARGET)
       exception_payload_last_release)
     dagflow_add_runtime_unit_test(dagflow_${_case}_test tests/${_case}_test.cpp)
     target_link_libraries(dagflow_${_case}_test PRIVATE ${DAGFLOW_TARGET})
-    set_tests_properties(dagflow_${_case}_test PROPERTIES LABELS "runtime;adversarial")
+    set_tests_properties(dagflow_${_case}_test PROPERTIES LABELS "runtime;adversarial;concurrency")
     add_dependencies(dagflow_adversarial_tests dagflow_${_case}_test)
   endforeach()
 
@@ -134,7 +135,7 @@ if(DAGFLOW_TARGET)
   foreach(_case IN ITEMS combine_partial_registration_oom_race range_publication_rollback_lifetime)
     dagflow_add_runtime_unit_test(dagflow_${_case}_test tests/${_case}_test.cpp)
     target_link_libraries(dagflow_${_case}_test PRIVATE dagflow_adversarial_runtime)
-    set_tests_properties(dagflow_${_case}_test PROPERTIES LABELS "runtime;adversarial")
+    set_tests_properties(dagflow_${_case}_test PROPERTIES LABELS "runtime;adversarial;concurrency")
     add_dependencies(dagflow_adversarial_tests dagflow_${_case}_test)
   endforeach()
 
@@ -184,6 +185,9 @@ if(DAGFLOW_TARGET)
 
   dagflow_add_runtime_unit_test(dagflow_scheduler_fairness_tests tests/scheduler_fairness_tests.cpp)
   target_link_libraries(dagflow_scheduler_fairness_tests PRIVATE ${DAGFLOW_TARGET})
+
+  set_property(TEST dagflow_idle_accounting_tests dagflow_scheduler_topology_tests
+    dagflow_pool_lifecycle_tests APPEND PROPERTY LABELS concurrency)
 endif()
 
 get_property(_dagflow_targets DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)

@@ -57,6 +57,7 @@ Labels select groups; their availability depends on the enabled components:
 | --- | --- |
 | `unit` | Ordinary C++ runtime and allocation tests; also the Linux perf-control test when enabled. |
 | `adversarial` / `runtime` | The thirteen lifetime/race regressions. These use both labels and do not carry `unit`. |
+| `concurrency` | The thirteen adversarial regressions plus queue, idle-accounting, scheduler-topology, and pool-lifecycle tests. |
 | `benchmark` | Benchmark smoke checks, JSON/CLI checks, and Linux perf-control checks. |
 | `schema` | Stress-harness and runtime-suite JSON/CLI checks. |
 | `build` | CMake configuration regressions and the campaign test. |
@@ -74,6 +75,39 @@ ctest --test-dir out/build/tests -R '^dagflow_queue_tests$' --repeat until-fail:
 Use `-V` for successful-test output too. Failure logs are saved under the build
 directory's `Testing/Temporary/LastTest.log`. Repeating a race test samples more
 interleavings; it does not replace sanitizer runs.
+
+## Native architecture coverage in CI
+
+The portability job runs the full `core` suite on Linux, macOS, and Windows,
+each on x64 and ARM64. Windows ARM64 explicitly selects `-A ARM64` for both
+the library and its consumers so an emulated x64 build cannot stand in for
+native ARM64 coverage. Linux's separate AArch64 cross-build still checks
+packaging and architecture, but does not execute its binaries.
+
+Each native core job also repeats the `concurrency` group ten times and builds
+the `adversarial-tiny` group with two-slot queues in Release mode, repeating
+those thirteen tests ten times. Checks remain enabled in optimized builds.
+CTest randomizes test order and runs at most two test processes concurrently;
+each executable also creates its own competing threads. A failed repetition
+fails the job, and the existing per-test timeouts catch hangs. Test logs are
+uploaded as `portability-tests-*` artifacts, including on failure.
+
+To reproduce the repeated checks on any native host:
+
+```sh
+cmake --preset core
+cmake --build --preset core --parallel 2
+ctest --preset core --output-on-failure --no-tests=error
+ctest --preset core -L concurrency --repeat until-fail:10 --schedule-random --parallel 2
+cmake --preset adversarial-tiny -DCMAKE_BUILD_TYPE=Release
+cmake --build --preset adversarial-tiny --config Release --parallel 2
+ctest --preset adversarial-tiny -C Release --repeat until-fail:10 --schedule-random --parallel 2
+```
+
+On Windows ARM64, add `-A ARM64` to both configure commands in fresh build
+directories. For a Debug tiny-queue run, omit the Release overrides.
+Native ARM64 execution exercises a different memory model from x86; passing
+stress tests still does not constitute a proof of every possible ordering.
 
 ## Runtime coverage
 
