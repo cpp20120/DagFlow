@@ -24,7 +24,10 @@ function(dagflow_apply_allocator target)
       target_link_libraries(${target} PRIVATE mimalloc-static)
     endif()
   elseif(DAGFLOW_ALLOCATOR STREQUAL "tbbmalloc")
-    target_compile_definitions(${target} PRIVATE DAGFLOW_USE_TBBMALLOC)
+    target_compile_definitions(${target} PRIVATE
+      DAGFLOW_USE_TBBMALLOC
+      __TBB_NO_IMPLICIT_LINKAGE=1
+    )
     target_link_libraries(${target} PRIVATE TBB::tbbmalloc)
   endif()
 endfunction()
