@@ -369,7 +369,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dagflow-package-${{ runner.os }}
-          path: out/packages/distribution/*
+          path: |
+            out/packages/distribution/*.tar.gz
+            out/packages/distribution/*.dmg
+            out/packages/distribution/*.zip
+            out/packages/distribution/*.deb
+            out/packages/distribution/*.rpm
+            out/packages/distribution/*.exe
           if-no-files-found: error
 
   documentation:
