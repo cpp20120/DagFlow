@@ -2,10 +2,9 @@
 #include <atomic>
 #include <condition_variable>
 #include <cstdint>
-#include <mutex>
-
 #include <dagflow/detail/runtime_memory.hpp>
 #include <dagflow/detail/scheduler.hpp>
+#include <mutex>
 
 namespace dagflow::detail {
 /// Shares immutable membership with Scheduler; owns all wait state. Runtime

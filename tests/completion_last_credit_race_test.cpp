@@ -22,7 +22,7 @@ struct Payload {
     CHECK(destroyed.fetch_add(1) == 0);
   }
 };
-}
+}  // namespace
 
 int main() {
   using Credit = dagflow::detail::CompletionCredit;
@@ -31,11 +31,13 @@ int main() {
     std::array<unsigned, writers> writes{};
     std::atomic<unsigned> destroyed{0};
     std::latch entered(1), release(1);
-    auto root = Credit::create(std::unique_ptr<Payload>(new Payload{writes, destroyed, entered, release}));
+    auto root = Credit::create(std::unique_ptr<Payload>(
+        new Payload{writes, destroyed, entered, release}));
     const auto source = root.handle();
     auto tail = pool.combine({source, {}, source});
     for (unsigned i = 0; i < 32; ++i) tail = pool.combine({tail, tail});
-    if (round % 2) root.fail(std::make_exception_ptr(adversarial::Failure{round}));
+    if (round % 2)
+      root.fail(std::make_exception_ptr(adversarial::Failure{round}));
     std::barrier start(writers + 5);
     std::vector<std::thread> threads;
     for (unsigned i = 0; i < writers; ++i) {
@@ -44,7 +46,7 @@ int main() {
         writes[i] = i + 1;
         if ((i + round) % 2) std::this_thread::yield();
         credit.finish();
-        credit.finish(); // Finished owners must not retire twice.
+        credit.finish();  // Finished owners must not retire twice.
       });
     }
     for (unsigned i = 0; i < 2; ++i) {
@@ -65,7 +67,7 @@ int main() {
         for (unsigned j = 0; j < writers; ++j) CHECK(writes[j] == j + 1);
       });
     }
-    root.finish(); // The last credit now belongs to an unpredictable writer.
+    root.finish();  // The last credit now belongs to an unpredictable writer.
     start.arrive_and_wait();
     entered.wait();
     CHECK(!source.ready() && !tail.ready() && destroyed == 0);
@@ -76,7 +78,9 @@ int main() {
     for (auto& thread : threads) thread.join();
     pool.wait(late);
     CHECK(source.ready() && tail.ready() && late.ready() && destroyed == 1);
-    if (round % 2) CHECK(adversarial::failure_id(late) == round);
-    else late.rethrow_if_failed();
+    if (round % 2)
+      CHECK(adversarial::failure_id(late) == round);
+    else
+      late.rethrow_if_failed();
   }
 }

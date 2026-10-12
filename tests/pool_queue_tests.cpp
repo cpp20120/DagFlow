@@ -2,6 +2,7 @@
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
+#include <dagflow/thread_pool.hpp>
 #include <future>
 #include <limits>
 #include <stdexcept>
@@ -9,7 +10,6 @@
 #include <vector>
 
 #include "support.hpp"
-#include <dagflow/thread_pool.hpp>
 
 void worker_overflow(dagflow::Priority priority) {
   constexpr std::size_t queued =
@@ -46,8 +46,11 @@ void worker_overflow(dagflow::Priority priority) {
     pool.wait(failed);  // Helping can reach the shared overflow queue.
     CHECK(invoked);
     bool threw = false;
-    try { failed.rethrow_if_failed(); }
-    catch (const std::runtime_error&) { threw = true; }
+    try {
+      failed.rethrow_if_failed();
+    } catch (const std::runtime_error&) {
+      threw = true;
+    }
     CHECK(threw);
     for (const auto& h : children) pool.wait(h);
     CHECK(completed == seen.size());

@@ -1,14 +1,14 @@
 #include <array>
 #include <atomic>
 #include <chrono>
+#include <dagflow/detail/idle_accounting.hpp>
+#include <dagflow/thread_pool.hpp>
 #include <future>
 #include <memory>
 #include <thread>
 #include <vector>
 
-#include <dagflow/detail/idle_accounting.hpp>
 #include "support.hpp"
-#include <dagflow/thread_pool.hpp>
 
 using namespace std::chrono_literals;
 
@@ -57,7 +57,8 @@ void registration_and_multiple_waiters() {
     CHECK(waiter.wait_for(2s) == std::future_status::ready);
     waiter.get();
   }
-  for (std::size_t i = 0; i < values.size(); ++i) CHECK(values[i] == int(i + 1));
+  for (std::size_t i = 0; i < values.size(); ++i)
+    CHECK(values[i] == int(i + 1));
 }
 
 void destructor_publication() {
@@ -72,18 +73,21 @@ void destructor_publication() {
     std::atomic<bool>& started;
     std::atomic<bool>& release;
     int& result;
-    Payload(dagflow::Pool& p, std::atomic<bool>& s, std::atomic<bool>& r, int& value)
+    Payload(dagflow::Pool& p, std::atomic<bool>& s, std::atomic<bool>& r,
+            int& value)
         : pool(p), started(s), release(r), result(value) {}
     ~Payload() {
-      pool.submit_detached([&started = started, &release = release, &result = result] {
-        started.store(true);
-        started.notify_one();
-        release.wait(false);
-        result = 42;
-      });
+      pool.submit_detached(
+          [&started = started, &release = release, &result = result] {
+            started.store(true);
+            started.notify_one();
+            release.wait(false);
+            result = 42;
+          });
     }
   };
-  auto payload = std::make_unique<Payload>(pool, child_started, release, result);
+  auto payload =
+      std::make_unique<Payload>(pool, child_started, release, result);
   pool.submit_detached([payload = std::move(payload)] {});
   child_started.wait(false);
   auto waiter = std::async(std::launch::async, [&] { pool.wait_idle(); });
@@ -100,7 +104,8 @@ void reused_address_and_cache_eviction() {
   config.pin_threads = false;
   alignas(dagflow::Pool) std::byte storage[sizeof(dagflow::Pool)];
   for (int i = 0; i < 40; ++i) {
-    auto* pool = std::construct_at(reinterpret_cast<dagflow::Pool*>(storage), config);
+    auto* pool =
+        std::construct_at(reinterpret_cast<dagflow::Pool*>(storage), config);
     int result = 0;
     pool->submit_detached([&] { result = i + 1; });
     pool->wait_idle();

@@ -12,7 +12,7 @@ void failing_cleanup(unsigned workers) {
   std::latch entered(1), release(1);
   struct ChildCapture {
     dagflow::Pool& pool;
-    std::atomic<unsigned> &children, &grandchildren;
+    std::atomic<unsigned>&children, &grandchildren;
     ~ChildCapture() {
       children.fetch_add(1);
       auto* count = &grandchildren;
@@ -21,25 +21,28 @@ void failing_cleanup(unsigned workers) {
   };
   struct ParentCapture {
     dagflow::Pool& pool;
-    std::atomic<unsigned> &parents, &children, &grandchildren;
+    std::atomic<unsigned>&parents, &children, &grandchildren;
     ~ParentCapture() {
       CHECK(pool.closed());
-      auto child = pool.submit([capture = std::unique_ptr<ChildCapture>(
-                                   new ChildCapture{pool, children, grandchildren})] {
-        throw adversarial::Failure{2};
-      });
-      pool.wait(child); // One-worker configuration must help from a destructor.
+      auto child =
+          pool.submit([capture = std::unique_ptr<ChildCapture>(
+                           new ChildCapture{pool, children, grandchildren})] {
+            throw adversarial::Failure{2};
+          });
+      pool.wait(
+          child);  // One-worker configuration must help from a destructor.
       CHECK(adversarial::failure_id(child) == 2);
       CHECK(children == 1);
       CHECK(parents.fetch_add(1) == 0);
     }
   };
-  auto parent = pool.submit([&, capture = std::unique_ptr<ParentCapture>(
-                                   new ParentCapture{pool, parents, children, grandchildren})] {
-    entered.count_down();
-    release.wait();
-    throw adversarial::Failure{1};
-  });
+  auto parent = pool.submit(
+      [&, capture = std::unique_ptr<ParentCapture>(
+              new ParentCapture{pool, parents, children, grandchildren})] {
+        entered.count_down();
+        release.wait();
+        throw adversarial::Failure{1};
+      });
   entered.wait();
   pool.close();
   release.count_down();
@@ -73,10 +76,14 @@ void range_cleanup(bool stealing) {
   // Only worker publishes the range, so its handle is assigned before any
   // chunk can execute and destroy the last callable owner.
   auto parent = pool.submit([&] {
-    auto fn = [capture = std::unique_ptr<Capture>(new Capture{pool, range, values, cleanups})]
-              (unsigned& value) { ++value; };
-    if (stealing) range = pool.for_each_ws(values, std::move(fn));
-    else range = pool.for_each(values, std::move(fn));
+    auto fn = [capture = std::unique_ptr<Capture>(new Capture{
+                   pool, range, values, cleanups})](unsigned& value) {
+      ++value;
+    };
+    if (stealing)
+      range = pool.for_each_ws(values, std::move(fn));
+    else
+      range = pool.for_each(values, std::move(fn));
     pool.close();
   });
   pool.wait(parent);
@@ -86,7 +93,7 @@ void range_cleanup(bool stealing) {
   CHECK(cleanups == 1);
   pool.shutdown();
 }
-}
+}  // namespace
 
 int main() {
   failing_cleanup(1);

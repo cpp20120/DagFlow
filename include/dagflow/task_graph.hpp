@@ -5,6 +5,11 @@
 #include <climits>
 #include <cstddef>
 #include <cstdint>
+#include <dagflow/config.hpp>
+#include <dagflow/detail/runtime_memory.hpp>
+#include <dagflow/detail/small_function.hpp>
+#include <dagflow/detail/small_vector.hpp>
+#include <dagflow/thread_pool.hpp>
 #include <exception>
 #include <limits>
 #include <memory>
@@ -14,12 +19,6 @@
 #include <stdexcept>
 #include <utility>
 #include <vector>
-
-#include <dagflow/config.hpp>
-#include <dagflow/detail/runtime_memory.hpp>
-#include <dagflow/detail/small_function.hpp>
-#include <dagflow/detail/small_vector.hpp>
-#include <dagflow/thread_pool.hpp>
 
 namespace dagflow {
 
@@ -134,7 +133,8 @@ class TaskGraph {
   struct RunState;
   // Exactly one initial driver per node/run may borrow this packet. Additional
   // lanes and same-node token continuations use ordinary owning packets. Never
-  // reuse this slot within a run: an older driver can still be in Pool's epilogue.
+  // reuse this slot within a run: an older driver can still be in Pool's
+  // epilogue.
   struct InitialTask : detail::ScheduledTask {
     RunState* run{};
     index_type index{};

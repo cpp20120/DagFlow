@@ -22,11 +22,10 @@
 
 #include <atomic>
 #include <cstddef>
-#include <limits>
-#include <type_traits>
-
 #include <dagflow/config.hpp>
 #include <dagflow/detail/runtime_diagnostics.hpp>
+#include <limits>
+#include <type_traits>
 
 namespace dagflow::detail {
 

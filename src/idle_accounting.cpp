@@ -1,6 +1,5 @@
-#include <dagflow/detail/idle_accounting.hpp>
 #include <dagflow/detail/fuzz_points.hpp>
-
+#include <dagflow/detail/idle_accounting.hpp>
 #include <exception>
 #include <limits>
 #include <stdexcept>
@@ -41,7 +40,10 @@ void IdleAccounting::publication_exhausted() {
   throw std::overflow_error("pool publication counter exhausted");
 }
 IdleAccounting::Lane& IdleAccounting::producer_lane() {
-  struct Entry { uint64_t identity{0}; Lane* lane{nullptr}; };
+  struct Entry {
+    uint64_t identity{0};
+    Lane* lane{nullptr};
+  };
   // Bounded TLS cache. Entries may outlive a pool, but are never dereferenced
   // without its unique identity matching. Cache eviction does not own a lane.
   static thread_local Entry cache[producer_cache_slots];
@@ -49,7 +51,8 @@ IdleAccounting::Lane& IdleAccounting::producer_lane() {
   if (entry.identity == identity_) return *entry.lane;
   static thread_local const auto producer_id = unique_id();
   std::lock_guard lock(mutex_);
-  for (auto* producer = producers_.get(); producer; producer = producer->next.get()) {
+  for (auto* producer = producers_.get(); producer;
+       producer = producer->next.get()) {
     if (producer->id == producer_id) {
       entry = {identity_, &producer->lane};
       return *entry.lane;
@@ -80,7 +83,8 @@ bool IdleAccounting::idle_locked() const noexcept {
   for (std::size_t worker_index = 0; worker_index < count; ++worker_index)
     published_total.add(
         workers_[worker_index].published.load(std::memory_order_acquire));
-  for (auto* producer = producers_.get(); producer; producer = producer->next.get())
+  for (auto* producer = producers_.get(); producer;
+       producer = producer->next.get())
     published_total.add(
         producer->lane.published.load(std::memory_order_acquire));
   for (std::size_t worker_index = 0; worker_index < count; ++worker_index)

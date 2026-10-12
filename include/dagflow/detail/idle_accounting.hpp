@@ -3,12 +3,11 @@
 #include <atomic>
 #include <condition_variable>
 #include <cstdint>
+#include <dagflow/config.hpp>
+#include <dagflow/detail/runtime_memory.hpp>
 #include <exception>
 #include <limits>
 #include <mutex>
-
-#include <dagflow/config.hpp>
-#include <dagflow/detail/runtime_memory.hpp>
 
 namespace dagflow::detail {
 // Each lane has exactly one writer. Observers read only while waiting for idle.
@@ -51,7 +50,8 @@ class IdleAccounting {
   [[noreturn]] static void publication_exhausted();
   static void publish(Lane& lane) {
     const auto previous = lane.published.load(std::memory_order_relaxed);
-    if (previous == std::numeric_limits<uint64_t>::max()) publication_exhausted();
+    if (previous == std::numeric_limits<uint64_t>::max())
+      publication_exhausted();
     lane.published.store(previous + 1, std::memory_order_release);
   }
   Lane& producer_lane();

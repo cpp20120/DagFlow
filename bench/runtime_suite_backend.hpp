@@ -5,32 +5,37 @@
 #include <array>
 #include <climits>
 #include <cstdint>
-#include <utility>
 #include <stdexcept>
-#include "thread_pool.hpp"
+#include <utility>
+
 #include "task_graph.hpp"
+#include "thread_pool.hpp"
 
 namespace suite_backend {
 inline constexpr const char* name = "github";
 class Pool : public dagflow::Pool {
  public:
   using dagflow::Pool::Pool;
-  template <class F> void submit_detached(F&& f) {
+  template <class F>
+  void submit_detached(F&& f) {
     dagflow::SubmitOptions options;
     options.skip_counter = true;
     submit(std::forward<F>(f), options);
   }
-  template <class Range> void submit_batch_detached(Range) {
+  template <class Range>
+  void submit_batch_detached(Range) {
     throw std::invalid_argument("legacy API has no detached batch submission");
   }
 };
 class TaskGraph : public dagflow::TaskGraph {
  public:
   using dagflow::TaskGraph::TaskGraph;
-  template <class F> NodeId emplace(F&& f) {
+  template <class F>
+  NodeId emplace(F&& f) {
     return add_node(std::forward<F>(f));
   }
-  template <class F> NodeId emplace(F&& f, NodeOptions options) {
+  template <class F>
+  NodeId emplace(F&& f, NodeOptions options) {
     return add_node(std::forward<F>(f), options);
   }
 };
@@ -55,7 +60,9 @@ namespace suite_backend {
 inline constexpr const char* name = "current";
 using Pool = dagflow::Pool;
 using TaskGraph = dagflow::TaskGraph;
-inline void rethrow(const dagflow::Handle& handle) { handle.rethrow_if_failed(); }
+inline void rethrow(const dagflow::Handle& handle) {
+  handle.rethrow_if_failed();
+}
 inline void rethrow_graph(const TaskGraph&, const dagflow::Handle& handle) {
   rethrow(handle);
 }

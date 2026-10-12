@@ -1,6 +1,7 @@
 #include <array>
 #include <atomic>
 #include <chrono>
+#include <dagflow/thread_pool.hpp>
 #include <future>
 #include <memory>
 #include <stdexcept>
@@ -8,7 +9,6 @@
 #include <vector>
 
 #include "support.hpp"
-#include <dagflow/thread_pool.hpp>
 
 using namespace std::chrono_literals;
 
@@ -36,7 +36,8 @@ void move_only_and_descendants() {
   std::vector<decltype(make())> jobs;
   pool.submit_batch_detached(std::span{jobs});
   for (unsigned i = 0; i < 137; ++i) jobs.push_back(make());
-  pool.submit_batch_detached(std::span{jobs}, {.priority = dagflow::Priority::High});
+  pool.submit_batch_detached(std::span{jobs},
+                             {.priority = dagflow::Priority::High});
   pool.wait_idle();
   CHECK(calls == 274);
 }
@@ -68,7 +69,8 @@ void progress_and_idle() {
 
 void worker_overflow_and_cross_pool() {
   dagflow::Pool first(config()), second(config());
-  std::vector<unsigned> seen(DAGFLOW_LOCAL_QUEUE_CAPACITY + DAGFLOW_CENTRAL_QUEUE_CAPACITY + 65);
+  std::vector<unsigned> seen(DAGFLOW_LOCAL_QUEUE_CAPACITY +
+                             DAGFLOW_CENTRAL_QUEUE_CAPACITY + 65);
   auto parent = first.submit([&] {
     auto make = [&](std::size_t i) { return [&, i] { ++seen[i]; }; };
     std::vector<decltype(make(0))> jobs;
@@ -93,12 +95,13 @@ void concurrent_producers() {
   dagflow::Pool pool(config(4));
   std::vector<std::atomic<unsigned>> seen(8192);
   std::vector<std::thread> producers;
-  for (unsigned p = 0; p < 4; ++p) producers.emplace_back([&, p] {
-    auto make = [&](unsigned i) { return [&, i] { ++seen[i]; }; };
-    std::vector<decltype(make(0))> jobs;
-    for (unsigned i = p; i < seen.size(); i += 4) jobs.push_back(make(i));
-    pool.submit_batch_detached(std::span{jobs}, {.affinity = 0});
-  });
+  for (unsigned p = 0; p < 4; ++p)
+    producers.emplace_back([&, p] {
+      auto make = [&](unsigned i) { return [&, i] { ++seen[i]; }; };
+      std::vector<decltype(make(0))> jobs;
+      for (unsigned i = p; i < seen.size(); i += 4) jobs.push_back(make(i));
+      pool.submit_batch_detached(std::span{jobs}, {.affinity = 0});
+    });
   for (auto& producer : producers) producer.join();
   pool.wait_idle();
   for (const auto& n : seen) CHECK(n == 1);
@@ -118,9 +121,8 @@ void backpressure() {
   std::atomic<unsigned> calls{0};
   auto task = [&] { ++calls; };
   std::vector<decltype(task)> jobs(DAGFLOW_CENTRAL_QUEUE_CAPACITY + 65, task);
-  auto producer = std::async(std::launch::async, [&] {
-    pool.submit_batch_detached(std::span{jobs});
-  });
+  auto producer = std::async(
+      std::launch::async, [&] { pool.submit_batch_detached(std::span{jobs}); });
   CHECK(producer.wait_for(20ms) == std::future_status::timeout);
   release.store(true, std::memory_order_release);
   release.notify_one();
@@ -148,12 +150,19 @@ void partial_failure_and_task_exceptions() {
   jobs.reserve(100);
   for (unsigned i = 0; i < 100; ++i) jobs.emplace_back(i, calls);
   bool threw = false;
-  try { pool.submit_batch_detached(std::span{jobs}); }
-  catch (const std::runtime_error&) { threw = true; }
+  try {
+    pool.submit_batch_detached(std::span{jobs});
+  } catch (const std::runtime_error&) {
+    threw = true;
+  }
   CHECK(threw);
   pool.wait_idle();
-  CHECK(calls == 64);  // The failed group's prepared packets were never accepted.
-  std::array failures{[&] { ++calls; throw std::runtime_error("detached"); }};
+  CHECK(calls ==
+        64);  // The failed group's prepared packets were never accepted.
+  std::array failures{[&] {
+    ++calls;
+    throw std::runtime_error("detached");
+  }};
   pool.submit_batch_detached(std::span{failures});
   pool.wait_idle();
   CHECK(calls == 65);

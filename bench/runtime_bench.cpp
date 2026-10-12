@@ -2,6 +2,8 @@
 #include <atomic>
 #include <chrono>
 #include <cstdlib>
+#include <dagflow/task_graph.hpp>
+#include <dagflow/thread_pool.hpp>
 #include <functional>
 #include <iomanip>
 #include <iostream>
@@ -9,9 +11,6 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-
-#include <dagflow/task_graph.hpp>
-#include <dagflow/thread_pool.hpp>
 
 // Optional instrumentation of ordinary operator new calls in this executable
 // and interposed library calls. This does not measure malloc, aligned new, or
@@ -92,7 +91,8 @@ int main(int argc, char** argv) {
     const unsigned repeats = argc > 3 ? std::stoul(argv[3]) : 7;
     const bool count = argc > 4 && std::string(argv[4]) == "--allocations";
     if (count && !DAGFLOW_BENCH_ALLOCATION_TRACKING)
-      throw std::invalid_argument("--allocations is unavailable under ThreadSanitizer");
+      throw std::invalid_argument(
+          "--allocations is unavailable under ThreadSanitizer");
     if (!threads || !tasks || !repeats)
       throw std::invalid_argument(
           "threads, tasks, and repeats must be positive");

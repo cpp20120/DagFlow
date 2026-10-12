@@ -1,14 +1,12 @@
 #pragma once
 
 #include <atomic>
+#include <dagflow/detail/runtime_memory.hpp>
+#include <dagflow/thread_pool.hpp>
 #include <exception>
 #include <optional>
 #include <type_traits>
 #include <utility>
-
-
-#include <dagflow/detail/runtime_memory.hpp>
-#include <dagflow/thread_pool.hpp>
 
 namespace dagflow {
 
@@ -33,8 +31,8 @@ class TaskScope {
     bool spawn(F&& function, SubmitOptions options = {}) {
       auto publication = reserve(*state_, &credit_);
       if (!publication) return false;
-      return publish(*state_, std::move(publication),
-                     std::forward<F>(function), options);
+      return publish(*state_, std::move(publication), std::forward<F>(function),
+                     options);
     }
     template <class F>
     bool submit(F&& function, SubmitOptions options = {}) {
@@ -65,8 +63,8 @@ class TaskScope {
   bool spawn(F&& function, SubmitOptions options = {}) {
     auto publication = reserve(*state_, nullptr);
     if (!publication) return false;
-    return publish(*state_, std::move(publication),
-                   std::forward<F>(function), options);
+    return publish(*state_, std::move(publication), std::forward<F>(function),
+                   options);
   }
   template <class F>
   bool submit(F&& function, SubmitOptions options = {}) {
@@ -110,7 +108,8 @@ class TaskScope {
   static bool active_here(const State& state) noexcept;
 
   template <class F>
-  static void invoke(State& state, detail::CompletionCredit& credit, F& function) {
+  static void invoke(State& state, detail::CompletionCredit& credit,
+                     F& function) {
     ActiveFrame frame(state);
     if (is_cancelled(state)) return;
     Context context(state, credit);
@@ -133,7 +132,8 @@ class TaskScope {
     ScopedTask(State& owner, U&& f)
         : state(&owner), function(std::in_place, std::forward<U>(f)) {}
     ScopedTask(const ScopedTask&) = delete;
-    ScopedTask(ScopedTask&&) noexcept(std::is_nothrow_move_constructible_v<F>) = default;
+    ScopedTask(ScopedTask&&) noexcept(std::is_nothrow_move_constructible_v<F>) =
+        default;
     ~ScopedTask() noexcept {
       // The executor still holds its credit while destroying this target.
       // Keep self-join detection active during user capture cleanup as well.
@@ -149,8 +149,9 @@ class TaskScope {
   static bool publish(State& state, detail::CompletionCredit publication,
                       F&& function, SubmitOptions options) {
     using Fn = std::decay_t<F>;
-    static_assert(std::is_invocable_v<Fn&, Context&> || std::is_invocable_v<Fn&>,
-                  "Scope callback must accept Context& or no arguments");
+    static_assert(
+        std::is_invocable_v<Fn&, Context&> || std::is_invocable_v<Fn&>,
+        "Scope callback must accept Context& or no arguments");
     static_assert(std::is_nothrow_destructible_v<Fn>,
                   "Scope callback destruction must not throw");
     ActiveFrame publishing(state);

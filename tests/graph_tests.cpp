@@ -1,4 +1,6 @@
 #include <atomic>
+#include <dagflow/dagflow.hpp>
+#include <dagflow/graph_scope.hpp>
 #include <deque>
 #include <forward_list>
 #include <memory>
@@ -6,9 +8,7 @@
 #include <stdexcept>
 #include <vector>
 
-#include <dagflow/dagflow.hpp>
 #include "support.hpp"
-#include <dagflow/graph_scope.hpp>
 
 void graph_dependencies(dagflow::Pool& pool) {
   dagflow::TaskGraph graph(pool);
@@ -441,18 +441,20 @@ void graph_lane_boundaries_and_visibility(dagflow::Pool& pool) {
       int serial_value = 0, joined = 0;
       Graph::NodeOptions opt;
       opt.concurrency = concurrency;
-      auto root = graph.emplace([&] {
-        if (concurrency == 1) {
-          CHECK(active.fetch_add(1) == 0);
-          // The only lane may migrate on continuation or enter helping, but
-          // must never overlap another invocation of this mutable callable.
-          const auto before = serial_value;
-          pool.wait(pool.submit([] {}));
-          serial_value = before + 1;
-          CHECK(active.fetch_sub(1) == 1);
-        }
-        ++calls;
-      }, opt);
+      auto root = graph.emplace(
+          [&] {
+            if (concurrency == 1) {
+              CHECK(active.fetch_add(1) == 0);
+              // The only lane may migrate on continuation or enter helping, but
+              // must never overlap another invocation of this mutable callable.
+              const auto before = serial_value;
+              pool.wait(pool.submit([] {}));
+              serial_value = before + 1;
+              CHECK(active.fetch_sub(1) == 1);
+            }
+            ++calls;
+          },
+          opt);
       graph.set_tokens(root, tokens);
       std::vector<int> values(16);
       auto join = graph.emplace([&] {
@@ -480,7 +482,9 @@ void graph_cancel_before_activation_and_reseal(dagflow::Pool& pool) {
   dagflow::TaskGraph graph(pool);
   bool cancel = true;
   int calls = 0, joined = 0;
-  auto root = graph.emplace([&] { if (cancel) graph.cancel(); });
+  auto root = graph.emplace([&] {
+    if (cancel) graph.cancel();
+  });
   auto child = graph.emplace([&] { ++calls; });
   graph.set_tokens(child, 129);
   auto join = graph.emplace([&] { joined = calls; });

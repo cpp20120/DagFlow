@@ -4,6 +4,9 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
+#include <dagflow/config.hpp>
+#include <dagflow/detail/runtime_diagnostics.hpp>
+#include <dagflow/handle.hpp>
 #include <functional>
 #include <initializer_list>
 #include <iterator>
@@ -16,12 +19,6 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
-
-
-#include <dagflow/config.hpp>
-#include <dagflow/handle.hpp>
-#include <dagflow/detail/runtime_diagnostics.hpp>
-
 
 namespace dagflow {
 
@@ -91,8 +88,7 @@ struct ScheduledTaskDeleter {
   }
 };
 
-using OwnedScheduledTask =
-    std::unique_ptr<ScheduledTask, ScheduledTaskDeleter>;
+using OwnedScheduledTask = std::unique_ptr<ScheduledTask, ScheduledTaskDeleter>;
 
 template <class Callable>
 struct ScheduledTaskModel final : ScheduledTask {
@@ -129,8 +125,8 @@ template <class Callable>
   runtime_count(RuntimeEvent::packet_allocated_bytes, sizeof(Model));
   try {
     return OwnedScheduledTask{std::construct_at(
-        static_cast<Model*>(storage), std::forward<Callable>(callable), priority,
-        std::move(completion))};
+        static_cast<Model*>(storage), std::forward<Callable>(callable),
+        priority, std::move(completion))};
   } catch (...) {
     deallocate_bytes(storage, alignof(Model));
     throw;
@@ -170,8 +166,9 @@ class Pool {
   /// Uncaught task exceptions are discarded; capture/report errors explicitly.
   template <class F>
   void submit_detached(F&& f, SubmitOptions opt = {}) {
-    enqueue([fn = std::forward<F>(f)](detail::CompletionCredit&) mutable { fn(); },
-            opt, {});
+    enqueue(
+        [fn = std::forward<F>(f)](detail::CompletionCredit&) mutable { fn(); },
+        opt, {});
   }
 
   /// Consume callable objects by move; no per-task completion state is created.
@@ -199,12 +196,14 @@ class Pool {
   /// stalled producer must not block publication of unrelated slots).
   /// Empty spans do nothing. No task remains buffered after successful return.
   template <class F, std::size_t Extent>
-    requires (!std::is_const_v<F> && std::is_invocable_r_v<void, F&>)
-  void submit_batch_detached(std::span<F, Extent> tasks, SubmitOptions opt = {}) {
+    requires(!std::is_const_v<F> && std::is_invocable_r_v<void, F&>)
+  void submit_batch_detached(std::span<F, Extent> tasks,
+                             SubmitOptions opt = {}) {
     if (is_current_worker()) {
       for (auto& task : tasks)
-        enqueue([fn = std::move(task)](detail::CompletionCredit&) mutable { fn(); },
-                opt, {});
+        enqueue(
+            [fn = std::move(task)](detail::CompletionCredit&) mutable { fn(); },
+            opt, {});
       return;
     }
 
@@ -214,9 +213,8 @@ class Pool {
       detail::OwnedScheduledTask pending[batch_limit];
       for (std::size_t i = 0; i < size; ++i) {
         pending[i] = detail::make_scheduled_task(
-            [fn = std::move(tasks[base + i])](detail::CompletionCredit&) mutable {
-              fn();
-            },
+            [fn = std::move(tasks[base + i])](
+                detail::CompletionCredit&) mutable { fn(); },
             opt.priority, {});
       }
       enqueue_batch_prepared(std::span{pending, size}, opt);
@@ -237,17 +235,22 @@ class Pool {
     auto callable_owner = detail::make_owned<Callable>(std::forward<F>(f));
     // Borrow protected by every task credit.
     Callable* callable = callable_owner.get();
-    auto publication = detail::CompletionCredit::create(std::move(callable_owner));
+    auto publication =
+        detail::CompletionCredit::create(std::move(callable_owner));
     auto result = publication.handle();
     try {
       for (std::size_t c = 0; c < chunks; ++c) {
         const std::size_t lo = c * n / chunks;
         const std::size_t hi = (c + 1) * n / chunks;
-        auto base = std::next(begin, static_cast<std::iter_difference_t<It>>(lo));
-        enqueue([base, count = hi - lo, callable](detail::CompletionCredit&) mutable {
-          auto it = base;
-          for (std::size_t i = 0; i < count; ++i, ++it) (*callable)(*it);
-        }, opt, publication.fork());
+        auto base =
+            std::next(begin, static_cast<std::iter_difference_t<It>>(lo));
+        enqueue(
+            [base, count = hi - lo,
+             callable](detail::CompletionCredit&) mutable {
+              auto it = base;
+              for (std::size_t i = 0; i < count; ++i, ++it) (*callable)(*it);
+            },
+            opt, publication.fork());
       }
     } catch (...) {
       publication.finish();
@@ -257,10 +260,11 @@ class Pool {
     }
     return result;  // Sentinel retires; the last credit destroys the callable.
   }
-  /// Asynchronously process an lvalue range or a borrowed temporary (e.g. span).
-  /// No elements are owned/copied: keep the backing data and any iterator-owning
-  /// view alive and unmodified until completion, including during unwinding.
-  /// A single callable is shared across tasks; concurrent calls must be safe.
+  /// Asynchronously process an lvalue range or a borrowed temporary (e.g.
+  /// span). No elements are owned/copied: keep the backing data and any
+  /// iterator-owning view alive and unmodified until completion, including
+  /// during unwinding. A single callable is shared across tasks; concurrent
+  /// calls must be safe.
   template <std::ranges::forward_range R, class F>
     requires std::ranges::borrowed_range<R>
   Handle for_each(R&& range, F&& f, SubmitOptions opt = {}) {
@@ -319,10 +323,13 @@ class Pool {
           state->pool->enqueue(
               [continuation, upper](detail::CompletionCredit& child) {
                 continuation(upper, child);
-              }, state->opt, credit.fork());
+              },
+              state->opt, credit.fork());
         }
-        auto it = std::next(state->begin, static_cast<std::iter_difference_t<It>>(range.lo));
-        for (std::size_t i = range.lo; i < range.hi; ++i, ++it) state->func(*it);
+        auto it = std::next(state->begin,
+                            static_cast<std::iter_difference_t<It>>(range.lo));
+        for (std::size_t i = range.lo; i < range.hi; ++i, ++it)
+          state->func(*it);
       }
     };
 
@@ -332,9 +339,9 @@ class Pool {
         const Range range{n * t / tiles, n * (t + 1) / tiles};
         auto local_options = state->opt;
         if (tiles > 1) local_options.affinity = static_cast<uint32_t>(t);
-        enqueue([exec = Exec{state}, range](detail::CompletionCredit& credit) {
-          exec(range, credit);
-        }, local_options, publication.fork());
+        enqueue([exec = Exec{state}, range](
+                    detail::CompletionCredit& credit) { exec(range, credit); },
+                local_options, publication.fork());
       }
     } catch (...) {
       publication.finish();
@@ -358,8 +365,7 @@ class Pool {
   Handle combine(std::span<const Handle> handles, SubmitOptions opt = {});
   /// Convenience overload from initializer_list.
   Handle combine(std::initializer_list<Handle> hs, SubmitOptions opt = {}) {
-    return combine(std::span(hs.begin(), hs.size()),
-                   std::move(opt));
+    return combine(std::span(hs.begin(), hs.size()), std::move(opt));
   }
 
   /// Workers help execute queued tasks while waiting; external callers block.
@@ -407,6 +413,7 @@ class Pool {
     ~PublicationGuard();
     PublicationGuard(const PublicationGuard&) = delete;
     PublicationGuard& operator=(const PublicationGuard&) = delete;
+
    private:
     Pool* pool_;
   };
@@ -414,7 +421,8 @@ class Pool {
   void leave_publication() noexcept;
 
   // Windows DLL clients cannot access an auto-exported thread_local data
-  // symbol directly from a header template. Elsewhere keep the TLS check inline.
+  // symbol directly from a header template. Elsewhere keep the TLS check
+  // inline.
 #if defined(_WIN32)
   [[nodiscard]] bool is_current_worker() const noexcept;
 #else
@@ -444,9 +452,8 @@ class Pool {
 
   void enqueue_prepared(detail::OwnedScheduledTask task,
                         const SubmitOptions& opt);
-  void enqueue_batch_prepared(
-      std::span<detail::OwnedScheduledTask> tasks,
-      const SubmitOptions& opt);
+  void enqueue_batch_prepared(std::span<detail::OwnedScheduledTask> tasks,
+                              const SubmitOptions& opt);
 
   void dispatch(Task* task, const SubmitOptions& opt);
 
@@ -456,7 +463,6 @@ class Pool {
 
   /// Execute and recycle a task on a worker of its owning pool.
   void execute_task(uint32_t id, Task* task);
-
 
   /// TLS: current worker id (UINT32_MAX if not in pool thread).
   static thread_local uint32_t tls_id_;
@@ -483,7 +489,6 @@ class Pool {
   alignas(DAGFLOW_CACHE_LINE_SIZE) std::atomic<uint64_t> admission_{0};
   std::mutex shutdown_mutex_;
   alignas(DAGFLOW_CACHE_LINE_SIZE) std::atomic<bool> stop_{false};
-
 };
 
 }  // namespace dagflow

@@ -1,5 +1,4 @@
 #include <dagflow/task_graph.hpp>
-
 #include <limits>
 
 namespace dagflow {
@@ -66,7 +65,8 @@ bool TaskGraph::seal() {
       throw std::invalid_argument(
           "TaskGraph: Block requires positive capacity");
     auto& node = next.nodes[i];
-    node.submit = SubmitOptions{.affinity = opt.affinity, .priority = opt.priority};
+    node.submit =
+        SubmitOptions{.affinity = opt.affinity, .priority = opt.priority};
     node.tokens = opt.overflow == Overflow::Drop
                       ? std::min(source.initial_tokens, opt.capacity)
                       : source.initial_tokens;
@@ -101,7 +101,8 @@ bool TaskGraph::seal() {
         std::move(builder_.pending_work[i]);
   compiled_ = std::move(next);
   // Do not retain a second array of empty inline callable buffers after seal.
-  std::vector<Work, detail::RuntimeAllocator<Work>>{}.swap(builder_.pending_work);
+  std::vector<Work, detail::RuntimeAllocator<Work>>{}.swap(
+      builder_.pending_work);
   if (grown_runtime) {
     runtime_ = std::move(grown_runtime);
     initial_tasks_ = std::move(grown_tasks);
@@ -150,7 +151,8 @@ Handle TaskGraph::run() {
   auto result = publication.handle();
   // Allocate the new completion first: failure preserves the previous result.
   // Never recycle CompletionState itself, since old Handles can outlive this
-  // run and even the graph. Only the exclusively graph-owned RunState is reused.
+  // run and even the graph. Only the exclusively graph-owned RunState is
+  // reused.
   if (run_state_)
     reset();
   else
@@ -250,7 +252,8 @@ void TaskGraph::InitialTask::release(detail::ScheduledTask* task) noexcept {
   // Pool normally moved the credit out already. Rejected publication instead
   // arrives here with a live credit. End every slot access before retiring it:
   // completion may immediately permit graph destruction or a subsequent run.
-  // The array owns object lifetime; releasing a borrow must not destroy/free it.
+  // The array owns object lifetime; releasing a borrow must not destroy/free
+  // it.
   auto done = std::move(task->done);
   done.finish();
 }
@@ -304,8 +307,8 @@ void TaskGraph::execute(RunState& state, index_type i,
         auto token = runtime.next.load(std::memory_order_relaxed);
         if (token >= node.tokens) break;
         // fetch_add would allow competing lanes to wrap the cursor at SIZE_MAX.
-        if (!runtime.next.compare_exchange_weak(
-                token, token + 1, std::memory_order_relaxed))
+        if (!runtime.next.compare_exchange_weak(token, token + 1,
+                                                std::memory_order_relaxed))
           continue;
         try {
           node.work(token);

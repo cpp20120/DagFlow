@@ -1,10 +1,9 @@
 #include <array>
+#include <dagflow/dagflow.hpp>
 #include <iostream>
 #include <numeric>
 #include <span>
 #include <vector>
-
-#include <dagflow/dagflow.hpp>
 
 int main() {
   dagflow::Pool pool({.threads = 2, .pin_threads = false});
@@ -14,9 +13,11 @@ int main() {
   };
   std::vector<decltype(make_task(0))> tasks;
   tasks.reserve(results.size());
-  for (std::size_t i = 0; i < results.size(); ++i) tasks.push_back(make_task(i));
+  for (std::size_t i = 0; i < results.size(); ++i)
+    tasks.push_back(make_task(i));
 
-  // Real batch publication: callables are consumed by move. No per-task handles.
+  // Real batch publication: callables are consumed by move. No per-task
+  // handles.
   try {
     pool.submit_batch_detached(std::span(tasks));
   } catch (...) {

@@ -1,6 +1,7 @@
 #include <atomic>
 #include <barrier>
 #include <chrono>
+#include <dagflow/dagflow.hpp>
 #include <future>
 #include <memory>
 #include <thread>
@@ -8,7 +9,6 @@
 #include <utility>
 #include <vector>
 
-#include <dagflow/dagflow.hpp>
 #include "support.hpp"
 
 using Credit = dagflow::detail::CompletionCredit;
@@ -32,7 +32,8 @@ void credit_transfer_and_payload() {
   CHECK(!accepted && moved && !handle.ready());
   publisher.finish();
   CHECK(!handle.ready() && destroyed == 0);
-  std::thread worker([credit = std::move(moved)]() mutable { credit.finish(); });
+  std::thread worker(
+      [credit = std::move(moved)]() mutable { credit.finish(); });
   worker.join();
   CHECK(handle.ready() && copy.ready() && destroyed == 1);
   handle = {};
@@ -43,7 +44,9 @@ void dropped_observers_and_rollback() {
   std::atomic<int> destroyed{0};
   auto root = Credit::create(dagflow::detail::make_owned<Payload>(&destroyed));
   auto observer = root.handle();
-  { auto unpublished = root.fork(); }  // Failed publication retires only child.
+  {
+    auto unpublished = root.fork();
+  }  // Failed publication retires only child.
   CHECK(!observer.ready());
   auto packet = root.fork();
   observer = {};
@@ -54,13 +57,15 @@ void dropped_observers_and_rollback() {
 }
 
 void ordinary_completion_ignores_cold_mutex() {
-  auto* state = dagflow::detail::make_owned<dagflow::detail::CompletionState>().release();
+  auto* state =
+      dagflow::detail::make_owned<dagflow::detail::CompletionState>().release();
   state->retain();  // Inspector keeps storage alive after the final credit.
   std::unique_lock lock(state->mutex);
   auto finisher = std::async(std::launch::async, [state] {
     dagflow::detail::CompletionState::retire(state);
   });
-  CHECK(finisher.wait_for(std::chrono::seconds(1)) == std::future_status::ready);
+  CHECK(finisher.wait_for(std::chrono::seconds(1)) ==
+        std::future_status::ready);
   finisher.get();
   state->wait();
   CHECK(state->ready.load() && !state->get_error());
@@ -74,7 +79,8 @@ void dependent_registration_races_completion() {
     auto source = Credit::create();
     auto observed = source.handle();
     const bool fail = round % 2;
-    if (fail) source.fail(std::make_exception_ptr(std::runtime_error("source")));
+    if (fail)
+      source.fail(std::make_exception_ptr(std::runtime_error("source")));
     std::barrier start(5);
     std::vector<dagflow::Handle> joined(32);
     std::vector<std::thread> threads;
@@ -88,13 +94,17 @@ void dependent_registration_races_completion() {
     start.arrive_and_wait();
     source.finish();
     for (auto& thread : threads) thread.join();
-    joined.push_back(pool.combine({observed}));  // Always exercises late registration.
+    joined.push_back(
+        pool.combine({observed}));  // Always exercises late registration.
     for (const auto& result : joined) {
       pool.wait(result);
       CHECK(result.ready());
       bool failed = false;
-      try { result.rethrow_if_failed(); }
-      catch (const std::runtime_error&) { failed = true; }
+      try {
+        result.rethrow_if_failed();
+      } catch (const std::runtime_error&) {
+        failed = true;
+      }
       CHECK(failed == fail);
     }
   }
@@ -124,7 +134,7 @@ void graph_definition_can_die_after_ready() {
       }
       old = graph.run();
       pool.wait(old);
-      graph.clear(); // No pool.wait_idle barrier: old epilogues may still run.
+      graph.clear();  // No pool.wait_idle barrier: old epilogues may still run.
       graph.emplace([] {});
       pool.wait(graph.run());
     }
@@ -157,7 +167,9 @@ void graph_repeated_wide_runs_and_old_results() {
     old.rethrow_if_failed();
   }
   bool fail = true;
-  graph.emplace([&] { if (fail) throw std::runtime_error("old failure"); });
+  graph.emplace([&] {
+    if (fail) throw std::runtime_error("old failure");
+  });
   auto failed = graph.run();
   pool.wait(failed);
   graph.reset();
@@ -168,8 +180,11 @@ void graph_repeated_wide_runs_and_old_results() {
   success.rethrow_if_failed();
   graph.clear();
   bool retained_error = false;
-  try { failed.rethrow_if_failed(); }
-  catch (const std::runtime_error&) { retained_error = true; }
+  try {
+    failed.rethrow_if_failed();
+  } catch (const std::runtime_error&) {
+    retained_error = true;
+  }
   CHECK(retained_error && failed.ready() && success.ready());
 }
 
@@ -181,12 +196,12 @@ void range_payload_released_before_result() {
   std::atomic<int> destroyed{0};
   std::vector<int> values(100000);
   for (bool steal : {false, true}) {
-    auto callable = [payload = dagflow::detail::make_owned<Payload>(&destroyed)](int& n) {
-      ++n;
-    };
-    auto handle = steal
-        ? pool.for_each_ws(values.begin(), values.end(), std::move(callable), {}, 64)
-        : pool.for_each(values.begin(), values.end(), std::move(callable));
+    auto callable = [payload = dagflow::detail::make_owned<Payload>(
+                         &destroyed)](int& n) { ++n; };
+    auto handle = steal ? pool.for_each_ws(values.begin(), values.end(),
+                                           std::move(callable), {}, 64)
+                        : pool.for_each(values.begin(), values.end(),
+                                        std::move(callable));
     pool.wait(handle);
     handle.rethrow_if_failed();
     CHECK(destroyed == (steal ? 2 : 1));
@@ -203,7 +218,10 @@ void spilled_callable_ownership() {
       ++*calls;
       *address = this;
     }
-    void operator()(int& value) { operator()(); ++value; }
+    void operator()(int& value) {
+      operator()();
+      ++value;
+    }
   };
   dagflow::Config config;
   config.threads = 2;
@@ -212,13 +230,13 @@ void spilled_callable_ownership() {
   std::atomic<int> destroyed{0};
   int calls = 0;
   const void* address = nullptr;
-  auto handle = pool.submit(Body{
-      dagflow::detail::make_owned<Payload>(&destroyed), &calls, &address});
+  auto handle = pool.submit(
+      Body{dagflow::detail::make_owned<Payload>(&destroyed), &calls, &address});
   pool.wait(handle);
   CHECK(calls == 1 && destroyed == 1);  // Spill destroyed before ready().
   dagflow::TaskGraph graph(pool);
-  auto node = graph.emplace(Body{
-      dagflow::detail::make_owned<Payload>(&destroyed), &calls, &address});
+  auto node = graph.emplace(
+      Body{dagflow::detail::make_owned<Payload>(&destroyed), &calls, &address});
   pool.wait(graph.run());
   const void* first_address = address;
   CHECK(calls == 2 && destroyed == 1);
@@ -228,22 +246,28 @@ void spilled_callable_ownership() {
   graph.clear();
   CHECK(destroyed == 2);
 
-  pool.submit_detached(Body{
-      dagflow::detail::make_owned<Payload>(&destroyed), &calls, &address});
+  pool.submit_detached(
+      Body{dagflow::detail::make_owned<Payload>(&destroyed), &calls, &address});
   pool.wait_idle();
   CHECK(calls == 5 && destroyed == 3);
 
   // Exercise every by-reference callable entry point with a move-only,
   // over-aligned target, including both iterator and range overloads.
   std::vector<int> values{0};
-  pool.wait_and_rethrow(pool.for_each(values.begin(), values.end(), Body{
-      dagflow::detail::make_owned<Payload>(&destroyed), &calls, &address}));
-  pool.wait_and_rethrow(pool.for_each(values, Body{
-      dagflow::detail::make_owned<Payload>(&destroyed), &calls, &address}));
-  pool.wait_and_rethrow(pool.for_each_ws(values.begin(), values.end(), Body{
-      dagflow::detail::make_owned<Payload>(&destroyed), &calls, &address}));
-  pool.wait_and_rethrow(pool.for_each_ws(values, Body{
-      dagflow::detail::make_owned<Payload>(&destroyed), &calls, &address}));
+  pool.wait_and_rethrow(
+      pool.for_each(values.begin(), values.end(),
+                    Body{dagflow::detail::make_owned<Payload>(&destroyed),
+                         &calls, &address}));
+  pool.wait_and_rethrow(pool.for_each(
+      values, Body{dagflow::detail::make_owned<Payload>(&destroyed), &calls,
+                   &address}));
+  pool.wait_and_rethrow(
+      pool.for_each_ws(values.begin(), values.end(),
+                       Body{dagflow::detail::make_owned<Payload>(&destroyed),
+                            &calls, &address}));
+  pool.wait_and_rethrow(pool.for_each_ws(
+      values, Body{dagflow::detail::make_owned<Payload>(&destroyed), &calls,
+                   &address}));
   CHECK(calls == 9 && destroyed == 7 && values[0] == 4);
 }
 

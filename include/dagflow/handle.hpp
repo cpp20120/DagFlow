@@ -3,14 +3,13 @@
 #include <atomic>
 #include <cassert>
 #include <cstddef>
+#include <dagflow/detail/runtime_memory.hpp>
 #include <exception>
 #include <memory>
 #include <mutex>
+#include <type_traits>
 #include <utility>
 #include <vector>
-#include <type_traits>
-
-#include <dagflow/detail/runtime_memory.hpp>
 
 namespace dagflow {
 
@@ -42,8 +41,10 @@ class CompletionCredit {
   /// The operation exclusively owns payload until the final credit retires.
   /// Payload destruction precedes publication of Handle::ready().
   template <class T, class Deleter>
-  [[nodiscard]] static CompletionCredit create(std::unique_ptr<T, Deleter> payload) {
-    static_assert(std::is_empty_v<Deleter> && std::is_nothrow_default_constructible_v<Deleter>);
+  [[nodiscard]] static CompletionCredit create(
+      std::unique_ptr<T, Deleter> payload) {
+    static_assert(std::is_empty_v<Deleter> &&
+                  std::is_nothrow_default_constructible_v<Deleter>);
     auto credit = create_erased(payload.get(), [](void* value) noexcept {
       Deleter{}(static_cast<T*>(value));
     });
@@ -60,7 +61,7 @@ class CompletionCredit {
  private:
   explicit CompletionCredit(CompletionState* state) noexcept : state_(state) {}
   static CompletionCredit create_erased(void* payload,
-                                       void (*destroy)(void*) noexcept);
+                                        void (*destroy)(void*) noexcept);
   CompletionState* state_{};
   friend struct CompletionState;
 };
@@ -81,7 +82,7 @@ struct CompletionState {
   // A terminal worklist carries the retiring credit's storage reference.
   CompletionState* next_terminal{};
   void* payload{};
-  void (*destroy_payload)(void*) noexcept{};
+  void (*destroy_payload)(void*) noexcept {};
 
   void retain() noexcept;
   void release() noexcept;
@@ -105,7 +106,8 @@ class Handle {
  public:
   Handle() noexcept = default;
   Handle(const Handle& other) noexcept : state_(other.state_) {
-    if (state_) { state_->retain();
+    if (state_) {
+      state_->retain();
     }
   }
   Handle(Handle&& other) noexcept

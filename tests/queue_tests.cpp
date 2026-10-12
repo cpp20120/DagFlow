@@ -3,11 +3,11 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <dagflow/detail/chase_lev_deque.hpp>
+#include <dagflow/detail/ring_mpmc.hpp>
 #include <thread>
 #include <vector>
 
-#include <dagflow/detail/chase_lev_deque.hpp>
-#include <dagflow/detail/ring_mpmc.hpp>
 #include "support.hpp"
 
 using dagflow::detail::chase_lev_deque;

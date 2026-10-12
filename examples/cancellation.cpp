@@ -1,8 +1,7 @@
+#include <dagflow/dagflow.hpp>
 #include <iostream>
 #include <latch>
 #include <thread>
-
-#include <dagflow/dagflow.hpp>
 
 int main() {
   dagflow::Pool pool({.threads = 2, .pin_threads = false});
@@ -20,7 +19,7 @@ int main() {
   started.wait();  // Demonstrate cancellation of an actually running callback.
   scope.cancel();
   const bool external_accepted = scope.spawn([] {});
-  scope.join();    // Cancellation alone does not throw; task errors still do.
+  scope.join();  // Cancellation alone does not throw; task errors still do.
   std::cout << "Stopped: " << stopped << "; child accepted: " << child_accepted
             << "; external accepted: " << external_accepted << '\n';
   return stopped && !child_accepted && !external_accepted ? 0 : 1;

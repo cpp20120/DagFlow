@@ -1,8 +1,7 @@
 #include <array>
+#include <dagflow/dagflow.hpp>
 #include <iostream>
 #include <stdexcept>
-
-#include <dagflow/dagflow.hpp>
 
 int main() {
   dagflow::Pool pool({.threads = 2, .pin_threads = false});
@@ -16,9 +15,10 @@ int main() {
       child.spawn([&] { results[2] = 30; });
     });
   });
-  auto done = scope.close();  // External admission stops; descendants may spawn.
+  auto done =
+      scope.close();  // External admission stops; descendants may spawn.
   const bool accepted_after_close = scope.spawn([] {});
-  scope.join();              // Waits for descendants and rethrows task failures.
+  scope.join();  // Waits for descendants and rethrows task failures.
   std::cout << "Joined: " << results[0] + results[1] + results[2]
             << "; ready: " << done.ready()
             << "; accepted after close: " << accepted_after_close << '\n';
@@ -33,5 +33,7 @@ int main() {
     std::cout << "Caught: " << error.what() << '\n';
   }
   // Scope destruction also closes and joins, but does not rethrow errors.
-  return results == std::array{10, 20, 30} && !accepted_after_close && caught ? 0 : 1;
+  return results == std::array{10, 20, 30} && !accepted_after_close && caught
+             ? 0
+             : 1;
 }

@@ -1,7 +1,7 @@
 #include <atomic>
+#include <dagflow/dagflow.hpp>
 #include <functional>
 #include <memory>
-#include <dagflow/dagflow.hpp>
 
 #include "support.hpp"
 

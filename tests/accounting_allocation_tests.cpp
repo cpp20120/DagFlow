@@ -1,8 +1,8 @@
 #include <array>
 #include <cstddef>
+#include <dagflow/detail/idle_accounting.hpp>
 #include <new>
 
-#include <dagflow/detail/idle_accounting.hpp>
 #include "support.hpp"
 
 static int budget = -1;
@@ -25,16 +25,22 @@ int main() {
   using dagflow::detail::IdleAccounting;
   budget = 0;
   bool failed = false;
-  try { IdleAccounting accounting(1); }
-  catch (const std::bad_alloc&) { failed = true; }
+  try {
+    IdleAccounting accounting(1);
+  } catch (const std::bad_alloc&) {
+    failed = true;
+  }
   CHECK(failed && live == 0);
   budget = -1;
   {
     IdleAccounting accounting(1);
     budget = 0;
     failed = false;
-    try { accounting.publish_external(); }
-    catch (const std::bad_alloc&) { failed = true; }
+    try {
+      accounting.publish_external();
+    } catch (const std::bad_alloc&) {
+      failed = true;
+    }
     CHECK(failed && live == 1);
     accounting.wait();  // Failed registration must not publish a phantom task.
     budget = -1;

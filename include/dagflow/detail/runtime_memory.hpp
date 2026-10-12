@@ -40,7 +40,9 @@ struct RuntimeAllocator {
     deallocate_bytes(storage, alignof(T));
   }
   template <class U>
-  bool operator==(const RuntimeAllocator<U>&) const noexcept { return true; }
+  bool operator==(const RuntimeAllocator<U>&) const noexcept {
+    return true;
+  }
 };
 
 template <class T>

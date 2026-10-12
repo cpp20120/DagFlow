@@ -45,9 +45,7 @@ int main() {
               race.arrive_and_wait();
 
               for (unsigned offset = worker; offset < count; offset += 2) {
-                const unsigned i = round % 2
-                    ? count - 1 - offset
-                    : offset;
+                const unsigned i = round % 2 ? count - 1 - offset : offset;
 
                 credits[i].fail(errors[i]);
                 credits[i].finish();
@@ -56,14 +54,13 @@ int main() {
           }
 
           adversarial::allocation::fault = {
-            budget,
-            [](void* context) noexcept {
-              // This may run with one source's dependent mutex held. Release
-              // the retire threads, but never wait for their retirement here.
-              static_cast<std::barrier<>*>(context)->arrive_and_wait();
-            },
-            &race
-          };
+              budget,
+              [](void* context) noexcept {
+                // This may run with one source's dependent mutex held. Release
+                // the retire threads, but never wait for their retirement here.
+                static_cast<std::barrier<>*>(context)->arrive_and_wait();
+              },
+              &race};
 
           bool failed = false;
           try {
@@ -75,8 +72,7 @@ int main() {
           adversarial::allocation::fault = {};
           CHECK(failed);
 
-          for (auto& thread : retirees)
-            thread.join();
+          for (auto& thread : retirees) thread.join();
 
           for (unsigned i = 0; i < count; ++i) {
             CHECK(destroyed[i] == 1);

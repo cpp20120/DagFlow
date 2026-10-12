@@ -8,6 +8,8 @@
 #include <chrono>
 #include <condition_variable>
 #include <cstdint>
+#include <dagflow/dagflow.hpp>
+#include <dagflow/detail/runtime_diagnostics.hpp>
 #include <functional>
 #include <iomanip>
 #include <iostream>
@@ -22,9 +24,6 @@
 #include <string_view>
 #include <thread>
 #include <vector>
-
-#include <dagflow/dagflow.hpp>
-#include <dagflow/detail/runtime_diagnostics.hpp>
 #ifdef __linux__
 #include <poll.h>
 #include <sched.h>

@@ -8,6 +8,8 @@
 #include <cstdlib>
 #include <dagflow/dagflow.hpp>
 #include <dagflow/detail/runtime_diagnostics.hpp>
+#include <dagflow/graph_scope.hpp>
+#include <dagflow/task_graph.hpp>
 #include <iomanip>
 #include <iostream>
 #include <numeric>
@@ -16,9 +18,6 @@
 #include <string>
 #include <string_view>
 #include <vector>
-
-#include <dagflow/graph_scope.hpp>
-#include <dagflow/task_graph.hpp>
 
 namespace dagflow {
 class Pool;
@@ -39,10 +38,10 @@ struct Options {
 };
 
 [[noreturn]] void usage(const char* argv0) {
-  std::cerr
-      << "usage: " << argv0
-      << " --benchmark chain|independent|independent-batch|parallel-for|workflow|noop"
-         " [--workers N] [--runs N] [--warmup N]\n";
+  std::cerr << "usage: " << argv0
+            << " --benchmark "
+               "chain|independent|independent-batch|parallel-for|workflow|noop"
+               " [--workers N] [--runs N] [--warmup N]\n";
   std::exit(2);
 }
 
@@ -87,7 +86,8 @@ std::size_t event_index(RuntimeEvent event) {
 
 RuntimeCounts delta(const RuntimeCounts& before, const RuntimeCounts& after) {
   RuntimeCounts result{};
-  for (std::size_t i = 0; i < result.size(); ++i) result[i] = after[i] - before[i];
+  for (std::size_t i = 0; i < result.size(); ++i)
+    result[i] = after[i] - before[i];
   return result;
 }
 
@@ -122,7 +122,8 @@ Result measure(std::string_view label, std::string_view unit,
     check();
     result.samples_s.push_back(Seconds(end - begin).count());
     const auto d = delta(before_counts, after_counts);
-    for (std::size_t n = 0; n < result.counts.size(); ++n) result.counts[n] += d[n];
+    for (std::size_t n = 0; n < result.counts.size(); ++n)
+      result.counts[n] += d[n];
   }
   return result;
 }
@@ -219,18 +220,19 @@ Result parallel_for(dagflow::Pool& pool, const Options& options) {
       [&] {
         const auto seed = run_seed;
         const auto rounds = options.payload_rounds;
-        auto handle = pool.for_each_ws(data, [seed, rounds](std::uint32_t& value) {
-          std::uint32_t x = value ^ seed;
-          for (std::uint32_t k = 0; k < rounds; ++k) {
-            x ^= x >> 16;
-            x *= 0x7feb352du;
-            x ^= x >> 15;
-            x *= 0x846ca68bu;
-            x ^= x >> 16;
-            x += k + 0x9e3779b9u;
-          }
-          value = x;
-        });
+        auto handle =
+            pool.for_each_ws(data, [seed, rounds](std::uint32_t& value) {
+              std::uint32_t x = value ^ seed;
+              for (std::uint32_t k = 0; k < rounds; ++k) {
+                x ^= x >> 16;
+                x *= 0x7feb352du;
+                x ^= x >> 15;
+                x *= 0x846ca68bu;
+                x ^= x >> 16;
+                x += k + 0x9e3779b9u;
+              }
+              value = x;
+            });
         pool.wait_and_rethrow(handle);
         pool.wait_idle();
       },
@@ -293,8 +295,7 @@ Result workflow(dagflow::Pool& pool, const Options& options) {
 Result noop(dagflow::Pool& pool, const Options& options) {
   constexpr std::size_t tasks = 1'000'000;
   return measure(
-      "Noop tasks (1,000,000)", "task", tasks, options,
-      [] {},
+      "Noop tasks (1,000,000)", "task", tasks, options, [] {},
       [&] {
         for (std::size_t i = 0; i < tasks; ++i) pool.submit_detached([] {});
         pool.wait_idle();
@@ -303,8 +304,9 @@ Result noop(dagflow::Pool& pool, const Options& options) {
 }
 
 void print_json(const Result& result, const Options& options) {
-  const double mean = std::accumulate(result.samples_s.begin(), result.samples_s.end(), 0.0) /
-                      static_cast<double>(result.samples_s.size());
+  const double mean =
+      std::accumulate(result.samples_s.begin(), result.samples_s.end(), 0.0) /
+      static_cast<double>(result.samples_s.size());
   const auto [min_it, max_it] =
       std::minmax_element(result.samples_s.begin(), result.samples_s.end());
   auto mean_count = [&](RuntimeEvent event) {
@@ -317,15 +319,12 @@ void print_json(const Result& result, const Options& options) {
             << ",\"unit\":" << std::quoted(std::string(result.unit))
             << ",\"logical_units\":" << result.logical_units
             << ",\"workers\":" << options.workers
-            << ",\"runs\":" << options.runs
-            << ",\"warmup\":" << options.warmup
+            << ",\"runs\":" << options.runs << ",\"warmup\":" << options.warmup
             << ",\"payload_rounds\":" << options.payload_rounds
-            << ",\"seed\":" << options.seed
-            << ",\"diagnostics\":"
+            << ",\"seed\":" << options.seed << ",\"diagnostics\":"
             << (dagflow::detail::runtime_diagnostics_enabled ? "true" : "false")
             << ",\"mean_s\":" << mean << ",\"min_s\":" << *min_it
-            << ",\"max_s\":" << *max_it
-            << ",\"throughput_per_s\":"
+            << ",\"max_s\":" << *max_it << ",\"throughput_per_s\":"
             << static_cast<double>(result.logical_units) / mean
             << ",\"mean_ns_per_unit\":"
             << mean * 1e9 / static_cast<double>(result.logical_units)

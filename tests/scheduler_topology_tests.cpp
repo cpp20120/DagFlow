@@ -2,15 +2,15 @@
 #include <atomic>
 #include <barrier>
 #include <chrono>
+#include <dagflow/detail/parking_lot.hpp>
+#include <dagflow/detail/scheduler.hpp>
+#include <dagflow/task_scope.hpp>
 #include <future>
 #include <stdexcept>
 #include <thread>
 #include <vector>
 
-#include <dagflow/detail/parking_lot.hpp>
-#include <dagflow/detail/scheduler.hpp>
 #include "support.hpp"
-#include <dagflow/task_scope.hpp>
 
 using dagflow::detail::ParkingLot;
 using dagflow::detail::ScheduledTask;
@@ -128,12 +128,14 @@ void batch_recruits_sleeping_workers() {
       std::vector<decltype(body)> jobs(workers, body);
       // The external batch emits one wake. Every body must run at once:
       // transfers must recruit sleepers even beyond the four-task steal size.
-      const auto priority = round % 2 ? dagflow::Priority::High
-                                     : dagflow::Priority::Normal;
+      const auto priority =
+          round % 2 ? dagflow::Priority::High : dagflow::Priority::Normal;
       pool.submit_batch_detached(std::span{jobs}, {.priority = priority});
       auto done = std::async(std::launch::async, [&] { pool.wait_idle(); });
-      CHECK(done.wait_for(std::chrono::seconds(1)) == std::future_status::ready);
-      done.get();  // Cannot rely on the five-second parking timeout for progress.
+      CHECK(done.wait_for(std::chrono::seconds(1)) ==
+            std::future_status::ready);
+      done.get();  // Cannot rely on the five-second parking timeout for
+                   // progress.
     }
   }
 }
@@ -233,7 +235,8 @@ void queue_publication_race(bool local) {
                 : topology.try_submit_external(0, &task));
   };
   // Publication before registration: no persistent epoch is necessary if the
-  // final acquisition sees work. Repeat across a complete register/cancel cycle.
+  // final acquisition sees work. Repeat across a complete register/cancel
+  // cycle.
   for (unsigned i = 0; i < 10; ++i) {
     publish();
     parking.wake_one(0);
@@ -328,7 +331,8 @@ void shared_sources_receive_service() {
     dagflow::detail::ScheduledTask local, ingress, overflow, remote;
     local.prio = ingress.prio = overflow.prio = remote.prio = priority;
     scheduler.submit_overflow(1, &remote);
-    CHECK(scheduler.try_acquire(0) == &remote);  // Seed drain preference to ingress.
+    CHECK(scheduler.try_acquire(0) ==
+          &remote);  // Seed drain preference to ingress.
     scheduler.submit_overflow(1, &remote);
     scheduler.submit_overflow(0, &overflow);
     CHECK(scheduler.try_submit_external(0, &ingress));

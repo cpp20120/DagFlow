@@ -1,14 +1,13 @@
 #pragma once
 
 #include <cstddef>
+#include <dagflow/config.hpp>
+#include <dagflow/detail/runtime_memory.hpp>
 #include <limits>
 #include <memory>
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
-
-#include <dagflow/config.hpp>
-#include <dagflow/detail/runtime_memory.hpp>
 
 namespace dagflow {
 
@@ -145,9 +144,10 @@ class small_vector {
   const_iterator cend() const noexcept { return end(); }
 
  private:
-  static constexpr size_type heap_alignment =
-      alignof(T) > DAGFLOW_CACHE_LINE_SIZE ? alignof(T)
-                                            : DAGFLOW_CACHE_LINE_SIZE;
+  static constexpr size_type heap_alignment = alignof(T) >
+                                                      DAGFLOW_CACHE_LINE_SIZE
+                                                  ? alignof(T)
+                                                  : DAGFLOW_CACHE_LINE_SIZE;
   static_assert(N <= max_size(), "Inline capacity is too large");
 
   static pointer allocate_storage(size_type capacity) {
@@ -201,7 +201,7 @@ class small_vector {
   }
   // Only for live inline elements; never for an empty buffer or end().
   pointer inline_ptr(size_type index) noexcept {
-    return std::launder(inline_slot(index)); // T* -> T*
+    return std::launder(inline_slot(index));  // T* -> T*
   }
   const_pointer inline_ptr(size_type index) const noexcept {
     return std::launder(inline_slot(index));

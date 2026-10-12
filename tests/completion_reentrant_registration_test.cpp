@@ -20,18 +20,19 @@ struct Payload {
     registered = pool.combine({self, other, self, {}});
     CHECK(!registered.ready());
 
-    nested.finish(); // Nested retirement while this state is terminalizing.
+    nested.finish();  // Nested retirement while this state is terminalizing.
     CHECK(other.ready() && !registered.ready());
 
-    self = {}; // Drop the payload's observer before the terminal state is ready.
+    self =
+        {};  // Drop the payload's observer before the terminal state is ready.
     CHECK(destroyed.fetch_add(1) == 0);
   }
 };
-}
+}  // namespace
 
 int main() {
   dagflow::Pool pool(adversarial::config());
-  pool.shutdown(); // Combining completions does not require worker admission.
+  pool.shutdown();  // Combining completions does not require worker admission.
 
   for (unsigned round = 0; round < 128; ++round) {
     std::atomic<unsigned> destroyed{0};
@@ -43,8 +44,7 @@ int main() {
     auto root = Credit::create(std::move(payload));
     raw->self = root.handle();
 
-    const auto failure = std::make_exception_ptr(
-        adversarial::Failure{round});
+    const auto failure = std::make_exception_ptr(adversarial::Failure{round});
 
     if (round % 3 == 1) root.fail(failure);
     if (round % 3 == 2) raw->nested.fail(failure);

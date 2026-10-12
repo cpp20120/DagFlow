@@ -2,18 +2,17 @@
 #include <algorithm>
 #include <chrono>
 #include <condition_variable>
+#include <dagflow/detail/fuzz_points.hpp>
+#include <dagflow/detail/idle_accounting.hpp>
+#include <dagflow/detail/parking_lot.hpp>
+#include <dagflow/detail/runtime_memory.hpp>
+#include <dagflow/detail/scheduler.hpp>
+#include <dagflow/thread_pool.hpp>
 #include <exception>
 #include <mutex>
 #include <span>
 #include <stdexcept>
 #include <utility>
-
-#include <dagflow/detail/fuzz_points.hpp>
-#include <dagflow/detail/scheduler.hpp>
-#include <dagflow/detail/parking_lot.hpp>
-#include <dagflow/detail/idle_accounting.hpp>
-#include <dagflow/detail/runtime_memory.hpp>
-#include <dagflow/thread_pool.hpp>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -99,20 +98,21 @@ Pool::Pool(const Config& cfg) : cfg_(cfg) {
 // storage from one of its own tasks is invalid: that task cannot join itself.
 // shutdown diagnoses explicit misuse; throwing through this noexcept destructor
 // terminates. Other external callers must be joined before destroying storage.
-Pool::~Pool() {
-  shutdown();
-}
+Pool::~Pool() { shutdown(); }
 
 // The high-bit transition is the external admission linearization point.
 // An already admitted publisher keeps its low-bit reservation even if it is
-// currently blocked on a full ingress. close never waits, so workers may use it.
+// currently blocked on a full ingress. close never waits, so workers may use
+// it.
 void Pool::close() noexcept {
   admission_.fetch_or(admission_closed_bit, std::memory_order_acq_rel);
 }
 
-// Closure is permanent, but says nothing about remaining work or joined threads.
+// Closure is permanent, but says nothing about remaining work or joined
+// threads.
 bool Pool::closed() const noexcept {
-  return (admission_.load(std::memory_order_acquire) & admission_closed_bit) != 0;
+  return (admission_.load(std::memory_order_acquire) & admission_closed_bit) !=
+         0;
 }
 
 // Only external publishers reserve here. A worker has an outstanding accounting
@@ -140,13 +140,14 @@ void Pool::enter_publication() {
     if (state == admission_closed_bit - 1)
       throw std::overflow_error("Pool: too many concurrent publishers");
     if (admission_.compare_exchange_weak(state, state + 1,
-                                        std::memory_order_acquire,
-                                        std::memory_order_relaxed))
+                                         std::memory_order_acquire,
+                                         std::memory_order_relaxed))
       return;
   }
 }
 
-// Publish completion of dispatch, including its wake, before dropping admission.
+// Publish completion of dispatch, including its wake, before dropping
+// admission.
 void Pool::leave_publication() noexcept {
   const auto previous = admission_.fetch_sub(1, std::memory_order_release);
   // Notify only the final publisher after close. Ordinary submits do not enter
@@ -168,7 +169,8 @@ void Pool::shutdown() {
   }
   // Keep workers alive while publishers retry full queues and while parents
   // spawn descendants. Only after both barriers can stop mean "no work left".
-  // Captures and final completion payloads are destroyed before lane retirement.
+  // Captures and final completion payloads are destroyed before lane
+  // retirement.
   accounting_->wait();
   stop_.store(true, std::memory_order_release);
   parking_->wake_all();
@@ -180,8 +182,8 @@ void Pool::shutdown() {
 // callback argument is borrowed by the callable and must remain valid until
 // the returned handle is ready; no special C-ABI completion path exists.
 Handle Pool::submit(Fn function, void* arg, SubmitOptions opt) {
-  return submit_impl(
-      [=](detail::CompletionCredit&) { function(arg); }, std::move(opt));
+  return submit_impl([=](detail::CompletionCredit&) { function(arg); },
+                     std::move(opt));
 }
 
 void Pool::enqueue_prepared(detail::OwnedScheduledTask owned,
@@ -192,8 +194,9 @@ void Pool::enqueue_prepared(detail::OwnedScheduledTask owned,
   // publication. If producer registration throws, the erased owner destroys
   // the exact TaskModel type and retires its unaccepted completion credit.
   detail::runtime_count(detail::RuntimeEvent::packets);
-  detail::runtime_count(tls_pool_ == this ? detail::RuntimeEvent::worker_submit
-                                          : detail::RuntimeEvent::external_submit);
+  detail::runtime_count(tls_pool_ == this
+                            ? detail::RuntimeEvent::worker_submit
+                            : detail::RuntimeEvent::external_submit);
   if (tls_pool_ == this)
     accounting_->publish_worker(tls_id_);
   else
@@ -215,10 +218,10 @@ void Pool::dispatch(Task* task, const SubmitOptions& opt) {
         opt.affinity ? scheduler_->select_shard(opt.affinity) : home;
     const bool ingress = opt.mode == SubmissionMode::Enqueue || target != home;
     const auto shard = ingress && !opt.affinity
-        ? scheduler_->select_shard(std::nullopt) : target;
-    const bool accepted =
-        ingress ? scheduler_->try_submit_external(shard, task)
-                : scheduler_->try_submit_local(tls_id_, task);
+                           ? scheduler_->select_shard(std::nullopt)
+                           : target;
+    const bool accepted = ingress ? scheduler_->try_submit_external(shard, task)
+                                  : scheduler_->try_submit_local(tls_id_, task);
     if (!accepted) {
       // No allocation or execution after the accounting commit. A private
       // immediate slot would hide the incoming child from helping/thieves.
@@ -239,15 +242,14 @@ void Pool::dispatch(Task* task, const SubmitOptions& opt) {
   parking_->wake_one(shard);
 }
 
-void Pool::enqueue_batch_prepared(
-    std::span<detail::OwnedScheduledTask> pending,
-    const SubmitOptions& opt) {
+void Pool::enqueue_batch_prepared(std::span<detail::OwnedScheduledTask> pending,
+                                  const SubmitOptions& opt) {
   PublicationGuard publication(*this);
   // One admission for the whole prepared group. Later groups can be rejected
-  // by close; callers already owe the accepted prefix its borrowed-data lifetime.
-  // The caller has fully constructed the <=64 packet group before entering
-  // this function. Every entry is a concrete TaskModel allocation owned by the
-  // span until queue publication transfers custody.
+  // by close; callers already owe the accepted prefix its borrowed-data
+  // lifetime. The caller has fully constructed the <=64 packet group before
+  // entering this function. Every entry is a concrete TaskModel allocation
+  // owned by the span until queue publication transfers custody.
   detail::runtime_count(detail::RuntimeEvent::external_batch);
   for (std::size_t i = 0; i < pending.size(); ++i) {
     detail::runtime_count(detail::RuntimeEvent::packets);
@@ -347,8 +349,8 @@ void detail::CompletionState::add_dependent(CompletionCredit dependent) {
     std::lock_guard lock(mutex);
     auto gate = Dependents::unused;
     dependent_gate.compare_exchange_strong(gate, Dependents::registered,
-                                          std::memory_order_acq_rel,
-                                          std::memory_order_acquire);
+                                           std::memory_order_acq_rel,
+                                           std::memory_order_acquire);
     if (gate != Dependents::closed) {
       dependents.push_back(std::move(dependent));
       return;
@@ -390,8 +392,9 @@ void detail::CompletionState::retire(CompletionState* state) noexcept {
     // sees closed can immediately propagate the now immutable error. The final
     // credit's storage reference keeps this state alive through edge delivery.
     current->ready.store(true, std::memory_order_release);
-    if (current->dependent_gate.exchange(Dependents::closed, std::memory_order_acq_rel)
-        == Dependents::registered) {
+    if (current->dependent_gate.exchange(Dependents::closed,
+                                         std::memory_order_acq_rel) ==
+        Dependents::registered) {
       std::lock_guard lock(current->mutex);
       edges.swap(current->dependents);
     }
@@ -399,7 +402,8 @@ void detail::CompletionState::retire(CompletionState* state) noexcept {
     for (auto& edge : edges) {
       auto* dependent = std::exchange(edge.state_, nullptr);
       if (failure) dependent->set_error(failure);
-      const auto before = dependent->credits.fetch_sub(1, std::memory_order_acq_rel);
+      const auto before =
+          dependent->credits.fetch_sub(1, std::memory_order_acq_rel);
       assert(before != 0);
       if (before == 1) {
         // Transfer this edge's storage reference to the terminal worklist.
@@ -449,7 +453,9 @@ detail::CompletionCredit detail::CompletionCredit::fork() const noexcept {
 
 // A Handle observes the same state but does not add a work credit. Its copy
 // lifetime is protected by CompletionState::references in handle.hpp.
-Handle detail::CompletionCredit::handle() const noexcept { return Handle{state_}; }
+Handle detail::CompletionCredit::handle() const noexcept {
+  return Handle{state_};
+}
 
 void detail::CompletionCredit::fail(std::exception_ptr error) const noexcept {
   // Failure is advisory state on the shared completion object. It does not
@@ -460,7 +466,8 @@ void detail::CompletionCredit::fail(std::exception_ptr error) const noexcept {
 void detail::CompletionCredit::finish() noexcept {
   // Exchange makes finish idempotent for a moved-from credit. Only the caller
   // that owns the exchanged pointer can perform the terminal decrement.
-  if (auto* state = std::exchange(state_, nullptr)) CompletionState::retire(state);
+  if (auto* state = std::exchange(state_, nullptr))
+    CompletionState::retire(state);
 }
 
 void Pool::wait(const Handle& handle) {
@@ -473,8 +480,10 @@ void Pool::wait(const Handle& handle) {
   if (tls_pool_ == this) {
     while (!observation.ready()) {
       detail::runtime_count(detail::RuntimeEvent::help_attempt);
-      if (!try_help_one(tls_id_)) std::this_thread::yield();
-      else detail::runtime_count(detail::RuntimeEvent::help_success);
+      if (!try_help_one(tls_id_))
+        std::this_thread::yield();
+      else
+        detail::runtime_count(detail::RuntimeEvent::help_success);
     }
   } else {
     observation.state_->wait();
@@ -517,8 +526,8 @@ void Pool::execute_task(uint32_t id, Task* task) {
   // In both cases the executor must never access the base pointer afterward.
   ops->destroy(task);
   done.finish();
-  // The handle may now be ready while pool quiescence still waits for retirement.
-  // DAGFLOW_FUZZ_POINT(before_retire);
+  // The handle may now be ready while pool quiescence still waits for
+  // retirement. DAGFLOW_FUZZ_POINT(before_retire);
   accounting_->retire(id);
 }
 
@@ -537,8 +546,7 @@ bool Pool::try_help_one(uint32_t id, bool parking_announced) {
     // Ordinary local pop only consumes work covered by the earlier publication
     // and relay. It adds no new publication requiring another fenced wake.
     // No accounting transfer occurs when work changes executor.
-    if (recruit)
-      parking_->wake_one(scheduler_->home_shard(id));
+    if (recruit) parking_->wake_one(scheduler_->home_shard(id));
     execute_task(id, task);
     return true;
   }
@@ -565,9 +573,9 @@ void Pool::worker_loop(uint32_t id) {
     }
     parking_->wait(id, epoch, backoff_us, stop_);
     const auto next = std::max<uint64_t>(
-        cfg_.idle_us_min,
-        uint64_t{backoff_us} * backoff_growth_factor);
-    backoff_us = static_cast<uint32_t>(std::min<uint64_t>(cfg_.idle_us_max, next));
+        cfg_.idle_us_min, uint64_t{backoff_us} * backoff_growth_factor);
+    backoff_us =
+        static_cast<uint32_t>(std::min<uint64_t>(cfg_.idle_us_max, next));
   }
 }
 

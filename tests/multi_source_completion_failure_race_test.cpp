@@ -38,7 +38,7 @@ void verify(const Observation& observation, unsigned failed) {
   auto copy = observation.handle;
   CHECK(adversarial::failure_id(copy) == id);
 }
-}
+}  // namespace
 
 int main() {
   using Credit = dagflow::detail::CompletionCredit;
@@ -49,9 +49,7 @@ int main() {
     std::array<std::vector<Observation>, 2> late;
     std::vector<Observation> early;
 
-    const unsigned failed = round % 4 == 0
-        ? 0
-        : (round % 2 ? 0xa5 : 0xff);
+    const unsigned failed = round % 4 == 0 ? 0 : (round % 2 ? 0xa5 : 0xff);
 
     {
       dagflow::Pool pool(adversarial::config());
@@ -60,8 +58,8 @@ int main() {
 
       for (unsigned i = 0; i < sources; ++i) {
         errors[i] = std::make_exception_ptr(adversarial::Failure{i});
-        credits[i] = Credit::create(
-            std::unique_ptr<Payload>(new Payload{destroyed[i]}));
+        credits[i] =
+            Credit::create(std::unique_ptr<Payload>(new Payload{destroyed[i]}));
         handles[i] = credits[i].handle();
         early.push_back({handles[i], 1u << i});
       }
@@ -69,9 +67,7 @@ int main() {
       std::vector<dagflow::Handle> diamonds;
       for (unsigned i = 0; i < sources; ++i) {
         const unsigned next = (i + 1) % sources;
-        auto joined = pool.combine({
-            handles[i], {}, handles[next], handles[i]
-        });
+        auto joined = pool.combine({handles[i], {}, handles[next], handles[i]});
         early.push_back({joined, (1u << i) | (1u << next)});
         diamonds.push_back(joined);
         diamonds.push_back(joined);
@@ -89,8 +85,8 @@ int main() {
 
           if (failed & (1u << i)) {
             credits[i].fail(errors[i]);
-            credits[i].fail(std::make_exception_ptr(
-                adversarial::Failure{sources + i}));
+            credits[i].fail(
+                std::make_exception_ptr(adversarial::Failure{sources + i}));
           }
           credits[i].finish();
         });
@@ -104,15 +100,10 @@ int main() {
             const unsigned a = (j + registrar + round) % sources;
             const unsigned b = (j / sources + registrar * 3) % sources;
 
-            auto join = pool.combine({
-                handles[a], handles[b], {}, handles[a]
-            });
-            auto diamond = pool.combine({
-                join, handles[b], join
-            });
-            late[registrar].push_back({
-                std::move(diamond), (1u << a) | (1u << b)
-            });
+            auto join = pool.combine({handles[a], handles[b], {}, handles[a]});
+            auto diamond = pool.combine({join, handles[b], join});
+            late[registrar].push_back(
+                {std::move(diamond), (1u << a) | (1u << b)});
           }
         });
       }
@@ -120,21 +111,17 @@ int main() {
       start.arrive_and_wait();
       for (auto& thread : threads) thread.join();
 
-      for (const auto& observation : early)
-        verify(observation, failed);
+      for (const auto& observation : early) verify(observation, failed);
 
-      for (auto& count : destroyed)
-        CHECK(count == 1);
+      for (auto& count : destroyed) CHECK(count == 1);
     }
 
     // Graphs of observers and their exception payloads outlive the scheduler.
     std::thread observer([&] {
-      for (const auto& observation : early)
-        verify(observation, failed);
+      for (const auto& observation : early) verify(observation, failed);
 
       for (auto& list : late) {
-        for (const auto& observation : list)
-          verify(observation, failed);
+        for (const auto& observation : list) verify(observation, failed);
         list.clear();
       }
       early.clear();

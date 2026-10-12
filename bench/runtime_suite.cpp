@@ -22,11 +22,20 @@
 namespace {
 using Clock = std::chrono::steady_clock;
 using Us = std::chrono::duration<double, std::micro>;
-constexpr std::string_view scenarios[] = {
-    "local_saturated", "steal_heavy",  "external_detached", "external_handles",
-    "idle_burst",      "nested_spawn", "scope_recursive",   "fanout_fanin",
-    "deep_dag",        "uneven",       "graph_reuse",       "dag_build_run",
-    "graph_tokens_serial", "graph_tokens_parallel"};
+constexpr std::string_view scenarios[] = {"local_saturated",
+                                          "steal_heavy",
+                                          "external_detached",
+                                          "external_handles",
+                                          "idle_burst",
+                                          "nested_spawn",
+                                          "scope_recursive",
+                                          "fanout_fanin",
+                                          "deep_dag",
+                                          "uneven",
+                                          "graph_reuse",
+                                          "dag_build_run",
+                                          "graph_tokens_serial",
+                                          "graph_tokens_parallel"};
 
 struct Options {
   unsigned shards = 0;
@@ -35,8 +44,7 @@ struct Options {
   std::size_t tasks = 4096;
   std::uint64_t iterations = 0, work_ns = 0, idle_us = 2000;
   bool fixed_iterations = false, latency = false, calibrate = false,
-       fresh_graph = false,
-       list = false;
+       fresh_graph = false, list = false;
   std::string scenario = "all";
 };
 
@@ -109,10 +117,9 @@ Options parse(int argc, char** argv) {
       throw std::invalid_argument("unknown option: " + std::string(key));
   }
   if (!o.workers || !o.tasks || !o.repeats || !o.sample_stride ||
-      !o.central_batch || o.submit_batch > 64 ||
-      o.tasks > UINT32_MAX - 2 || o.iterations > UINT64_MAX / 32 ||
-      o.idle_us > 60'000'000 || o.work_ns > 1'000'000'000 ||
-      o.warmup > UINT32_MAX - o.repeats)
+      !o.central_batch || o.submit_batch > 64 || o.tasks > UINT32_MAX - 2 ||
+      o.iterations > UINT64_MAX / 32 || o.idle_us > 60'000'000 ||
+      o.work_ns > 1'000'000'000 || o.warmup > UINT32_MAX - o.repeats)
     throw std::invalid_argument("invalid size, count, work or idle interval");
   if (o.scenario != "all" &&
       std::find(std::begin(scenarios), std::end(scenarios), o.scenario) ==
@@ -226,8 +233,8 @@ void scope_tree(dagflow::TaskScope::Context& context, Work& w, std::size_t lo,
   }
 }
 #endif
-void pool_tree(suite_backend::Pool& pool, Work& w, std::size_t lo, std::size_t hi,
-               Clock::time_point at) {
+void pool_tree(suite_backend::Pool& pool, Work& w, std::size_t lo,
+               std::size_t hi, Clock::time_point at) {
   w.execute(lo, at);
   const auto mid = lo + 1 + (hi - lo - 1) / 2;
   dagflow::Handle a, b;
@@ -249,7 +256,8 @@ void pool_tree(suite_backend::Pool& pool, Work& w, std::size_t lo, std::size_t h
   suite_backend::rethrow(b);
 }
 
-void build_graph(suite_backend::TaskGraph& graph, Work& w, bool chain, bool fan) {
+void build_graph(suite_backend::TaskGraph& graph, Work& w, bool chain,
+                 bool fan) {
   suite_backend::TaskGraph::NodeId previous{}, root{}, join{};
   if (fan) {
     root = graph.emplace([] {});
@@ -292,8 +300,8 @@ void run_scenario(suite_backend::Pool& pool, const Options& o,
     suite_backend::Pool& pool;
     ~Drain() { pool.wait_idle(); }
   } drain{pool};
-  const bool token_graph = name == "graph_tokens_serial" ||
-                           name == "graph_tokens_parallel";
+  const bool token_graph =
+      name == "graph_tokens_serial" || name == "graph_tokens_parallel";
   const bool graph_case = token_graph || name == "deep_dag" ||
                           name == "fanout_fanin" || name == "graph_reuse" ||
                           name == "dag_build_run";
@@ -307,11 +315,13 @@ void run_scenario(suite_backend::Pool& pool, const Options& o,
       // The public no-argument node API does not expose token indices. This
       // benchmark's relaxed ticket selects a unique verification slot; include
       // its cost in both versions, not in claims about pure graph overhead.
-      auto node = graph->emplace([&] {
-        const auto i = token_index.fetch_add(1, std::memory_order_relaxed);
-        if (i >= o.tasks) std::abort();
-        w.execute(i, w.graph_started);
-      }, opt);
+      auto node = graph->emplace(
+          [&] {
+            const auto i = token_index.fetch_add(1, std::memory_order_relaxed);
+            if (i >= o.tasks) std::abort();
+            w.execute(i, w.graph_started);
+          },
+          opt);
       graph->set_tokens(node, o.tasks);
       if (!graph->seal()) throw std::runtime_error("invalid token graph");
     } else {
@@ -444,7 +454,9 @@ void run_scenario(suite_backend::Pool& pool, const Options& o,
             << "\",\"workers\":" << o.workers
             << ",\"shards\":" << (o.shards ? o.shards : o.workers)
             << ",\"submit_batch\":"
-            << ((name == "external_detached" || name == "idle_burst") ? o.submit_batch : 0)
+            << ((name == "external_detached" || name == "idle_burst")
+                    ? o.submit_batch
+                    : 0)
             << ",\"central_batch\":" << o.central_batch
             << ",\"fresh_graph\":" << (o.fresh_graph ? "true" : "false")
             << ",\"tasks\":" << o.tasks << ",\"repeats\":" << o.repeats
@@ -478,8 +490,8 @@ void run_scenario(suite_backend::Pool& pool, const Options& o,
     std::cout << '{';
     for (std::size_t i = 0; i < diagnostic_totals.size(); ++i) {
       if (i) std::cout << ',';
-      std::cout << '\"' << dagflow::detail::runtime_event_names[i] << "\":"
-                << diagnostic_totals[i];
+      std::cout << '\"' << dagflow::detail::runtime_event_names[i]
+                << "\":" << diagnostic_totals[i];
     }
     std::cout << '}';
   } else {

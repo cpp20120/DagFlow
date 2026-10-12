@@ -2,10 +2,9 @@
 
 #include <atomic>
 #include <cstddef>
+#include <dagflow/config.hpp>
 #include <type_traits>
 #include <utility>
-
-#include <dagflow/config.hpp>
 
 namespace dagflow::detail {
 

@@ -1,12 +1,12 @@
 
 #include <cstdint>
+#include <dagflow/thread_pool.hpp>
 #include <limits>
 #include <list>
 #include <new>
 #include <type_traits>
 #include <vector>
 
-#include <dagflow/thread_pool.hpp>
 #include "support.hpp"
 
 using dagflow::detail::RuntimeAllocator;
@@ -58,13 +58,15 @@ void deallocate_bytes(void* storage, std::size_t alignment) noexcept {
 int main() {
   using Vector = std::vector<AlignedValue, RuntimeAllocator<AlignedValue>>;
   static_assert(std::is_nothrow_move_assignable_v<Vector>);
-  static_assert(std::allocator_traits<RuntimeAllocator<int>>::is_always_equal{});
-  static_assert(std::is_same_v<
-                decltype(dagflow::Config::worker_shards)::allocator_type,
-                RuntimeAllocator<uint32_t>>);
-  static_assert(std::is_same_v<
-                decltype(dagflow::detail::CompletionState::dependents)::allocator_type,
-                RuntimeAllocator<dagflow::detail::CompletionCredit>>);
+  static_assert(
+      std::allocator_traits<RuntimeAllocator<int>>::is_always_equal{});
+  static_assert(
+      std::is_same_v<decltype(dagflow::Config::worker_shards)::allocator_type,
+                     RuntimeAllocator<uint32_t>>);
+  static_assert(
+      std::is_same_v<decltype(dagflow::detail::CompletionState::dependents)::
+                         allocator_type,
+                     RuntimeAllocator<dagflow::detail::CompletionCredit>>);
 
   {
     Vector source(3);
@@ -73,7 +75,8 @@ int main() {
     CHECK(last_alignment == alignof(AlignedValue));
 
     auto* storage = source.data();
-    CHECK(reinterpret_cast<std::uintptr_t>(storage) % alignof(AlignedValue) == 0);
+    CHECK(reinterpret_cast<std::uintptr_t>(storage) % alignof(AlignedValue) ==
+          0);
 
     Vector destination(1);
     const auto before_move = allocations;
@@ -87,8 +90,11 @@ int main() {
 
     fail_allocation = true;
     bool caught = false;
-    try { swapped.reserve(swapped.capacity() + 1); }
-    catch (const std::bad_alloc&) { caught = true; }
+    try {
+      swapped.reserve(swapped.capacity() + 1);
+    } catch (const std::bad_alloc&) {
+      caught = true;
+    }
     fail_allocation = false;
     CHECK(caught && swapped.data() == storage && swapped.size() == 3);
   }
@@ -102,7 +108,8 @@ int main() {
     nodes.emplace_back();
     CHECK(live > before_emplace && last_alignment >= alignof(AlignedValue));
     CHECK(reinterpret_cast<std::uintptr_t>(&nodes.front()) %
-              alignof(AlignedValue) == 0);
+              alignof(AlignedValue) ==
+          0);
   }
   CHECK(live == 0);
 
@@ -110,8 +117,11 @@ int main() {
     std::vector<ThrowsOnCopy, RuntimeAllocator<ThrowsOnCopy>> values(1);
     auto* storage = values.data();
     bool caught = false;
-    try { values.reserve(values.capacity() + 1); }
-    catch (int) { caught = true; }
+    try {
+      values.reserve(values.capacity() + 1);
+    } catch (int) {
+      caught = true;
+    }
     CHECK(caught && values.data() == storage && values.size() == 1);
     CHECK(live == 1 && ThrowsOnCopy::alive == 1);
   }
@@ -137,6 +147,8 @@ int main() {
   try {
     auto* storage = allocator.allocate(std::numeric_limits<std::size_t>::max());
     allocator.deallocate(storage, std::numeric_limits<std::size_t>::max());
-  } catch (const std::bad_array_new_length&) { caught = true; }
+  } catch (const std::bad_array_new_length&) {
+    caught = true;
+  }
   CHECK(caught && allocations == before_overflow && live == 0);
 }

@@ -1,11 +1,11 @@
-#include <dagflow/detail/parking_lot.hpp>
-#include <dagflow/detail/fuzz_points.hpp>
-
 #include <bit>
 #include <chrono>
 #include <cstddef>
+#include <dagflow/detail/fuzz_points.hpp>
+#include <dagflow/detail/parking_lot.hpp>
 
-#if defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64)
+#if defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || \
+    defined(_M_X64)
 #include <immintrin.h>
 #endif
 
@@ -15,7 +15,8 @@ namespace {
 // The active wait does not rescan topology; signalled spinners skip the CV.
 constexpr unsigned epoch_spin_count = 128;
 void spin_pause() noexcept {
-#if defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64)
+#if defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || \
+    defined(_M_X64)
   _mm_pause();
 #elif defined(__aarch64__) && (defined(__GNUC__) || defined(__clang__))
   asm volatile("yield");
@@ -42,28 +43,24 @@ ParkingLot::ParkingLot(const Scheduler& topology)
     auto& domain = domains_[shard_index];
     if (!shard_members.empty()) {
       const auto last_worker_offset = worker_offset + shard_members.size() - 1;
-      domain.first_word =
-          static_cast<uint32_t>(worker_offset / idle_word_bits);
-      domain.word_count = static_cast<uint32_t>(
-          last_worker_offset / idle_word_bits -
-          worker_offset / idle_word_bits + 1);
+      domain.first_word = static_cast<uint32_t>(worker_offset / idle_word_bits);
+      domain.word_count =
+          static_cast<uint32_t>(last_worker_offset / idle_word_bits -
+                                worker_offset / idle_word_bits + 1);
       domain.first_mask = all_idle_bits << (worker_offset % idle_word_bits);
-      domain.last_mask =
-          all_idle_bits >> (idle_word_last_bit -
-                            last_worker_offset % idle_word_bits);
-      if (domain.word_count == 1)
-        domain.first_mask &= domain.last_mask;
+      domain.last_mask = all_idle_bits >> (idle_word_last_bit -
+                                           last_worker_offset % idle_word_bits);
+      if (domain.word_count == 1) domain.first_mask &= domain.last_mask;
     }
     for (auto worker : shard_members) {
       auto& waiter = waiters_[worker];
-      waiter.word_index =
-          static_cast<uint32_t>(worker_offset / idle_word_bits);
+      waiter.word_index = static_cast<uint32_t>(worker_offset / idle_word_bits);
       waiter.bit = uint64_t{1} << (worker_offset % idle_word_bits);
       ++worker_offset;
     }
   }
-  for (std::size_t word_index = 0;
-       word_index < idle_.get_deleter().count; ++word_index)
+  for (std::size_t word_index = 0; word_index < idle_.get_deleter().count;
+       ++word_index)
     idle_[word_index].store(0, std::memory_order_relaxed);
 }
 uint64_t ParkingLot::prepare(uint32_t worker) noexcept {
@@ -97,10 +94,11 @@ void ParkingLot::wait(uint32_t worker, uint64_t epoch, uint32_t timeout_us,
   waiter.sleeping.store(true, std::memory_order_seq_cst);
   runtime_count(RuntimeEvent::park_call);
   try {
-    const bool signalled = waiter.cv.wait_for(lock, std::chrono::microseconds(timeout_us), [&] {
-      return stop.load(std::memory_order_acquire) ||
-             waiter.epoch.load(std::memory_order_seq_cst) != epoch;
-    });
+    const bool signalled =
+        waiter.cv.wait_for(lock, std::chrono::microseconds(timeout_us), [&] {
+          return stop.load(std::memory_order_acquire) ||
+                 waiter.epoch.load(std::memory_order_seq_cst) != epoch;
+        });
     if (!signalled) runtime_count(RuntimeEvent::park_timeout);
   } catch (...) {
     waiter.sleeping.store(false, std::memory_order_seq_cst);
@@ -116,10 +114,9 @@ void ParkingLot::signal(uint32_t worker, bool claimed) {
   // A claimed bit must not be cleared again: the owner may already have
   // registered for a later wait, which needs to remain visible to publishers.
   if (!claimed)
-    claimed =
-        (idle_[waiter.word_index].fetch_and(
-             ~waiter.bit, std::memory_order_seq_cst) &
-         waiter.bit) != 0;
+    claimed = (idle_[waiter.word_index].fetch_and(~waiter.bit,
+                                                  std::memory_order_seq_cst) &
+               waiter.bit) != 0;
   waiter.epoch.fetch_add(1, std::memory_order_seq_cst);
   // DAGFLOW_FUZZ_POINT(wake_claim);
   if (!claimed) return;
@@ -138,8 +135,7 @@ bool ParkingLot::wake_word(uint32_t word_index, uint64_t mask) {
   auto bits = idle_word.load(std::memory_order_relaxed);
   while (const auto eligible = bits & mask) {
     const auto bit = std::countr_zero(eligible);
-    if (idle_word.compare_exchange_weak(bits,
-                                        bits & ~(uint64_t{1} << bit),
+    if (idle_word.compare_exchange_weak(bits, bits & ~(uint64_t{1} << bit),
                                         std::memory_order_seq_cst)) {
       signal(members_[std::size_t{word_index} * idle_word_bits + bit], true);
       return true;
@@ -149,12 +145,10 @@ bool ParkingLot::wake_word(uint32_t word_index, uint64_t mask) {
 }
 bool ParkingLot::wake_domain(uint32_t shard) {
   const auto& domain = domains_[shard];
-  for (uint32_t domain_word_index = 0;
-       domain_word_index < domain.word_count;
+  for (uint32_t domain_word_index = 0; domain_word_index < domain.word_count;
        ++domain_word_index) {
     auto mask = domain_word_index == 0 ? domain.first_mask : all_idle_bits;
-    if (domain_word_index + 1 == domain.word_count)
-      mask &= domain.last_mask;
+    if (domain_word_index + 1 == domain.word_count) mask &= domain.last_mask;
     if (wake_word(domain.first_word + domain_word_index, mask)) return true;
   }
   return false;
@@ -171,7 +165,7 @@ void ParkingLot::wake_one(uint32_t shard) {
       const auto preferred = bits & domains_[shard].first_mask;
       const auto bit = std::countr_zero(preferred ? preferred : bits);
       if (idle_[0].compare_exchange_weak(bits, bits & ~(uint64_t{1} << bit),
-                                       std::memory_order_seq_cst)) {
+                                         std::memory_order_seq_cst)) {
         signal(members_[bit], true);
         return;
       }
@@ -181,8 +175,8 @@ void ParkingLot::wake_one(uint32_t shard) {
   if (wake_domain(shard)) return;
   // Empty or busy domains can recruit a remote worker. Scan compact words,
   // not domains: domain count may exceed worker count by an arbitrary factor.
-  for (std::size_t word_index = 0;
-       word_index < idle_.get_deleter().count; ++word_index)
+  for (std::size_t word_index = 0; word_index < idle_.get_deleter().count;
+       ++word_index)
     if (wake_word(static_cast<uint32_t>(word_index), all_idle_bits)) return;
 }
 void ParkingLot::wake_all() {

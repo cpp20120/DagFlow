@@ -1,8 +1,8 @@
 #include <atomic>
+#include <dagflow/graph_scope.hpp>
 #include <memory>
 #include <vector>
 
-#include <dagflow/graph_scope.hpp>
 #include "adversarial_support.hpp"
 
 namespace {
@@ -15,13 +15,14 @@ void graph_during_unwind(bool inner_failure) {
   };
   auto parent = pool.submit([&] {
     dagflow::GraphScope graph(pool);
-    auto root = graph.emplace([&, capture = std::unique_ptr<Capture>(new Capture{destroyed})] {
-      CHECK(roots.fetch_add(1) == 0);
-      auto child = pool.submit([&] { CHECK(nested.fetch_add(1) == 0); });
-      pool.wait(child);
-      child.rethrow_if_failed();
-      if (inner_failure) throw adversarial::Failure{2};
-    });
+    auto root = graph.emplace(
+        [&, capture = std::unique_ptr<Capture>(new Capture{destroyed})] {
+          CHECK(roots.fetch_add(1) == 0);
+          auto child = pool.submit([&] { CHECK(nested.fetch_add(1) == 0); });
+          pool.wait(child);
+          child.rethrow_if_failed();
+          if (inner_failure) throw adversarial::Failure{2};
+        });
     graph.then(root, [&] { CHECK(successors.fetch_add(1) == 0); });
     // The destructor must run the unstarted graph during stack unwinding,
     // help on this sole worker, and preserve the outer exception.
@@ -36,12 +37,18 @@ void graph_during_unwind(bool inner_failure) {
 struct CopyProbe {
   int& budget;
   std::atomic<int>& alive;
-  CopyProbe(int& budget, std::atomic<int>& alive) : budget(budget), alive(alive) { ++alive; }
+  CopyProbe(int& budget, std::atomic<int>& alive)
+      : budget(budget), alive(alive) {
+    ++alive;
+  }
   CopyProbe(const CopyProbe& other) : budget(other.budget), alive(other.alive) {
     if (budget-- == 0) throw adversarial::Failure{3};
     ++alive;
   }
-  CopyProbe(CopyProbe&& other) noexcept : budget(other.budget), alive(other.alive) { ++alive; }
+  CopyProbe(CopyProbe&& other) noexcept
+      : budget(other.budget), alive(other.alive) {
+    ++alive;
+  }
   ~CopyProbe() { --alive; }
   void operator()(unsigned& value) { ++value; }
 };
@@ -60,8 +67,9 @@ void throwing_chunk_copy() {
       dagflow::GraphScope graph(pool);
       graph.emplace([&] { ++roots; });
       bool threw = false;
-      try { graph.parallel_for(values, probe); }
-      catch (const adversarial::Failure& failure) {
+      try {
+        graph.parallel_for(values, probe);
+      } catch (const adversarial::Failure& failure) {
         CHECK(failure.id == 3);
         threw = true;
       }
@@ -77,7 +85,7 @@ void throwing_chunk_copy() {
     CHECK(alive == 0);
   }
 }
-}
+}  // namespace
 
 int main() {
   graph_during_unwind(false);

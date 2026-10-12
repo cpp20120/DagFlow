@@ -13,4 +13,4 @@ struct Fault {
 };
 inline thread_local Fault fault;
 inline std::atomic<std::size_t> live{0};
-}
+}  // namespace adversarial::allocation

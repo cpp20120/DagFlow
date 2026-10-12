@@ -1,9 +1,9 @@
 #include <cstdint>
+#include <dagflow/detail/small_vector.hpp>
 #include <new>
 #include <stdexcept>
 #include <utility>
 
-#include <dagflow/detail/small_vector.hpp>
 #include "support.hpp"
 
 namespace {

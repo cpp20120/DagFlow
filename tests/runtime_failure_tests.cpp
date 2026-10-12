@@ -1,9 +1,9 @@
 #include <atomic>
 #include <cstdlib>
+#include <dagflow/dagflow.hpp>
 #include <limits>
 #include <new>
 
-#include <dagflow/dagflow.hpp>
 #include "support.hpp"
 
 // Inject a single allocation failure only on the submitting thread. Subsequent
@@ -43,17 +43,26 @@ void* operator new(std::size_t size, std::align_val_t alignment) {
     throw std::bad_alloc();
   }
   void* memory = nullptr;
-  if (posix_memalign(&memory, static_cast<std::size_t>(alignment), size ? size : 1))
+  if (posix_memalign(&memory, static_cast<std::size_t>(alignment),
+                     size ? size : 1))
     throw std::bad_alloc();
   return memory;
 }
 void* operator new[](std::size_t size, std::align_val_t alignment) {
   return ::operator new(size, alignment);
 }
-void operator delete(void* memory, std::align_val_t) noexcept { std::free(memory); }
-void operator delete[](void* memory, std::align_val_t) noexcept { std::free(memory); }
-void operator delete(void* memory, std::size_t, std::align_val_t) noexcept { std::free(memory); }
-void operator delete[](void* memory, std::size_t, std::align_val_t) noexcept { std::free(memory); }
+void operator delete(void* memory, std::align_val_t) noexcept {
+  std::free(memory);
+}
+void operator delete[](void* memory, std::align_val_t) noexcept {
+  std::free(memory);
+}
+void operator delete(void* memory, std::size_t, std::align_val_t) noexcept {
+  std::free(memory);
+}
+void operator delete[](void* memory, std::size_t, std::align_val_t) noexcept {
+  std::free(memory);
+}
 
 void graph_seal_failures(dagflow::Pool& pool) {
   int failures = 0;
@@ -158,8 +167,11 @@ void graph_continuation_failure(dagflow::Pool& pool) {
     // allocated on the external thread, where no failure is armed.
     pool.wait(pool.submit([] { allocation_budget = -1; }));
     bool failed = false;
-    try { result.rethrow_if_failed(); }
-    catch (const std::bad_alloc&) { failed = true; }
+    try {
+      result.rethrow_if_failed();
+    } catch (const std::bad_alloc&) {
+      failed = true;
+    }
     CHECK(failed == (tokens == 65));
   }
 }
@@ -181,14 +193,20 @@ void scope_publication_failures(dagflow::Pool& pool) {
     auto result = scope.completion();
     allocation_budget = fail_at;
     bool failed = false;
-    try { scope.spawn(Body{std::move(payload)}); }
-    catch (const std::bad_alloc&) { failed = true; }
+    try {
+      scope.spawn(Body{std::move(payload)});
+    } catch (const std::bad_alloc&) {
+      failed = true;
+    }
     allocation_budget = -1;
     CHECK(failed && scope.cancelled() && weak.expired());
     CHECK(result.ready() && scope.last_error());
     failed = false;
-    try { scope.join(); }
-    catch (const std::bad_alloc&) { failed = true; }
+    try {
+      scope.join();
+    } catch (const std::bad_alloc&) {
+      failed = true;
+    }
     CHECK(failed);
   }
   {
@@ -204,16 +222,22 @@ void scope_publication_failures(dagflow::Pool& pool) {
     std::atomic<bool> caught{false};
     CHECK(scope.spawn([&](dagflow::TaskScope::Context& ctx) {
       allocation_budget = 0;  // Injection on the worker, not the owner thread.
-      try { ctx.spawn([] {}); }
-      catch (const std::bad_alloc&) { caught = true; }
+      try {
+        ctx.spawn([] {});
+      } catch (const std::bad_alloc&) {
+        caught = true;
+      }
       allocation_budget = -1;
       CHECK(ctx.cancelled() && !ctx.spawn([] {}));
     }));
     scope.wait();
     CHECK(caught && scope.cancelled() && scope.last_error());
     bool failed = false;
-    try { scope.join(); }
-    catch (const std::bad_alloc&) { failed = true; }
+    try {
+      scope.join();
+    } catch (const std::bad_alloc&) {
+      failed = true;
+    }
     CHECK(failed);  // Catching spawn failure in a child doesn't erase it.
   }
 }
@@ -234,7 +258,8 @@ void pool_construction_failures(unsigned workers) {
     track_allocations = false;
   }
   CHECK(allocation_count > 0 &&
-        allocation_count < static_cast<std::size_t>(std::numeric_limits<int>::max()));
+        allocation_count <
+            static_cast<std::size_t>(std::numeric_limits<int>::max()));
   const auto construction_allocations = static_cast<int>(allocation_count);
   for (int at = 0; at <= construction_allocations; ++at) {
     allocation_budget = at;
@@ -245,7 +270,9 @@ void pool_construction_failures(unsigned workers) {
       pool.wait(handle);
       handle.rethrow_if_failed();
       ++successes;
-    } catch (const std::bad_alloc&) { ++failures; }
+    } catch (const std::bad_alloc&) {
+      ++failures;
+    }
     allocation_budget = -1;
   }
   CHECK(failures > 0 && successes > 0);
@@ -259,15 +286,23 @@ void batch_publication_failures(dagflow::Pool& pool) {
     std::atomic<unsigned> calls{0};
     auto payload = std::make_shared<int>(42);
     std::weak_ptr<int> weak = payload;
-    auto make = [&] { return [&, payload] { CHECK(*payload == 42); ++calls; }; };
+    auto make = [&] {
+      return [&, payload] {
+        CHECK(*payload == 42);
+        ++calls;
+      };
+    };
     std::vector<decltype(make())> jobs;
     jobs.reserve(137);
     for (int i = 0; i < 137; ++i) jobs.push_back(make());
     payload.reset();
     allocation_budget = fail_at;
     bool failed = false;
-    try { pool.submit_batch_detached(std::span{jobs}); }
-    catch (const std::bad_alloc&) { failed = true; }
+    try {
+      pool.submit_batch_detached(std::span{jobs});
+    } catch (const std::bad_alloc&) {
+      failed = true;
+    }
     allocation_budget = -1;
     CHECK(failed == (fail_at < 137));
     jobs.clear();  // Also release the inputs not consumed before failure.

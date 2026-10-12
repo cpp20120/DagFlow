@@ -3,6 +3,11 @@
 #include <barrier>
 #include <chrono>
 #include <cstring>
+#include <dagflow/dagflow.hpp>
+#include <dagflow/detail/idle_accounting.hpp>
+#include <dagflow/detail/parking_lot.hpp>
+#include <dagflow/detail/small_function.hpp>
+#include <dagflow/detail/small_vector.hpp>
 #include <iostream>
 #include <latch>
 #include <memory>
@@ -10,11 +15,6 @@
 #include <thread>
 #include <vector>
 
-#include <dagflow/dagflow.hpp>
-#include <dagflow/detail/idle_accounting.hpp>
-#include <dagflow/detail/parking_lot.hpp>
-#include <dagflow/detail/small_function.hpp>
-#include <dagflow/detail/small_vector.hpp>
 #include "support.hpp"
 
 namespace {

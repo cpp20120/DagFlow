@@ -1,7 +1,6 @@
-#include <dagflow/detail/scheduler.hpp>
-#include <dagflow/detail/fuzz_points.hpp>
-
 #include <algorithm>
+#include <dagflow/detail/fuzz_points.hpp>
+#include <dagflow/detail/scheduler.hpp>
 #include <exception>
 #include <stdexcept>
 
@@ -43,8 +42,7 @@ Scheduler::Scheduler(uint32_t workers, uint32_t shards, uint32_t central_batch,
             : worker_shards[id];
     local.next_external_shard = local.home_shard;
     local.random_state =
-        worker_random_seed ^
-        (worker_random_stream_stride * (uint64_t{id} + 1));
+        worker_random_seed ^ (worker_random_stream_stride * (uint64_t{id} + 1));
     ++shards_[local.home_shard].member_count;
   }
   uint32_t member_offset = 0;
@@ -85,8 +83,11 @@ uint32_t Scheduler::select_shard(std::optional<uint32_t> affinity) {
 }
 bool Scheduler::try_submit_external(uint32_t shard, ScheduledTask* task) {
   auto& queues = shards_[shard];
-  const bool accepted = (task->prio == Priority::High ? queues.high : queues.normal).try_push(task);
-  runtime_count(accepted ? RuntimeEvent::ingress_push : RuntimeEvent::ingress_full);
+  const bool accepted =
+      (task->prio == Priority::High ? queues.high : queues.normal)
+          .try_push(task);
+  runtime_count(accepted ? RuntimeEvent::ingress_push
+                         : RuntimeEvent::ingress_full);
   // if (accepted) DAGFLOW_FUZZ_POINT(external_publish);
   return accepted;
 }
@@ -94,17 +95,20 @@ bool Scheduler::try_submit_external(uint32_t shard, ScheduledTask* task) {
 void Scheduler::OverflowQueue::push(ScheduledTask* task) noexcept {
   // Ownership transfers under the mutex; no new storage is needed after task
   // accounting has committed. A vector/list allocation here could strand an
-  // accepted task on bad_alloc. Running it inline instead grows the submit stack.
+  // accepted task on bad_alloc. Running it inline instead grows the submit
+  // stack.
   std::lock_guard lock(mutex);
   task->overflow_next = nullptr;
-  if (tail) tail->overflow_next = task;
-  else head = task;
+  if (tail)
+    tail->overflow_next = task;
+  else
+    head = task;
   tail = task;
   nonempty.store(true, std::memory_order_release);
 }
 
 ScheduledTask* Scheduler::OverflowQueue::pop(LocalQueue* destination,
-                                            uint32_t batch_limit) noexcept {
+                                             uint32_t batch_limit) noexcept {
   // Empty shards pay only a probe, not a lock. The ordinary publish/wake and
   // prepare/final-scan/park handshake covers a concurrent empty -> nonempty.
   if (!nonempty.load(std::memory_order_acquire)) return nullptr;
@@ -115,11 +119,13 @@ ScheduledTask* Scheduler::OverflowQueue::pop(LocalQueue* destination,
   task->overflow_next = nullptr;
   // One lock can detach a bounded batch. Publish all siblings before returning
   // its first task: hiding them in an executor-private list would deadlock a
-  // nested wait for one of those siblings. After try_push a thief may immediately
-  // destroy the packet, so read/unlink everything before handing it over.
-  const auto limit = destination
-      ? std::min<std::size_t>(batch_limit, destination->free_capacity() + 1)
-      : 1;
+  // nested wait for one of those siblings. After try_push a thief may
+  // immediately destroy the packet, so read/unlink everything before handing it
+  // over.
+  const auto limit =
+      destination
+          ? std::min<std::size_t>(batch_limit, destination->free_capacity() + 1)
+          : 1;
   std::size_t taken = 1;
   while (head && taken < limit) {
     auto* next = head;
@@ -144,19 +150,20 @@ void Scheduler::submit_overflow(uint32_t shard, ScheduledTask* task) noexcept {
 }
 
 ScheduledTask* Scheduler::pop_shared(uint32_t id, uint32_t shard,
-                                    Priority priority, bool batch,
-                                    bool& prefer_overflow) {
+                                     Priority priority, bool batch,
+                                     bool& prefer_overflow) {
   auto& local = locals_[id];
   auto& queues = shards_[shard];
   auto& overflow = priority == Priority::High ? queues.overflow_high
-                                             : queues.overflow_normal;
+                                              : queues.overflow_normal;
   auto& central = priority == Priority::High ? queues.high : queues.normal;
   auto& destination = priority == Priority::High ? local.high : local.normal;
   // Alternate sources when both stay busy. Always preferring ingress would
-  // strand overflow children under sustained external traffic; always preferring
-  // overflow would undo the periodic ingress starvation budget.
+  // strand overflow children under sustained external traffic; always
+  // preferring overflow would undo the periodic ingress starvation budget.
   const auto take_overflow = [&]() -> ScheduledTask* {
-    if (auto* task = overflow.pop(batch ? &destination : nullptr, central_batch_)) {
+    if (auto* task =
+            overflow.pop(batch ? &destination : nullptr, central_batch_)) {
       prefer_overflow = false;
       return task;
     }
@@ -168,12 +175,14 @@ ScheduledTask* Scheduler::pop_shared(uint32_t id, uint32_t shard,
   if (central.try_pop(task)) {
     prefer_overflow = true;
     runtime_count(RuntimeEvent::drain_tasks);
-    if (shard != local.home_shard) runtime_count(RuntimeEvent::remote_drain_tasks);
+    if (shard != local.home_shard)
+      runtime_count(RuntimeEvent::remote_drain_tasks);
     if (batch) {
-      const auto limit =
-          std::min<std::size_t>(central_batch_, destination.free_capacity() + 1);
+      const auto limit = std::min<std::size_t>(central_batch_,
+                                               destination.free_capacity() + 1);
       ScheduledTask* next = nullptr;
-      for (std::size_t taken = 1; taken < limit && central.try_pop(next); ++taken) {
+      for (std::size_t taken = 1; taken < limit && central.try_pop(next);
+           ++taken) {
         runtime_count(RuntimeEvent::drain_tasks);
         if (shard != local.home_shard)
           runtime_count(RuntimeEvent::remote_drain_tasks);
@@ -204,15 +213,15 @@ ScheduledTask* Scheduler::steal(uint32_t id, uint32_t shard) {
       if (victim == id) continue;
       auto& queue = priority == Priority::High ? locals_[victim].high
                                                : locals_[victim].normal;
-      constexpr auto batch_size = std::min<std::size_t>(
-          steal_batch_limit, LocalQueue::capacity() + 1);
+      constexpr auto batch_size =
+          std::min<std::size_t>(steal_batch_limit, LocalQueue::capacity() + 1);
       ScheduledTask* tasks[batch_size];
       uint32_t taken = 0;
       while (taken < batch_size && queue.try_steal(tasks[taken])) ++taken;
       if (!taken) continue;
       for (uint32_t i = 1; i < taken; ++i)
         if (!destination.try_push(tasks[i])) std::terminate();
-          return tasks[0];
+      return tasks[0];
     }
   }
   return nullptr;

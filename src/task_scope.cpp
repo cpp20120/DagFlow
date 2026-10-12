@@ -1,5 +1,4 @@
 #include <dagflow/task_scope.hpp>
-
 #include <mutex>
 #include <stdexcept>
 
@@ -7,7 +6,8 @@ namespace dagflow {
 
 struct TaskScope::State {
   explicit State(Pool& owner)
-      : owner(owner), root(detail::CompletionCredit::create()),
+      : owner(owner),
+        root(detail::CompletionCredit::create()),
         completion(root.handle()) {}
 
   Pool& owner;
@@ -26,7 +26,9 @@ struct TaskScope::State {
 thread_local TaskScope::ActiveFrame* TaskScope::ActiveFrame::current = nullptr;
 
 TaskScope::ActiveFrame::ActiveFrame(State& state) noexcept
-    : state(&state), previous(current) { current = this; }
+    : state(&state), previous(current) {
+  current = this;
+}
 TaskScope::ActiveFrame::~ActiveFrame() { current = previous; }
 
 bool TaskScope::active_here(const State& state) noexcept {
@@ -60,11 +62,12 @@ detail::CompletionCredit TaskScope::reserve(
     if ((admission & State::publisher_mask) == State::publisher_mask)
       throw std::overflow_error("TaskScope: too many concurrent publishers");
     if (state.admission.compare_exchange_weak(admission, admission + 1,
-                                             std::memory_order_acquire,
-                                             std::memory_order_acquire))
+                                              std::memory_order_acquire,
+                                              std::memory_order_acquire))
       break;
   }
-  auto publication = state.root.fork();  // noexcept; reservation still owns root access.
+  auto publication =
+      state.root.fork();  // noexcept; reservation still owns root access.
   const auto previous = state.admission.fetch_sub(1, std::memory_order_acq_rel);
   if ((previous & State::closed_bit) && (previous & State::publisher_mask) == 1)
     state.root.finish();
@@ -73,7 +76,8 @@ detail::CompletionCredit TaskScope::reserve(
 
 void TaskScope::close_admission(State& state, bool cancel) noexcept {
   const auto flags = State::closed_bit | (cancel ? State::cancelled_bit : 0);
-  const auto previous = state.admission.fetch_or(flags, std::memory_order_acq_rel);
+  const auto previous =
+      state.admission.fetch_or(flags, std::memory_order_acq_rel);
   if (!(previous & State::closed_bit) && !(previous & State::publisher_mask))
     state.root.finish();
   // With active reservations, their last release retires root. close never
@@ -102,7 +106,8 @@ void TaskScope::record_error(State& state,
 }
 
 bool TaskScope::is_cancelled(const State& state) noexcept {
-  return (state.admission.load(std::memory_order_acquire) & State::cancelled_bit) != 0;
+  return (state.admission.load(std::memory_order_acquire) &
+          State::cancelled_bit) != 0;
 }
 Pool& TaskScope::pool(State& state) noexcept { return state.owner; }
 
@@ -129,7 +134,9 @@ std::exception_ptr TaskScope::last_error() const noexcept {
 }
 Handle TaskScope::completion() const noexcept { return state_->completion; }
 
-bool TaskScope::Context::cancelled() const noexcept { return is_cancelled(*state_); }
+bool TaskScope::Context::cancelled() const noexcept {
+  return is_cancelled(*state_);
+}
 void TaskScope::Context::cancel() noexcept { request_cancel(*state_); }
 
 }  // namespace dagflow

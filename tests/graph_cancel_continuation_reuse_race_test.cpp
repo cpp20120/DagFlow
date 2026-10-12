@@ -1,11 +1,11 @@
 
 #include <atomic>
 #include <barrier>
+#include <dagflow/task_graph.hpp>
 #include <latch>
 #include <thread>
 #include <vector>
 
-#include <dagflow/task_graph.hpp>
 #include "adversarial_support.hpp"
 
 int main() {
@@ -33,7 +33,7 @@ int main() {
         }
       });
 
-      graph.set_tokens(driver, tokens); // One lane: boundaries 64/128 yield.
+      graph.set_tokens(driver, tokens);  // One lane: boundaries 64/128 yield.
 
       auto failure = graph.emplace([&] {
         ++failures;
@@ -53,7 +53,7 @@ int main() {
       graph.add_edge(failure, successor);
 
       std::thread canceller([&] {
-        published.wait(); // Do not read run_state_ concurrently with run().
+        published.wait();  // Do not read run_state_ concurrently with run().
         boundary_reached.wait();
         race.arrive_and_wait();
         graph.cancel();
@@ -65,8 +65,8 @@ int main() {
       canceller.join();
 
       CHECK(adversarial::failure_id(failed) == generation);
-      CHECK(calls >= boundary &&
-            calls <= tokens && failures == 1 && successors == 0);
+      CHECK(calls >= boundary && calls <= tokens && failures == 1 &&
+            successors == 0);
 
       const auto error_id = adversarial::failure_id(failed);
       history.push_back(failed);
@@ -81,8 +81,8 @@ int main() {
       pool.wait(clean);
       clean.rethrow_if_failed();
 
-      CHECK(calls == tokens &&
-            failures == 1 && successors == 1 && !graph.last_error());
+      CHECK(calls == tokens && failures == 1 && successors == 1 &&
+            !graph.last_error());
       CHECK(adversarial::failure_id(failed) == error_id);
     }
   }

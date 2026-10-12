@@ -11,19 +11,21 @@ struct Resource {
   dagflow::Pool& destination;
   dagflow::Handle sibling;
   std::atomic<bool>& source_destroyed;
-  std::atomic<unsigned> &destroyed, &called;
+  std::atomic<unsigned>&destroyed, &called;
   std::thread::id& releaser;
   ~Resource() {
     CHECK(source_destroyed && std::this_thread::get_id() == releaser);
-    sibling = {}; // Nested completion-storage release from an exception owner.
+    sibling = {};  // Nested completion-storage release from an exception owner.
     auto task = destination.submit([this] { CHECK(called.fetch_add(1) == 0); });
     destination.wait(task);
     task.rethrow_if_failed();
     CHECK(destroyed.fetch_add(1) == 0);
   }
 };
-struct Failure { std::shared_ptr<Resource> resource; };
-}
+struct Failure {
+  std::shared_ptr<Resource> resource;
+};
+}  // namespace
 
 int main() {
   dagflow::Pool destination(adversarial::config());
@@ -45,7 +47,8 @@ int main() {
       resource.reset();
       auto fan_in = source.combine({failed, sibling, failed});
       source.wait(fan_in);
-      for (auto& observer : observers) observer = source.combine({failed, fan_in, fan_in});
+      for (auto& observer : observers)
+        observer = source.combine({failed, fan_in, fan_in});
     }
     source_destroyed = true;
     CHECK(destroyed == 0 && !weak.expired());
@@ -53,8 +56,9 @@ int main() {
     const auto verify = [](const dagflow::Handle& observer) {
       CHECK(observer.ready());
       bool caught = false;
-      try { observer.rethrow_if_failed(); }
-      catch (const Failure& failure) {
+      try {
+        observer.rethrow_if_failed();
+      } catch (const Failure& failure) {
         CHECK(failure.resource && failure.resource->source_destroyed);
         caught = true;
       }
@@ -62,11 +66,12 @@ int main() {
     };
     std::array<std::thread, observers.size() - 1> threads;
     for (unsigned i = 0; i < threads.size(); ++i) {
-      threads[i] = std::thread([&, observer = std::move(observers[i + 1])]() mutable {
-        start.arrive_and_wait();
-        verify(observer);
-        observer = {};
-      });
+      threads[i] =
+          std::thread([&, observer = std::move(observers[i + 1])]() mutable {
+            start.arrive_and_wait();
+            verify(observer);
+            observer = {};
+          });
     }
     std::thread last([&, observer = std::move(observers[0])]() mutable {
       start.arrive_and_wait();

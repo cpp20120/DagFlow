@@ -37,11 +37,10 @@ struct Options {
 };
 
 [[noreturn]] void usage(const char* argv0) {
-  std::cerr
-      << "usage: " << argv0
-      << " --benchmark chain|independent|parallel-for|workflow|noop"
-         " [--workers N] [--runs N] [--warmup N]"
-         " [--payload-rounds N] [--seed N]\n";
+  std::cerr << "usage: " << argv0
+            << " --benchmark chain|independent|parallel-for|workflow|noop"
+               " [--workers N] [--runs N] [--warmup N]"
+               " [--payload-rounds N] [--seed N]\n";
   std::exit(2);
 }
 
@@ -159,9 +158,10 @@ Result chain(const Options& options) {
         nodes.push_back(std::make_unique<Node>(
             graph, [&](flow::continue_msg) { values[0] = 1.0; }));
         for (std::size_t i = 1; i < tasks; ++i) {
-          nodes.push_back(std::make_unique<Node>(graph, [&, i](flow::continue_msg) {
-            values[i] = values[i - 1] + std::sqrt(static_cast<double>(i));
-          }));
+          nodes.push_back(
+              std::make_unique<Node>(graph, [&, i](flow::continue_msg) {
+                values[i] = values[i - 1] + std::sqrt(static_cast<double>(i));
+              }));
         }
         flow::make_edge(start, *nodes[0]);
         for (std::size_t i = 1; i < tasks; ++i)
@@ -195,7 +195,8 @@ Result independent(const Options& options) {
         const double sum = std::accumulate(values.begin(), values.end(), 0.0);
         if (!std::isfinite(sum) || sum == 0.0)
           throw std::runtime_error("independent validation failed");
-        return static_cast<std::uint64_t>(std::llround(std::abs(sum) * 1'000'000.0));
+        return static_cast<std::uint64_t>(
+            std::llround(std::abs(sum) * 1'000'000.0));
       });
 }
 
@@ -214,12 +215,12 @@ Result parallel_for(const Options& options) {
       [&] {
         const auto seed = run_seed;
         const auto rounds = options.payload_rounds;
-        tbb::parallel_for(
-            tbb::blocked_range<std::size_t>(0, elements),
-            [&](const tbb::blocked_range<std::size_t>& range) {
-              for (std::size_t i = range.begin(); i != range.end(); ++i)
-                data[i] = mix_payload(data[i], seed, rounds);
-            });
+        tbb::parallel_for(tbb::blocked_range<std::size_t>(0, elements),
+                          [&](const tbb::blocked_range<std::size_t>& range) {
+                            for (std::size_t i = range.begin();
+                                 i != range.end(); ++i)
+                              data[i] = mix_payload(data[i], seed, rounds);
+                          });
       },
       [&] -> std::uint64_t {
         std::uint64_t checksum = 0xcbf29ce484222325ULL;
@@ -227,7 +228,8 @@ Result parallel_for(const Options& options) {
           checksum ^= value;
           checksum *= 0x100000001b3ULL;
         }
-        if (checksum == 0) throw std::runtime_error("parallel_for validation failed");
+        if (checksum == 0)
+          throw std::runtime_error("parallel_for validation failed");
         return checksum;
       });
 }
@@ -257,21 +259,24 @@ Result workflow(const Options& options) {
         for (std::size_t d = 0; d < depth; ++d) {
           for (std::size_t i = 0; i < width; ++i) {
             if (d == 0) {
-              nodes.push_back(std::make_unique<Node>(graph, [&, i](flow::continue_msg) {
-                matrix[0][i] = std::sin(static_cast<double>(i));
-              }));
+              nodes.push_back(
+                  std::make_unique<Node>(graph, [&, i](flow::continue_msg) {
+                    matrix[0][i] = std::sin(static_cast<double>(i));
+                  }));
             } else {
-              nodes.push_back(std::make_unique<Node>(graph, [&, d, i](flow::continue_msg) {
-                double sum = 0.0;
-                for (double x : matrix[d - 1]) sum += x;
-                matrix[d][i] = sum / static_cast<double>(width) +
-                               static_cast<double>(d * i);
-              }));
+              nodes.push_back(
+                  std::make_unique<Node>(graph, [&, d, i](flow::continue_msg) {
+                    double sum = 0.0;
+                    for (double x : matrix[d - 1]) sum += x;
+                    matrix[d][i] = sum / static_cast<double>(width) +
+                                   static_cast<double>(d * i);
+                  }));
             }
           }
         }
 
-        for (std::size_t i = 0; i < width; ++i) flow::make_edge(start, at(0, i));
+        for (std::size_t i = 0; i < width; ++i)
+          flow::make_edge(start, at(0, i));
         for (std::size_t d = 1; d < depth; ++d)
           for (std::size_t p = 0; p < width; ++p)
             for (std::size_t i = 0; i < width; ++i)
@@ -286,7 +291,8 @@ Result workflow(const Options& options) {
           for (double x : row) sum += x;
         if (!std::isfinite(sum) || sum == 0.0)
           throw std::runtime_error("workflow validation failed");
-        return static_cast<std::uint64_t>(std::llround(std::abs(sum) * 1'000'000.0));
+        return static_cast<std::uint64_t>(
+            std::llround(std::abs(sum) * 1'000'000.0));
       });
 }
 
@@ -295,8 +301,7 @@ Result noop(const Options& options) {
   tbb::task_group group;
 
   return measure(
-      "noop", "Noop tasks (1,000,000)", "task", tasks, options,
-      [] {},
+      "noop", "Noop tasks (1,000,000)", "task", tasks, options, [] {},
       [&] {
         for (std::size_t i = 0; i < tasks; ++i) group.run([] {});
         group.wait();
@@ -313,7 +318,8 @@ Result dispatch(const Options& options) {
   usage("tbb-public-api-bench");
 }
 
-void print_json(const Result& result, const Options& options, int arena_concurrency) {
+void print_json(const Result& result, const Options& options,
+                int arena_concurrency) {
   const double mean =
       std::accumulate(result.samples_s.begin(), result.samples_s.end(), 0.0) /
       static_cast<double>(result.samples_s.size());
@@ -329,20 +335,15 @@ void print_json(const Result& result, const Options& options, int arena_concurre
             << ",\"logical_units\":" << result.logical_units
             << ",\"workers\":" << options.workers
             << ",\"arena_concurrency\":" << arena_concurrency
-            << ",\"runs\":" << options.runs
-            << ",\"warmup\":" << options.warmup
+            << ",\"runs\":" << options.runs << ",\"warmup\":" << options.warmup
             << ",\"payload_rounds\":" << options.payload_rounds
-            << ",\"seed\":" << options.seed
-            << ",\"mean_s\":" << mean
-            << ",\"median_s\":" << median
-            << ",\"min_s\":" << *min_it
-            << ",\"max_s\":" << *max_it
-            << ",\"throughput_per_s\":"
+            << ",\"seed\":" << options.seed << ",\"mean_s\":" << mean
+            << ",\"median_s\":" << median << ",\"min_s\":" << *min_it
+            << ",\"max_s\":" << *max_it << ",\"throughput_per_s\":"
             << static_cast<double>(result.logical_units) / mean
             << ",\"mean_ns_per_unit\":"
             << mean * 1e9 / static_cast<double>(result.logical_units)
-            << ",\"checksum\":" << result.checksum
-            << ",\"samples_s\":[";
+            << ",\"checksum\":" << result.checksum << ",\"samples_s\":[";
   for (std::size_t i = 0; i < result.samples_s.size(); ++i) {
     if (i) std::cout << ',';
     std::cout << result.samples_s[i];

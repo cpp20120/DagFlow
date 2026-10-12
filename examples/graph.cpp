@@ -1,6 +1,5 @@
-#include <iostream>
-
 #include <dagflow/dagflow.hpp>
+#include <iostream>
 
 int main() {
   dagflow::Pool pool({.threads = 2, .pin_threads = false});
@@ -9,7 +8,8 @@ int main() {
   auto a = graph.emplace([&] { left = input * 2; });
   auto b = graph.emplace([&] { right = input + 1; });
   auto merged = graph.when_all({a, b}, [&] { total = left + right; });
-  graph.then(merged, [&] { std::cout << "GraphScope result: " << total << '\n'; });
+  graph.then(merged,
+             [&] { std::cout << "GraphScope result: " << total << '\n'; });
   graph.run_and_wait();
   if (total != 10) return 1;
   input = 5;  // Mutate inputs only after completion; reuse topology/callables.

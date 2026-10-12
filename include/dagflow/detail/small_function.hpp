@@ -1,13 +1,12 @@
 #pragma once
 
 #include <cstddef>
+#include <dagflow/config.hpp>
+#include <dagflow/detail/runtime_memory.hpp>
 #include <functional>
 #include <memory>
 #include <type_traits>
 #include <utility>
-
-#include <dagflow/config.hpp>
-#include <dagflow/detail/runtime_memory.hpp>
 
 namespace dagflow::detail {
 
@@ -167,7 +166,8 @@ namespace dagflow {
 /// move targets use runtime_memory. Wrapper moves are always noexcept.
 /// StorageSize/StorageAlign must accommodate a pointer. Target destructors must
 /// be noexcept. Empty invocation is a precondition violation.
-template <class Sig, std::size_t StorageSize = DAGFLOW_DEFAULT_FUNCTION_STORAGE_SIZE,
+template <class Sig,
+          std::size_t StorageSize = DAGFLOW_DEFAULT_FUNCTION_STORAGE_SIZE,
           std::size_t StorageAlign = alignof(std::max_align_t)>
 using small_function =
     detail::basic_function<Sig, StorageSize, StorageAlign, true>;

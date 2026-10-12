@@ -4,6 +4,8 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
+#include <dagflow/task_graph.hpp>
+#include <dagflow/thread_pool.hpp>
 #include <exception>
 #include <initializer_list>
 #include <iterator>
@@ -13,9 +15,6 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
-
-#include <dagflow/task_graph.hpp>
-#include <dagflow/thread_pool.hpp>
 
 namespace dagflow {
 

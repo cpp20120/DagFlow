@@ -1,8 +1,8 @@
 #include <atomic>
+#include <dagflow/task_scope.hpp>
 #include <memory>
 #include <stdexcept>
 
-#include <dagflow/task_scope.hpp>
 #include "adversarial_support.hpp"
 
 int main() {
@@ -14,12 +14,16 @@ int main() {
     struct Capture {
       dagflow::Pool& pool;
       dagflow::TaskScope& scope;
-      std::atomic<unsigned> &destroyed, &rejected, &helped;
+      std::atomic<unsigned>&destroyed, &rejected, &helped;
       ~Capture() {
         CHECK(scope.cancelled() && !scope.completion().ready());
         CHECK(!scope.spawn([] { CHECK(false); }));
-        try { scope.wait(); CHECK(false); }
-        catch (const std::logic_error&) { ++rejected; }
+        try {
+          scope.wait();
+          CHECK(false);
+        } catch (const std::logic_error&) {
+          ++rejected;
+        }
         // Helping may recursively destroy another skipped task's capture.
         auto task = pool.submit([this] { ++helped; });
         pool.wait(task);
@@ -31,11 +35,14 @@ int main() {
     CHECK(scope.spawn([&](dagflow::TaskScope::Context& context) {
       scope.close();
       for (unsigned i = 0; i < children; ++i) {
-        CHECK(context.spawn([capture = std::unique_ptr<Capture>(
-            new Capture{pool, scope, destroyed, rejected, helped})] { CHECK(false); }));
+        CHECK(context.spawn([capture = std::unique_ptr<Capture>(new Capture{
+                                 pool, scope, destroyed, rejected, helped})] {
+          CHECK(false);
+        }));
       }
       // The only worker has not run any queued child. All their captures must
-      // still be destroyed under active self-join protection after cancellation.
+      // still be destroyed under active self-join protection after
+      // cancellation.
       context.cancel();
       CHECK(!context.spawn([] { CHECK(false); }));
     }));

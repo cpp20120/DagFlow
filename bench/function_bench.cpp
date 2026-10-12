@@ -2,11 +2,10 @@
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
+#include <dagflow/detail/small_function.hpp>
 #include <span>
 #include <utility>
 #include <vector>
-
-#include <dagflow/detail/small_function.hpp>
 
 namespace {
 using Function = dagflow::small_function<void(std::uint64_t&)>;

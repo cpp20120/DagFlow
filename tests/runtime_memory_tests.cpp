@@ -1,11 +1,11 @@
 #include <atomic>
 #include <cstdint>
 #include <cstring>
+#include <dagflow/detail/runtime_memory.hpp>
 #include <stdexcept>
 #include <thread>
 #include <vector>
 
-#include <dagflow/detail/runtime_memory.hpp>
 #include "support.hpp"
 
 struct alignas(256) Object {
@@ -103,7 +103,8 @@ int main() {
     std::thread producer([&] { values = decltype(values)(3); });
     producer.join();
     CHECK(Object::alive == 3);
-    CHECK(reinterpret_cast<std::uintptr_t>(values.data()) % alignof(Object) == 0);
+    CHECK(reinterpret_cast<std::uintptr_t>(values.data()) % alignof(Object) ==
+          0);
     std::thread consumer([owned = std::move(values)] {
       CHECK(owned.size() == 3 && owned.back().value == 0);
     });
