@@ -24,11 +24,16 @@ jobs:
           build-mode: manual
           queries: security-and-quality
 
+      
       - name: Configure
         run: |
           cmake -S . -B build/codeql \
             -G Ninja \
-            -DCMAKE_BUILD_TYPE=Debug
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DDAGFLOW_BUILD_TESTS=ON \
+            -DBUILD_TESTING=ON \
+            -DDAGFLOW_ALLOCATOR=system \
+            -DDAGFLOW_BUILD_EXAMPLES=OFF
 
       - name: Build DagFlow
         run: |
