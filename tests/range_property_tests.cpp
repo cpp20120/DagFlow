@@ -175,7 +175,7 @@ class RangeMachine {
         require(visits_[model_.failing_element].load() == 1,
                 "the selected throwing element executes once");
     }
-    for (const auto& [result, failure] : old_results_)
+    for (const auto& [result, failure] : old_results_ )
       check_result(result, failure);
   }
 };

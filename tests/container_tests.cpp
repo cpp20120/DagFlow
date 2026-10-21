@@ -51,6 +51,15 @@ void vector_storage() {
   CHECK(*inline_move.front() == 7 && inline_move.capacity() >= 8);
   pointers = std::move(inline_move);
   CHECK(inline_move.empty() && *pointers.front() == 7);
+
+  // This push_back<T&&> specialization was otherwise exercised only below
+  // capacity. Check its own full-buffer transition, not just reserve().
+  dagflow::small_vector<std::unique_ptr<int>, 2> spilling;
+  for (int value = 0; value < 3; ++value)
+    spilling.push_back(std::make_unique<int>(value + 10));
+  CHECK(spilling.size() == 3 && spilling.capacity() == 4);
+  for (int value = 0; value < 3; ++value)
+    CHECK(*spilling[static_cast<std::size_t>(value)] == value + 10);
 }
 
 void vector_alignment() {
@@ -105,6 +114,22 @@ void vector_inline_reuse() {
       CHECK(alive == 0 && view.begin() == view.end());
     }
     values.emplace_back(42, alive);
+    // Earlier rounds stop at the inline boundary; exercise the same
+    // emplace_back<int, int&> instantiation when the inline buffer is full.
+    values.emplace_back(43, alive);
+    values.emplace_back(44, alive);
+    CHECK(values.size() == 3 && values.capacity() == 4 && alive == 3);
+    CHECK(values[0].value == 42 && values[1].value == 43 &&
+          values[2].value == 44);
+    // Lvalue arguments use a distinct forwarding specialization. Exercise its
+    // heap-to-larger-heap transition and retain every existing const member.
+    int next_value = 45;
+    values.emplace_back(next_value, alive);
+    ++next_value;
+    values.emplace_back(next_value, alive);
+    CHECK(values.size() == 5 && values.capacity() == 8 && alive == 5);
+    for (std::size_t index = 0; index < values.size(); ++index)
+      CHECK(view[index].value == 42 + static_cast<int>(index));
   }
   CHECK(alive == 0);
 }
@@ -151,6 +176,16 @@ void vector_exception_lifetime() {
       threw = true;
     }
     CHECK(threw && values.size() == 2 && ThrowingValue::alive == 2);
+
+    // An unsuccessfully moved inline vector must still support a later
+    // successful full-buffer emplacement with correct object custody.
+    ThrowingValue::copy_budget = 100;
+    ThrowingValue::move_budget = 100;
+    values.emplace_back(3);
+    CHECK(values.size() == 3 && values.capacity() == 4 &&
+          ThrowingValue::alive == 3);
+    // Earlier elements may have been moved-from during the failed move.
+    CHECK(values[2].value == 3);
   }
   CHECK(ThrowingValue::alive == 0);
 }

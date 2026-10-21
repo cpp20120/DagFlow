@@ -9,6 +9,21 @@
 #include <type_traits>
 #include <utility>
 
+namespace dagflow::detail {
+
+// Keep the growth arithmetic independent of element construction so its
+// saturation and rejection boundaries can be checked without huge objects.
+// Preconditions: size <= capacity <= maximum and capacity > 0. Called only
+// when a full vector needs another element.
+inline std::size_t small_vector_next_capacity(std::size_t size,
+                                              std::size_t capacity,
+                                              std::size_t maximum) {
+  if (size == maximum) throw std::length_error("small_vector capacity");
+  return capacity > maximum / 2 ? maximum : capacity * 2;
+}
+
+}  // namespace dagflow::detail
+
 namespace dagflow {
 
 /// Move-only vector with N inline elements and cache-aligned heap storage. Heap
@@ -57,8 +72,8 @@ class small_vector {
       ++size_;
       return *item;
     }
-    if (size_ == max_size()) throw std::length_error("small_vector capacity");
-    const auto next = capacity_ > max_size() / 2 ? max_size() : capacity_ * 2;
+    const auto next =
+        detail::small_vector_next_capacity(size_, capacity_, max_size());
     pointer storage = allocate_storage(next);
     // Construct the new element before relocation: args may alias our storage.
     try {

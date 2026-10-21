@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <dagflow/detail/chase_lev_deque.hpp>
 #include <dagflow/detail/ring_mpmc.hpp>
+#include <deque>
 #include <thread>
 #include <vector>
 
@@ -35,6 +36,47 @@ void deque_boundaries() {
 
 void deque_last_element() {
   chase_lev_deque<int, 2> q;
+  {
+    // Exercise the same two-slot queue through non-final owner pops, final
+    // arbitration, thief removal, full rejection and reuse before racing it.
+    // The reference stores logical contents, independent of ring indices.
+    enum class Command { Push, Pop, Steal };
+    std::deque<int> model;
+    int next_token = 0;
+    auto apply = [&](Command command) {
+      if (command == Command::Push) {
+        const int value = ++next_token;
+        const bool accepted = model.size() < q.capacity();
+        CHECK(q.try_push(value) == accepted);
+        if (accepted) model.push_back(value);
+      } else {
+        int output = -1;
+        const bool owner = command == Command::Pop;
+        const bool acquired = owner ? q.try_pop(output) : q.try_steal(output);
+        CHECK(acquired == !model.empty());
+        if (acquired) {
+          CHECK(output == (owner ? model.back() : model.front()));
+          if (owner)
+            model.pop_back();
+          else
+            model.pop_front();
+        } else {
+          CHECK(output == -1);
+        }
+      }
+      CHECK(q.empty() == model.empty());
+      CHECK(q.free_capacity() == q.capacity() - model.size());
+    };
+    for (unsigned generation = 0; generation < 128; ++generation) {
+      for (auto command :
+           {Command::Push, Command::Push, Command::Push, Command::Pop,
+            Command::Pop, Command::Pop, Command::Steal, Command::Push,
+            Command::Push, Command::Steal, Command::Push, Command::Pop,
+            Command::Steal, Command::Pop})
+        apply(command);
+      CHECK(model.empty());
+    }
+  }
   std::barrier phase(3);
   std::atomic<int> successes{0};
   constexpr int rounds = 5000;

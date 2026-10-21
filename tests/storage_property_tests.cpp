@@ -135,6 +135,16 @@ struct VectorMachine {
         actual.push_back(actual.front());
         expected.values.push_back(static_cast<int>(c.b));
         expected.capacity = 8;
+        invariant();
+        // Grow again using constructor arguments rather than an aliased
+        // Element. This exercises emplace_back<Ledger*, int> on a full heap
+        // buffer, preserving the preceding alias copy and every live object.
+        for (int offset = 5; offset != 9; ++offset) {
+          actual.emplace_back(&ledger, static_cast<int>(c.b) + offset);
+          grow();
+          expected.values.push_back(static_cast<int>(c.b) + offset);
+          invariant();
+        }
         break;
       case RoundTrip: {
         auto temporary(std::move(actual));

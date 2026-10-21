@@ -47,6 +47,9 @@ class IdleAccounting {
   void wait();
 
  private:
+  // Defined only by boundary tests. Seeds balanced, quiescent lifetime history
+  // without changing layout or adding runtime fault checks to the hot paths.
+  friend struct IdleAccountingBoundaryAccess;
   struct alignas(DAGFLOW_CACHE_LINE_SIZE) Lane {
     std::atomic<uint64_t> published{0}, retired{0};
   };

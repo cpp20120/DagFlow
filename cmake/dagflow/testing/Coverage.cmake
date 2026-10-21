@@ -61,8 +61,17 @@ function(_dagflow_project_coverage_finalize)
       --output-file "${DAGFLOW_COVERAGE_DIR}/coverage.info"
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${DAGFLOW_COVERAGE_DIR}/coverage.info"
       "${DAGFLOW_COVERAGE_DIR}/filtered.info"
-    COMMAND "${_genhtml}" ${_format_args} "${DAGFLOW_COVERAGE_DIR}/filtered.info"
+    # GCC/LCOV can report a hit source line while every generated branch has
+    # an unknown count. Keep the counts and let genhtml display the report.
+    COMMAND "${_genhtml}" ${_format_args} --ignore-errors inconsistent,corrupt
+      "${DAGFLOW_COVERAGE_DIR}/filtered.info"
       --output-directory "${DAGFLOW_COVERAGE_DIR}/html"
+    # A second view omits compiler-generated exception paths while preserving
+    # the unfiltered (raw) report above for comparison.
+    COMMAND "${_genhtml}" ${_format_args} --filter exception
+      --ignore-errors inconsistent,corrupt
+      "${DAGFLOW_COVERAGE_DIR}/filtered.info"
+      --output-directory "${DAGFLOW_COVERAGE_DIR}/html-noexcept"
     DEPENDS dagflow_tests USES_TERMINAL VERBATIM)
   set_property(TARGET coverage-report PROPERTY FOLDER "dagflow/quality")
 endfunction()

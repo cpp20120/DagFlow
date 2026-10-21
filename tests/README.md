@@ -79,6 +79,16 @@ Use `-V` for successful-test output too. Failure logs are saved under the build
 directory's `Testing/Temporary/LastTest.log`. Repeating a race test samples more
 interleavings; it does not replace sanitizer runs.
 
+## Independent models and mutation campaign
+
+Three additional seed/replay/shrink CTest targets model `TaskGraph` semantics,
+`Pool` effect/completion obligations and bounded concurrent FIFO histories.
+They record exercised transition categories and check bounded real-time
+real-time history consistency rather than relying only on line coverage. An optional Python
+mutation campaign compiles four isolated C++ queue mutants; it is not part of
+normal CTest or production builds. Full contracts, limitations and commands:
+[`model-based-verification.md`](model-based-verification.md).
+
 ## Model-based PBT / stateful PBT
 
 `dagflow_model_property_tests` builds the dependency-free state-machine suites;
@@ -92,6 +102,8 @@ scheduling order.
 | Component | Reference model / principal properties |
 | --- | --- |
 | `storage` | Small-vector contents/capacity, callable moves and lifetime, owned arrays/objects, allocator storage and exception rollback. |
+| `storage_api` | Throwing move-only vector relocation, callable signatures and transactional allocation failure; uses the recording allocator runtime. |
+| `detail_vector_boundary` | Capacity growth arithmetic at representable limits, throwing copies during growth, and runtime ownership transitions. |
 | `queue` | Ring FIFO/bounded admission/failed-move custody, Chase–Lev owner/thief races and unique acquisition. |
 | `packet` | Construct/invoke/move/destroy, priority, capture cleanup before readiness, forked completion credits and surviving observers. |
 | `completion` | Credit fork/move/fail/finish, last-credit cleanup, copied/moved observers, combined errors and readiness. |
@@ -99,10 +111,15 @@ scheduling order.
 | `scheduler` | Local/shared/overflow custody, admission, drain and placement across sparse and shared domains. |
 | `parking` | Prepare/cancel/wake/wait epochs across bitmap boundaries (1, 63–65, 127–129 workers). |
 | `accounting` | Worker/external publication, retirement, waiters, producer-lane churn and instance recreation. |
+| `detail_accounting_boundary` | Balanced historical counters near UINT64_MAX, publication rejection without mutation, final valid retirement and isolated retirement-exhaustion death check; also runs against the protocol-fault runtime. |
 | `pool` | Admission/close/shutdown/destruction/recreation, descendants after close, detached reporting, result failures and cleanup. |
 | `wait` | Reject for unfinished same-/cross-pool handles, ready observations and nested Help depth restoration. |
 | `scope` | Scope admission, pending descendants, close/cancel/join and capture ownership. |
 | `graph` | DAG edges/tokens/cycle rejection, run/reuse/reset, result errors/cancel, GraphScope lifecycle. |
+| `graph_scope_lifecycle` | Guaranteed pending work on the sole worker: repeated run, implicit wait, clear/destruction draining, task errors, successful retry and retained Handle results. |
+| `graph_builder` | Builder allocation/callable failure rollback, all add/emplace overloads, reseal and retained callable state; uses the recording allocator runtime. |
+| `graph_options` | Stateful option validation, token/capacity policies, lowered node limits and recovery; uses the isolated protocol-fault runtime. |
+| `public_api` | Pool/Scope callable construction failures, submit aliases, observer conversions and GraphScope partial range construction. |
 | `range` | Forward/contiguous/deque ranges, split boundaries, detached batches, partial failures, borrowed lifetime and GraphScope ranges. |
 | `branch_protocol` | Worker-side batches at 64/65 boundaries, nested cooperative waits, worker-owned borrowed ranges, graph Fail/Drop/cancellation, 64-step continuation chains and fan-out/fan-in joins with priority/affinity changes. |
 | `branch_closure` | Boundary partitions across iterator/span overloads, empty WS, multi-chunk GraphScope ranges and replay, active graph mutation rejection, over-limit small-vector reserve and recovery. |
@@ -143,6 +160,9 @@ DAGFLOW_PROPERTY_TRACE='0,0,0;6,0,0;2,0,0;6,0,0' \
 The `coverage_boundary` target specifically targets lines identified by the 2026-10-21
 LCOV audit; see [`coverage-gaps-2026-10-21.md`](coverage-gaps-2026-10-21.md)
 for the remaining non-reachable failure conditions and instrumentation limits.
+
+See [`scenario-coverage.md`](scenario-coverage.md) for the Pool, graph/scope,
+cancellation and scheduler scenario-to-test mapping and its limits.
 
 A replay selects one machine via `DAGFLOW_PROPERTY_MODEL`; the runner rejects
 traces violating its command preconditions. Increasing step counts does not
@@ -289,3 +309,10 @@ and add `-DDAGFLOW_SANITIZER=address-undefined` or
 with two-slot queues and a central batch of one. The ordinary tests use normal
 queue capacities. See [adversarial test instructions](adversarial-tests.md) for
 the tiny-queue commands and detailed lifetime invariants.
+
+### Runtime protocol mutation campaign
+
+See [TaskGraph/Completion mutation campaign](protocol-mutation-campaign.md)
+for the six isolated source mutations, the new first-failure reference model,
+and replay instructions. Opt in with `dagflow_protocol_mutation_campaign`;
+normal PBT/CTest runs never execute mutants.

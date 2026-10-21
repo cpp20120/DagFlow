@@ -118,7 +118,9 @@ if(DAGFLOW_TARGET)
   add_custom_target(dagflow_model_property_tests)
   add_dependencies(dagflow_model_property_tests dagflow_property_support_tests)
   foreach(_component IN ITEMS storage queue completion pool scope graph range
-      scheduler parking accounting packet topology wait coverage_boundary branch_protocol branch_closure)
+      scheduler parking accounting packet topology wait coverage_boundary
+      branch_protocol branch_closure public_api detail_vector_boundary
+      detail_accounting_boundary graph_scope_lifecycle)
     set(_property_target dagflow_${_component}_property_tests)
     dagflow_add_runtime_unit_test(${_property_target}
       tests/${_component}_property_tests.cpp)
@@ -127,6 +129,61 @@ if(DAGFLOW_TARGET)
       LABELS "runtime;property;pbt;stateful")
     add_dependencies(dagflow_model_property_tests ${_property_target})
   endforeach()
+
+  # Independent DAG specification and bounded real-time concurrent history
+  # checker. Both use the existing seed/replay/shrink stateful runner.
+  dagflow_add_runtime_unit_test(dagflow_reference_graph_model_property_tests
+    tests/reference_graph_model_property_tests.cpp)
+  target_link_libraries(dagflow_reference_graph_model_property_tests PRIVATE ${DAGFLOW_TARGET})
+  set_tests_properties(dagflow_reference_graph_model_property_tests PROPERTIES
+    LABELS "runtime;property;pbt;stateful;reference-model" TIMEOUT 120)
+  add_dependencies(dagflow_model_property_tests dagflow_reference_graph_model_property_tests)
+
+  dagflow_add_runtime_unit_test(dagflow_pool_reference_property_tests
+    tests/pool_reference_property_tests.cpp)
+  target_link_libraries(dagflow_pool_reference_property_tests PRIVATE ${DAGFLOW_TARGET})
+  set_tests_properties(dagflow_pool_reference_property_tests PROPERTIES
+    LABELS "runtime;property;pbt;stateful;reference-model" TIMEOUT 120)
+  add_dependencies(dagflow_model_property_tests dagflow_pool_reference_property_tests)
+
+  dagflow_add_runtime_unit_test(dagflow_concurrent_history_property_tests
+    tests/concurrent_history_property_tests.cpp)
+  target_link_libraries(dagflow_concurrent_history_property_tests PRIVATE ${DAGFLOW_TARGET})
+  set_tests_properties(dagflow_concurrent_history_property_tests PROPERTIES
+    LABELS "runtime;property;pbt;stateful;concurrency;history-check" TIMEOUT 120)
+  add_dependencies(dagflow_model_property_tests dagflow_concurrent_history_property_tests)
+
+  dagflow_add_runtime_unit_test(dagflow_completion_failure_reference_property_tests
+    tests/completion_failure_reference_property_tests.cpp)
+  target_link_libraries(dagflow_completion_failure_reference_property_tests PRIVATE ${DAGFLOW_TARGET})
+  set_tests_properties(dagflow_completion_failure_reference_property_tests PROPERTIES
+    LABELS "runtime;property;pbt;stateful;reference-model;completion" TIMEOUT 120)
+  add_dependencies(dagflow_model_property_tests dagflow_completion_failure_reference_property_tests)
+
+  # Explicit opt-in mutation campaign: compiles disposable copies of one
+  # queue header and executes the bounded history oracle against each mutant.
+  # Not part of ordinary CTest/coverage builds and never changes production.
+  find_package(Python3 COMPONENTS Interpreter QUIET)
+  if(Python3_Interpreter_FOUND)
+    add_custom_target(dagflow_queue_mutation_campaign
+      COMMAND ${Python3_EXECUTABLE}
+        "${CMAKE_CURRENT_SOURCE_DIR}/scripts/mutation_campaign.py"
+        --cxx "${CMAKE_CXX_COMPILER}"
+      WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+      COMMENT "Run isolated mutation campaign against the MPMC history checker"
+      USES_TERMINAL)
+  endif()
+
+  if(Python3_Interpreter_FOUND AND UNIX AND
+      CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    add_custom_target(dagflow_protocol_mutation_campaign
+      COMMAND ${Python3_EXECUTABLE}
+        "${CMAKE_CURRENT_SOURCE_DIR}/scripts/protocol_mutation_campaign.py"
+        --cxx "${CMAKE_CXX_COMPILER}"
+      WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+      COMMENT "Mutation-check TaskGraph and Completion against independent models"
+      USES_TERMINAL)
+  endif()
 
   # Compile a separate, instrumented runtime solely for deterministic
   # exceptional-path PBT. Never link hooks into the production DagFlow target.
@@ -168,6 +225,36 @@ if(DAGFLOW_TARGET)
   set_tests_properties(dagflow_branch_gap_fault_property_tests PROPERTIES
     LABELS "runtime;property;pbt;stateful;fault-injection")
   add_dependencies(dagflow_model_property_tests dagflow_branch_gap_fault_property_tests)
+
+  dagflow_add_runtime_unit_test(dagflow_graph_options_property_tests
+    tests/graph_options_property_tests.cpp)
+  target_compile_definitions(dagflow_graph_options_property_tests PRIVATE
+    DAGFLOW_TEST_FAULT_INJECTION DAGFLOW_FUZZ_HOOKS)
+  target_link_libraries(dagflow_graph_options_property_tests PRIVATE
+    dagflow_test_fault_runtime)
+  set_tests_properties(dagflow_graph_options_property_tests PROPERTIES
+    LABELS "runtime;property;pbt;stateful;fault-injection")
+  add_dependencies(dagflow_model_property_tests
+    dagflow_graph_options_property_tests)
+
+  # Exercise real near-limit accounting with both compiled implementations.
+  # The accessor is test-local; counters are seeded only before any observers.
+  dagflow_add_runtime_unit_test(dagflow_detail_accounting_fault_boundary_property_tests
+    tests/detail_accounting_boundary_property_tests.cpp)
+  target_compile_definitions(dagflow_detail_accounting_fault_boundary_property_tests
+    PRIVATE DAGFLOW_TEST_FAULT_INJECTION DAGFLOW_FUZZ_HOOKS)
+  target_link_libraries(dagflow_detail_accounting_fault_boundary_property_tests
+    PRIVATE dagflow_test_fault_runtime)
+  set_tests_properties(dagflow_detail_accounting_fault_boundary_property_tests
+    PROPERTIES LABELS "runtime;property;pbt;stateful;fault-injection")
+  add_dependencies(dagflow_model_property_tests
+    dagflow_detail_accounting_fault_boundary_property_tests)
+  if(DAGFLOW_SANITIZER STREQUAL "thread")
+    target_compile_definitions(dagflow_detail_accounting_boundary_property_tests
+      PRIVATE DAGFLOW_TEST_SKIP_DEATH_CASES=1)
+    target_compile_definitions(dagflow_detail_accounting_fault_boundary_property_tests
+      PRIVATE DAGFLOW_TEST_SKIP_DEATH_CASES=1)
+  endif()
 
   # Additional stateful models for queued cancellation, graph range chunks
   # and non-random-access range publication. Retain existing example-based tests.
@@ -237,6 +324,17 @@ if(DAGFLOW_TARGET)
   if(DAGFLOW_RUNTIME_DIAGNOSTICS)
     target_compile_definitions(dagflow_adversarial_runtime PUBLIC DAGFLOW_RUNTIME_DIAGNOSTICS=1)
   endif()
+  # Allocation rollback models use the recording allocator boundary, not the
+  # production allocator or the separate protocol-fault runtime.
+  foreach(_component IN ITEMS graph_builder storage_api)
+    set(_property_target dagflow_${_component}_property_tests)
+    dagflow_add_runtime_unit_test(${_property_target}
+      tests/${_component}_property_tests.cpp)
+    target_link_libraries(${_property_target} PRIVATE dagflow_adversarial_runtime)
+    set_tests_properties(${_property_target} PROPERTIES
+      LABELS "runtime;property;pbt;stateful;fault-injection")
+    add_dependencies(dagflow_model_property_tests ${_property_target})
+  endforeach()
   foreach(_case IN ITEMS combine_partial_registration_oom_race range_publication_rollback_lifetime)
     dagflow_add_runtime_unit_test(dagflow_${_case}_test tests/${_case}_test.cpp)
     target_link_libraries(dagflow_${_case}_test PRIVATE dagflow_adversarial_runtime)
