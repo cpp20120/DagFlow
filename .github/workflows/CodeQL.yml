@@ -1,0 +1,40 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: c-cpp
+          build-mode: manual
+          queries: security-and-quality
+
+      - name: Configure
+        run: |
+          cmake -S . -B build/codeql \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug
+
+      - name: Build DagFlow
+        run: |
+          cmake --build build/codeql \
+            --target DagFlow_shared dagflow_model_property_tests \
+            --parallel 2
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@v4
