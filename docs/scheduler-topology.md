@@ -1,5 +1,8 @@
 # Scheduler domains and memory
 
+> The canonical contract/implementation/test registry is [protocol.md](protocol.md).
+> This document explains topology, queue acquisition, and parking.
+
 > Migration: Python benchmark commands below describe the original measurement workflow.
 > Use [CMake campaigns](benchmarks/campaigns.md) for current runs and result comparison.
 

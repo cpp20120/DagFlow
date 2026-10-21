@@ -1,5 +1,8 @@
 # Runtime architecture
 
+> The canonical contract/implementation/test registry is [protocol.md](protocol.md).
+> This document explains the architecture and links to experiments.
+
 DagFlow separates graph definitions, per-run state, task scheduling, completion,
 and task storage. See [code organization](code_organization.md), the
 [implementation plan](runtime-improvement-plan.md), and
@@ -128,8 +131,10 @@ joins them on destruction. `GraphScope` is the reusable DAG builder. A dynamic
 scope is one-shot: `join()` closes external admission, waits for all descendants
 and rethrows the first error; `wait()` performs the same drain without rethrowing.
 
-Open admission owns one sentinel credit. An accepted publisher first reserves a
-credit under the admission mutex, then constructs and publishes its callback.
+Open admission owns one sentinel credit. An accepted external publisher reserves
+root access through the atomic admission word and forks its publication credit,
+then constructs and publishes its callback. Child admission forks a live parent
+credit after checking cancellation; neither admission path takes a scope mutex.
 The publisher retains that credit through construction and publication cleanup;
 the executor owns a separate credit through callback and capture destruction.
 A running callback receives a borrowed `Context&` and may fork children even
@@ -176,8 +181,9 @@ admission, records publication
 in the producer lane, then transfers the packet to a shard ingress. A full
 ingress applies backpressure to the external caller; a worker never waits for
 capacity and spills its incoming packet when both local and central queues
-reject it. `submit_detached` has no completion observer, so uncaught task
-exceptions are discarded. `submit` retains the first exception in its Handle.
+reject it. `submit_detached` has no completion observer; uncaught task exceptions
+go to `Config::detached_error_handler` when configured and are otherwise discarded.
+`submit` retains the first exception in its Handle.
 
 `submit_batch_detached(span, options)` is an explicit opt-in for a homogeneous
 span of moveable callables. External calls stage at most 64 packets, choose one
@@ -234,8 +240,10 @@ for the exact memory-ordering and lost-wakeup protocol.
 Move-only `CompletionCredit` objects separately account for live work; an observer
 cannot fork work. The last credit destroys the operation payload before publishing
 `ready()`. Handles may outlive their pool after submitted work
-has completed. `Pool::wait(handle)` is completion-only; workers help execute work
-while external callers block. Call `handle.rethrow_if_failed()` after waiting to
+has completed. `Pool::wait(handle)` is completion-only; workers help execute work,
+then park until either new work or completion signals their wake epoch. Multiple
+workers can wait on the same handle. External callers block on atomic readiness.
+Call `handle.rethrow_if_failed()` after waiting to
 observe an error, or use `Pool::wait_and_rethrow(handle)` to do both. Both pool
 wait methods preserve cooperative helping on workers and accept empty handles.
 `GraphScope::run_and_wait()` performs error propagation itself.
@@ -253,8 +261,9 @@ whereas graph algorithms store one copy per chunk. See the
 Ordinary submissions and range algorithms retain the first task error and
 complete even when work throws. If publishing a range fails partway through,
 the submitting call drains already published work before throwing, so the caller
-can release the range after the exception. Detached submissions discard uncaught
-exceptions and require application-managed error reporting when needed.
+can release the range after the exception, including when explicit worker waits
+are disabled. Detached submissions call the optional nonthrowing
+`Config::detached_error_handler`; with no handler, errors are discarded.
 
 `combine()` registers completion edges without scheduling waiting tasks.
 Registration handles already-completed inputs and races with completion.

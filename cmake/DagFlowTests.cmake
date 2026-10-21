@@ -14,6 +14,13 @@ add_test(NAME dagflow_dependency_selection_tests COMMAND ${CMAKE_COMMAND}
   -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/dependency_selection_tests.cmake")
 set_tests_properties(dagflow_dependency_selection_tests PROPERTIES TIMEOUT 30 LABELS build)
 
+add_test(NAME dagflow_benchmark_run_tests COMMAND ${CMAKE_COMMAND}
+  "-DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}"
+  "-DCHECK_DIR=${CMAKE_CURRENT_BINARY_DIR}/benchmark-run-tests"
+  "-DGENERATOR=${CMAKE_GENERATOR}" "-DCXX=${CMAKE_CXX_COMPILER}"
+  -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/benchmark_run_tests.cmake")
+set_tests_properties(dagflow_benchmark_run_tests PROPERTIES TIMEOUT 90 LABELS "build;benchmark")
+
 if(TARGET dagflow_example)
   add_test(NAME dagflow_example_basic COMMAND dagflow_example)
   set_tests_properties(dagflow_example_basic PROPERTIES TIMEOUT 30)
@@ -98,6 +105,101 @@ dagflow_add_runtime_unit_test(dagflow_accounting_allocation_tests tests/accounti
 target_sources(dagflow_accounting_allocation_tests PRIVATE src/idle_accounting.cpp)
 
 if(DAGFLOW_TARGET)
+  # Keep the codec, deterministic generator, replay and valid-trace shrinker
+  # covered independently of any individual runtime model.
+  dagflow_add_runtime_unit_test(dagflow_property_support_tests
+    tests/property_support_tests.cpp)
+  set_tests_properties(dagflow_property_support_tests PROPERTIES
+    LABELS "runtime;property;pbt")
+
+  # Explicit state-machine properties with generated commands, valid-trace
+  # shrinking and replay. Keep core dependency-free; these are ordinary tests,
+  # independent of the optional libFuzzer/RapidCheck capability fixtures.
+  add_custom_target(dagflow_model_property_tests)
+  add_dependencies(dagflow_model_property_tests dagflow_property_support_tests)
+  foreach(_component IN ITEMS storage queue completion pool scope graph range
+      scheduler parking accounting packet topology wait coverage_boundary branch_protocol branch_closure)
+    set(_property_target dagflow_${_component}_property_tests)
+    dagflow_add_runtime_unit_test(${_property_target}
+      tests/${_component}_property_tests.cpp)
+    target_link_libraries(${_property_target} PRIVATE ${DAGFLOW_TARGET})
+    set_tests_properties(${_property_target} PROPERTIES
+      LABELS "runtime;property;pbt;stateful")
+    add_dependencies(dagflow_model_property_tests ${_property_target})
+  endforeach()
+
+  # Compile a separate, instrumented runtime solely for deterministic
+  # exceptional-path PBT. Never link hooks into the production DagFlow target.
+  # Simulated counter saturation and wait/publication errors do not mutate
+  # private state or require undefined behavior.
+  add_library(dagflow_test_fault_runtime STATIC EXCLUDE_FROM_ALL
+    ${DAGFLOW_RUNTIME_SOURCES})
+  target_include_directories(dagflow_test_fault_runtime PUBLIC include)
+  target_compile_features(dagflow_test_fault_runtime PUBLIC cxx_std_23)
+  target_compile_definitions(dagflow_test_fault_runtime PRIVATE
+    DAGFLOW_STATIC DAGFLOW_TEST_FAULT_INJECTION DAGFLOW_FUZZ_HOOKS)
+  target_link_libraries(dagflow_test_fault_runtime PUBLIC Threads::Threads)
+  dagflow_apply_allocator(dagflow_test_fault_runtime)
+  dagflow_apply_optimization(dagflow_test_fault_runtime)
+  if(DAGFLOW_RUNTIME_DIAGNOSTICS)
+    target_compile_definitions(dagflow_test_fault_runtime PUBLIC
+      DAGFLOW_RUNTIME_DIAGNOSTICS=1)
+  endif()
+  dagflow_add_runtime_unit_test(dagflow_fault_injection_property_tests
+    tests/fault_injection_property_tests.cpp)
+  target_compile_definitions(dagflow_fault_injection_property_tests PRIVATE
+    DAGFLOW_TEST_FAULT_INJECTION)
+  target_link_libraries(dagflow_fault_injection_property_tests PRIVATE
+    dagflow_test_fault_runtime)
+  set_tests_properties(dagflow_fault_injection_property_tests PROPERTIES
+    LABELS "runtime;property;pbt;stateful;fault-injection")
+  add_dependencies(dagflow_model_property_tests
+    dagflow_fault_injection_property_tests)
+
+
+  # Production code stays hook-free; this is an independent stateful fixture
+  # for backpressure retries, allocation failure and boundary validation.
+  dagflow_add_runtime_unit_test(dagflow_branch_gap_fault_property_tests
+    tests/branch_gap_fault_property_tests.cpp)
+  target_compile_definitions(dagflow_branch_gap_fault_property_tests PRIVATE
+    DAGFLOW_TEST_FAULT_INJECTION DAGFLOW_FUZZ_HOOKS)
+  target_link_libraries(dagflow_branch_gap_fault_property_tests PRIVATE
+    dagflow_test_fault_runtime)
+  set_tests_properties(dagflow_branch_gap_fault_property_tests PROPERTIES
+    LABELS "runtime;property;pbt;stateful;fault-injection")
+  add_dependencies(dagflow_model_property_tests dagflow_branch_gap_fault_property_tests)
+
+  # Additional stateful models for queued cancellation, graph range chunks
+  # and non-random-access range publication. Retain existing example-based tests.
+  dagflow_add_runtime_unit_test(dagflow_remaining_protocol_property_tests
+    tests/remaining_protocol_property_tests.cpp)
+  target_link_libraries(dagflow_remaining_protocol_property_tests PRIVATE
+    ${DAGFLOW_TARGET})
+  set_tests_properties(dagflow_remaining_protocol_property_tests PROPERTIES
+    LABELS "runtime;property;pbt;stateful")
+  add_dependencies(dagflow_model_property_tests
+    dagflow_remaining_protocol_property_tests)
+
+  # A test-only parking checkpoint forces publication between prepare() and
+  # help(true), without relying on probability or sleeps in production code.
+  dagflow_add_runtime_unit_test(dagflow_worker_help_announced_test
+    tests/worker_help_announced_test.cpp)
+  target_compile_definitions(dagflow_worker_help_announced_test PRIVATE
+    DAGFLOW_FUZZ_HOOKS)
+  target_link_libraries(dagflow_worker_help_announced_test PRIVATE
+    dagflow_test_fault_runtime)
+  set_tests_properties(dagflow_worker_help_announced_test PROPERTIES
+    LABELS "runtime;adversarial;concurrency;fault-injection")
+
+  dagflow_add_runtime_unit_test(dagflow_graph_cancellation_edge_test
+    tests/graph_cancellation_edge_test.cpp)
+  target_compile_definitions(dagflow_graph_cancellation_edge_test PRIVATE
+    DAGFLOW_FUZZ_HOOKS)
+  target_link_libraries(dagflow_graph_cancellation_edge_test PRIVATE
+    dagflow_test_fault_runtime)
+  set_tests_properties(dagflow_graph_cancellation_edge_test PROPERTIES
+    LABELS "runtime;adversarial;concurrency;fault-injection")
+
   # Bounded lifetime/race regressions; independent of disabled fuzz hooks.
   add_custom_target(dagflow_adversarial_tests)
   foreach(_case IN ITEMS
@@ -111,7 +213,10 @@ if(DAGFLOW_TARGET)
       cancelled_capture_reentry
       nested_helping_context_restore
       graph_cancel_continuation_reuse_race
-      exception_payload_last_release)
+      exception_payload_last_release
+      scheduler_contention_protocol
+      scheduler_targeted_paths
+      deque_last_slot_race)
     dagflow_add_runtime_unit_test(dagflow_${_case}_test tests/${_case}_test.cpp)
     target_link_libraries(dagflow_${_case}_test PRIVATE ${DAGFLOW_TARGET})
     set_tests_properties(dagflow_${_case}_test PROPERTIES LABELS "runtime;adversarial;concurrency")
@@ -153,6 +258,10 @@ if(DAGFLOW_TARGET)
 
   dagflow_add_runtime_unit_test(dagflow_pool_lifecycle_tests tests/pool_lifecycle_tests.cpp)
   target_link_libraries(dagflow_pool_lifecycle_tests PRIVATE ${DAGFLOW_TARGET})
+
+  dagflow_add_runtime_unit_test(dagflow_worker_wait_tests tests/worker_wait_tests.cpp)
+  target_link_libraries(dagflow_worker_wait_tests PRIVATE ${DAGFLOW_TARGET})
+  set_tests_properties(dagflow_worker_wait_tests PROPERTIES LABELS "runtime;concurrency")
 
   dagflow_add_runtime_unit_test(dagflow_scaling_tests tests/scaling_tests.cpp)
   target_link_libraries(dagflow_scaling_tests PRIVATE ${DAGFLOW_TARGET})

@@ -1,5 +1,8 @@
 # Pool idle accounting
 
+> The canonical contract/implementation/test registry is [protocol.md](protocol.md).
+> This document explains the accounting algorithm and its measurements.
+
 `Pool::wait_idle()` observes completion of task packet epilogues, including
 callable destruction and completion propagation. It is external-only and does
 not close admission: a concurrent submit may extend the wait, or start work

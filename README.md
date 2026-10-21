@@ -37,6 +37,10 @@ CMake project structure, public includes, targets and consumer contracts.
 container contracts and API changes. [Runtime architecture](docs/how_it_works.md)
 describes admission, errors, reusable runs, scheduler bypass, and task storage.
 
+[Runtime protocol and invariant registry](docs/protocol.md) is the canonical
+reference for current contracts, implementation links, regression coverage,
+caller preconditions, and known validation gaps.
+
 [CMake capability validation](docs/cmake-capabilities-validation.md) records the
 DagFlow integration checks, remaining gaps, and commands to repeat them.
 
@@ -72,7 +76,20 @@ over-aligned or potentially throwing-move callables spill through `runtime_memor
 
 For "heavy" stages, set `concurrency > 1` in `ScheduleOptions`/`NodeOptions`.
 
-Configure `Config` for CPU/NUMA; `pin_threads = true` is useful for cache stability.
+Thread pinning is off by default. The optional best-effort `pin_threads` mapping
+does not discover allowed CPUs, SMT, hybrid cores or Windows processor groups.
+Use application-controlled placement when those distinctions matter.
+
+Worker waits execute available tasks, then park until work or completion wakes
+them. Nested helping uses the native stack; `Pool::worker_wait_depth()` exposes
+its current depth. `Config::worker_wait_policy = WorkerWaitPolicy::Reject`
+diagnoses explicit waits on unfinished handles inside tasks; use DAG edges and
+external joins in that mode. Range publication failure still drains accepted
+work before releasing borrowed data. Keep joining scopes outside such tasks.
+The pool does not compensate for blocking I/O or other user synchronization.
+
+Configure a thread-safe, nonthrowing `Config::detached_error_handler` to report
+uncaught detached exceptions (or terminate); its default is to discard them.
 
 Node capacity limits admitted live executions. `Block` defers excess tokens,
 `Drop` admits at most capacity tokens, and `Fail` cancels an overflowing run.
@@ -92,28 +109,35 @@ producer/worker controls, payload verification, phase-gated perf counters,
 callgraphs/flamegraphs and separate runtime path diagnostics. Run its O3/LTO
 matrix with the [CMake campaign targets](docs/benchmarks/campaigns.md).
 
-### Latest benchmark run
+### Measured changes
 
-The old table used an earlier runtime and is no longer a useful baseline. The
-current public-API run was measured on 2026-10-02 with an AMD Ryzen 7 6800H,
-Clang 22.1.8, `-O3 -g -DNDEBUG`, system allocation, eight workers, five measured
-runs and one warmup. Native CPU flags and LTO were disabled. The table compares
-the same workload and timing boundaries with oneTBB 2023.1.0; lower DagFlow time
-is better.
+Before/after measurements against `3d37328` on Ryzen 7 6800H, Clang 22.1.8,
+Release `-O3 -DNDEBUG`, **system allocator**, without LTO or native CPU flags.
+Five process pairs used restricted CPU sets, without exclusive CPU isolation.
+The table reports medians of process summaries; intervals are exploratory 95%
+paired-bootstrap intervals for the after/before ratio (lower is better).
 
-| Benchmark | DagFlow mean | oneTBB mean | DagFlow throughput | oneTBB throughput |
-|---|---:|---:|---:|---:|
-| Dependent chain (1,000 tasks) | 298.0 µs | 129.9 µs | 3.356 M task/s | 7.699 M task/s |
-| Independent tasks (1,000) | 2.733 s | 2.574 s | 365.9 task/s | 388.4 task/s |
-| Independent batched (1,000, b=10) | 2.748 s | — | 363.8 task/s | — |
-| Parallel_for (1,000,000 elements) | 43.024 ms | 37.341 ms | 23.243 M elem/s | 26.780 M elem/s |
-| Workflow (width=10, depth=5) | 55.4 µs | 37.5 µs | 903.267 k task/s | 1.335 M task/s |
-| Noop tasks (1,000,000) | 457.295 ms | 69.879 ms | 2.187 M task/s | 14.310 M task/s |
+| Workload | Before | After | After/before, 95% interval |
+|---|---:|---:|---:|
+| `for_each`, 1,048,576 forward-list increments, 1 worker | 50.14 ms | 4.49 ms | 0.081–0.098 |
+| Idle pool, CPU time per 500 ms wall time, 4 workers | 63.64 ms | 16.93 ms | 0.255–0.286 |
+| Worker awaiting completion, CPU time per 500 ms wall time | 497.01 ms | 4.70 ms | 0.0086–0.0108 |
+| Detached noop, 1,000,000 tasks, 1 worker | 154.12 ms | 151.59 ms | 0.899–1.013 |
+| Detached noop, 1,000,000 tasks, 4 workers | 383.59 ms | 361.88 ms | 0.553–1.594 |
 
-These numbers are one measurement on one machine, not performance guarantees.
-The runtime matrix with DAG reuse, stealing, overflow, idle bursts and latency
-quantiles is documented in [the runtime benchmark suite](docs/benchmarks/runtime-suite.md).
-The CMake and stress-harness reports are described in [the benchmark workflow](docs/benchmarks/cmake.md).
+No stable noop throughput improvement is established. Longer idle parking saves
+CPU but can increase burst completion latency. See the
+[measurement report](docs/benchmarks/worker-wait-and-ranges.md) for timing
+boundaries, latency results, allocator experiments and validation.
+
+The public benchmark's `independent` workload performs one million sin/cos
+iterations per task and mostly measures payload. Its dependent chain includes
+graph construction/destruction; noop uses detached tasks without per-task
+completion states. For light payloads, use the
+[runtime suite](docs/benchmarks/runtime-suite.md) `external_detached` and
+`external_handles` scenarios with `--iterations 0` or `--iterations 400`.
+The [benchmark workflow](docs/benchmarks/cmake.md) describes the CMake and
+stress-harness reports.
 
 ### Build and usage
 

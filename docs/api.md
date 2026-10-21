@@ -10,5 +10,7 @@ The generated API reference is organized around the public entry points:
 - [Graph convenience API](../include/dagflow/graph_scope.hpp)
 - [Completion handles](../include/dagflow/handle.hpp)
 
-The design and lifetime contracts are documented in [how it works](how_it_works.md),
+The [runtime protocol](protocol.md) collects the current contracts, implementation
+links, regression coverage, and caller preconditions in one registry.
+Explanations and examples are in [how it works](how_it_works.md),
 [pool lifecycle](pool-lifecycle.md), and [task scope lifetime](task-scope-lifetime.md).

@@ -19,6 +19,43 @@ struct Visit {
   void operator()(const int&) const {}
 };
 
+struct CountingForwardIterator {
+  using iterator_category = std::forward_iterator_tag;
+  using value_type = int;
+  using difference_type = std::ptrdiff_t;
+  using pointer = int*;
+  using reference = int&;
+  int* value{};
+  std::atomic<std::size_t>* increments{};
+  int& operator*() const { return *value; }
+  CountingForwardIterator& operator++() {
+    ++value;
+    increments->fetch_add(1, std::memory_order_relaxed);
+    return *this;
+  }
+  CountingForwardIterator operator++(int) {
+    auto previous = *this;
+    ++*this;
+    return previous;
+  }
+  friend bool operator==(CountingForwardIterator a, CountingForwardIterator b) {
+    return a.value == b.value;
+  }
+};
+
+void linear_forward_traversal(dagflow::Pool& pool) {
+  std::vector<int> data(8 * DAGFLOW_DEFAULT_RANGE_CHUNK + 7);
+  std::atomic<std::size_t> increments{0};
+  auto result = pool.for_each(
+      CountingForwardIterator{data.data(), &increments},
+      CountingForwardIterator{data.data() + data.size(), &increments},
+      [](int& x) { ++x; });
+  pool.wait_and_rethrow(result);
+  CHECK(std::ranges::all_of(data, [](int x) { return x == 1; }));
+  // Distance, chunk boundaries and execution each traverse at most once.
+  CHECK(increments.load() <= 3 * data.size());
+}
+
 template <class R>
 concept PoolRange = requires(dagflow::Pool& pool, R&& range) {
   pool.for_each(std::forward<R>(range), Visit{});
@@ -148,6 +185,7 @@ int main() {
     }
     CHECK(caught);
     range_algorithms(pool);
+    linear_forward_traversal(pool);
     graph_ranges(pool);
   }
 }

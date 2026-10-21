@@ -168,7 +168,7 @@ jobs:
 
       - name: Bounded mutation checks
         run: |
-          for layer in containers function queues scope pool graph parking lifecycle accounting scheduler credits allocation exceptions ranges graph_scope joins saturation scope_races; do
+          for layer in containers function queues scope pool graph parking lifecycle accounting scheduler credits allocation exceptions ranges graph_scope joins saturation scope_races wake_protocol; do
             seed_count=$(find "out/build/fuzz/dagflow_fuzz_${layer}-corpus" -maxdepth 1 -type f | wc -l)
             "out/build/fuzz/dagflow_fuzz_${layer}" \
               "out/build/fuzz/dagflow_fuzz_${layer}-corpus" \

@@ -1,5 +1,8 @@
 # TaskScope: admission, completion and lifetime
 
+> The canonical contract/implementation/test registry is [protocol.md](protocol.md).
+> This document provides TaskScope examples and lifetime explanations.
+
 `TaskScope` is a one-shot dynamic task group. The old reusable DAG builder is
 `GraphScope` (`dagflow/graph_scope.hpp`). Its graph-building methods retain their behavior.
 Include `dagflow/task_scope.hpp` for dynamic work, or `dagflow/dagflow.hpp` for both APIs.

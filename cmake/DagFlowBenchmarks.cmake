@@ -15,6 +15,10 @@ function(dagflow_add_benchmark_run target stem default_args)
   set(variable "DAGFLOW_${upper_stem}_ARGS")
   set(${variable} "${default_args}" CACHE STRING "Arguments for dagflow_run_${stem}")
   separate_arguments(arguments NATIVE_COMMAND "${${variable}}")
+  # The generic scenario API reads the same variable as a CMake list. Shadow
+  # the command-line cache string locally so it sees the parsed argv, while
+  # keeping the user's original cache value intact across reconfiguration.
+  set(${variable} "${arguments}")
   dagflow_add_scenario(${stem} TARGET ${target} GROUP dagflow
     ARGS ${arguments} REPEATS 1 WARMUP 0)
   add_custom_target(dagflow_run_${stem} DEPENDS run_${stem})

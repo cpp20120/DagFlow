@@ -143,7 +143,7 @@ struct RetryObserver {
   }
 };
 
-[[maybe_unused]] void external_backpressure(dagflow::fuzz::Bytes& bytes) {
+void external_backpressure(dagflow::fuzz::Bytes& bytes) {
   RetryObserver observer; // Outlives the pool and every publisher.
   dagflow::Config cfg;
   cfg.threads = 1;
@@ -230,9 +230,9 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
   switch (bytes.bound(4)) {
     case 0: scheduler_saturation(bytes); break;
     case 1: worker_overflow(bytes); break;
-    // Keep the input layout stable, but do not wait on commented-out hooks.
-    // Restore external_backpressure(bytes) when runtime checkpoints return.
-    case 2: break;
+    case 2:
+      external_backpressure(bytes);
+      break;
     default: fairness(bytes); break;
   }
   return 0;

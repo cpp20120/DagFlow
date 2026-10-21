@@ -8,6 +8,9 @@
 #include <dagflow/detail/runtime_memory.hpp>
 #include <dagflow/detail/scheduler.hpp>
 #include <dagflow/thread_pool.hpp>
+#if defined(DAGFLOW_TEST_FAULT_INJECTION)
+#include <dagflow/detail/test_faults.hpp>
+#endif
 #include <exception>
 #include <mutex>
 #include <span>
@@ -35,10 +38,61 @@ namespace dagflow {
 namespace {
 constexpr uint32_t wake_retry_mask = 63U;
 constexpr uint32_t backoff_growth_factor = 2;
+
+// Only saturated external producers pay this cost. Timed parking avoids adding
+// another atomic/fence to every queue pop just to notify rare capacity waiters.
+// Admission remains reserved, so close/shutdown still drains this publisher.
+void backpressure_pause(uint32_t retries) {
+  if (retries < 8) {
+    std::this_thread::yield();
+  } else {
+    const auto delay = uint32_t{1} << std::min(retries - 8, uint32_t{7});
+    std::this_thread::sleep_for(std::chrono::microseconds(delay));
+  }
+}
 }  // namespace
 
 thread_local uint32_t Pool::tls_id_ = UINT32_MAX;
 DAGFLOW_TLS_ATTR thread_local Pool* Pool::tls_pool_ = nullptr;
+thread_local uint32_t Pool::tls_wait_depth_ = 0;
+
+uint32_t Pool::worker_wait_depth() noexcept { return tls_wait_depth_; }
+
+namespace detail {
+// One record per suspended wait frame, not per worker or Handle. The
+// observation in Pool::wait owns the state. Registration, notification and
+// removal share its mutex, so retire never signals a destroyed stack record or
+// ParkingLot.
+struct CompletionWaiter {
+  CompletionState& state;
+  ParkingLot& parking;
+  uint32_t worker;
+  CompletionWaiter* next{};
+  bool registered{false};
+
+  CompletionWaiter(CompletionState& completion, ParkingLot& lot, uint32_t id)
+      : state(completion), parking(lot), worker(id) {
+    std::lock_guard lock(state.mutex);
+    auto gate = CompletionState::Dependents::unused;
+    state.dependent_gate.compare_exchange_strong(
+        gate, CompletionState::Dependents::registered,
+        std::memory_order_acq_rel, std::memory_order_acquire);
+    if (gate == CompletionState::Dependents::closed) return;
+    next = state.worker_waiters;
+    state.worker_waiters = this;
+    registered = true;
+  }
+  CompletionWaiter(const CompletionWaiter&) = delete;
+  CompletionWaiter& operator=(const CompletionWaiter&) = delete;
+  ~CompletionWaiter() {
+    if (!registered) return;
+    std::lock_guard lock(state.mutex);
+    auto** link = &state.worker_waiters;
+    while (*link != this) link = &(*link)->next;
+    *link = next;
+  }
+};
+}  // namespace detail
 
 #if defined(_WIN32)
 bool Pool::is_current_worker() const noexcept { return tls_pool_ == this; }
@@ -137,7 +191,12 @@ void Pool::enter_publication() {
   for (;;) {
     if (state & admission_closed_bit)
       throw std::logic_error("Pool: external task admission is closed");
+#if defined(DAGFLOW_TEST_FAULT_INJECTION)
+    if (state == admission_closed_bit - 1 ||
+        detail::test_faults::force_pool_admission_overflow)
+#else
     if (state == admission_closed_bit - 1)
+#endif
       throw std::overflow_error("Pool: too many concurrent publishers");
     if (admission_.compare_exchange_weak(state, state + 1,
                                          std::memory_order_acquire,
@@ -234,10 +293,10 @@ void Pool::dispatch(Task* task, const SubmitOptions& opt) {
   const auto shard = scheduler_->select_shard(opt.affinity);
   uint32_t retries = 0;
   while (!scheduler_->try_submit_external(shard, task)) {
-    // DAGFLOW_FUZZ_POINT(external_retry);
+    DAGFLOW_FUZZ_POINT(external_retry);
     detail::runtime_count(detail::RuntimeEvent::external_retry);
     if ((retries++ & wake_retry_mask) == 0) parking_->wake_one(shard);
-    std::this_thread::yield();
+    backpressure_pause(retries);
   }
   parking_->wake_one(shard);
 }
@@ -268,10 +327,10 @@ void Pool::enqueue_batch_prepared(std::span<detail::OwnedScheduledTask> pending,
       auto* task = owned.release();
       uint32_t retries = 0;
       while (!scheduler_->try_submit_external(shard, task)) {
-        // DAGFLOW_FUZZ_POINT(external_retry);
+        DAGFLOW_FUZZ_POINT(external_retry);
         detail::runtime_count(detail::RuntimeEvent::external_retry);
         if ((retries++ & wake_retry_mask) == 0) parking_->wake_one(shard);
-        std::this_thread::yield();
+        backpressure_pause(retries);
       }
       published = true;
     }
@@ -319,7 +378,7 @@ void detail::CompletionState::release() noexcept {
 detail::CompletionState::~CompletionState() {
   assert(credits.load(std::memory_order_relaxed) == 0);
   assert(ready.load(std::memory_order_relaxed));
-  assert(!payload && dependents.empty());
+  assert(!payload && dependents.empty() && !worker_waiters);
 }
 
 void detail::CompletionState::set_error(std::exception_ptr failure) noexcept {
@@ -341,9 +400,10 @@ std::exception_ptr detail::CompletionState::get_error() noexcept {
 }
 
 void detail::CompletionState::add_dependent(CompletionCredit dependent) {
-  // Only combine takes this lock. Claiming the gate before appending obliges
-  // the final credit to take it too; closure sends late edges down the ready
-  // path. A source without registrations never locks on ordinary completion.
+  // Claiming the gate before appending obliges the final credit to acquire the
+  // mutex before delivering edges or notifying waiters. Closure sends late
+  // edges down the ready path. An unregistered source never locks on
+  // completion.
   std::exception_ptr failure;
   {
     std::lock_guard lock(mutex);
@@ -397,6 +457,9 @@ void detail::CompletionState::retire(CompletionState* state) noexcept {
         Dependents::registered) {
       std::lock_guard lock(current->mutex);
       edges.swap(current->dependents);
+      for (auto* waiter = current->worker_waiters; waiter;
+           waiter = waiter->next)
+        waiter->parking.wake_worker(waiter->worker);
     }
     current->ready.notify_all();
     for (auto& edge : edges) {
@@ -470,20 +533,47 @@ void detail::CompletionCredit::finish() noexcept {
     CompletionState::retire(state);
 }
 
-void Pool::wait(const Handle& handle) {
+void Pool::wait(const Handle& handle) { wait_impl(handle, true); }
+
+void Pool::wait_impl(const Handle& handle, bool check_policy) {
   // External waits block on atomic readiness. A worker wait must help because a
   // single worker can otherwise be waiting for work that only it can execute.
   // Copying the observation protects the state if task code resets its Handle.
   if (!handle.valid()) return;
   // Retain an observation while helping: user code may replace its own Handle.
   auto observation = handle;
+  if (observation.ready()) return;
+  if (check_policy && tls_pool_ &&
+      tls_pool_->cfg_.worker_wait_policy == WorkerWaitPolicy::Reject)
+    throw std::logic_error("Pool: waiting inside a task is disabled");
   if (tls_pool_ == this) {
-    while (!observation.ready()) {
+    struct Depth {
+      uint32_t& value;
+      explicit Depth(uint32_t& depth) : value(depth) { ++value; }
+      ~Depth() { --value; }
+    } depth(tls_wait_depth_);
+    // Register only after helping runs out of work. Most child waits need no
+    // registration, allocation or mutex. Keep the record through nested
+    // helping.
+    std::optional<detail::CompletionWaiter> waiter;
+    const auto help = [&](bool announced = false) {
       detail::runtime_count(detail::RuntimeEvent::help_attempt);
-      if (!try_help_one(tls_id_))
-        std::this_thread::yield();
-      else
-        detail::runtime_count(detail::RuntimeEvent::help_success);
+      const bool helped = try_help_one(tls_id_, announced);
+      if (helped) detail::runtime_count(detail::RuntimeEvent::help_success);
+      return helped;
+    };
+    while (!observation.ready()) {
+      if (help()) continue;
+      if (!waiter) waiter.emplace(*observation.state_, *parking_, tls_id_);
+      const auto epoch = parking_->prepare(tls_id_);
+      // Completion before prepare is caught here; completion after this check
+      // signals the epoch. New work uses the ordinary final-scan handshake.
+      if (observation.ready()) {
+        parking_->cancel(tls_id_);
+        break;
+      }
+      if (help(true)) continue;
+      parking_->wait(tls_id_, epoch, cfg_.idle_us_max, stop_);
     }
   } else {
     observation.state_->wait();
@@ -500,7 +590,7 @@ void Pool::wait_idle() {
 }
 // Ordering below is part of the lifetime protocol. Do not reorder.
 void Pool::execute_task(uint32_t id, Task* task) {
-  // DAGFLOW_FUZZ_POINT(before_execute);
+  DAGFLOW_FUZZ_POINT(before_execute);
   detail::runtime_count(detail::RuntimeEvent::executed);
 #if defined(DAGFLOW_RUNTIME_DIAGNOSTICS)
   if (task->allocating_thread != UINT64_MAX &&
@@ -515,9 +605,10 @@ void Pool::execute_task(uint32_t id, Task* task) {
   try {
     ops->invoke(task);
   } catch (...) {
-    // Detached tasks have no error observer. Handled tasks preserve the first
-    // exception, including execution caused by queue overflow.
-    task->done.fail(std::current_exception());
+    if (task->done)
+      task->done.fail(std::current_exception());
+    else if (cfg_.detached_error_handler)
+      cfg_.detached_error_handler(std::current_exception());
   }
 
   auto done = std::move(task->done);
@@ -527,7 +618,8 @@ void Pool::execute_task(uint32_t id, Task* task) {
   ops->destroy(task);
   done.finish();
   // The handle may now be ready while pool quiescence still waits for
-  // retirement. DAGFLOW_FUZZ_POINT(before_retire);
+  // retirement.
+  DAGFLOW_FUZZ_POINT(before_retire);
   accounting_->retire(id);
 }
 

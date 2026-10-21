@@ -12,3 +12,10 @@ adaptation within DagFlow; do not overwrite this directory wholesale.
 
 The separate cmake_boilerplate project has its own lifecycle and is not modified
 or required by DagFlow builds.
+
+Reviewed against `cmake_boilerplate` revision
+`eaa96d8` on 2026-10-13: the existing C++ compiler policies, library exports,
+packaging, dependency discovery, and process runners remain current after
+namespace adaptation. Rust/Cargo, CUDA/UI/deployment, and unused Google
+Benchmark/GoogleTest/FuzzTest helpers are intentionally not imported. DagFlow's
+library defaults, allocator adapter, and build matrix remain project-owned.

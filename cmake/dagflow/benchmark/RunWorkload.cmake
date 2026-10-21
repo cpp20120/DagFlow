@@ -127,5 +127,7 @@ endif()
 file(WRITE "${_output}/result.json" "${_report}\n")
 message(STATUS "Process harness result: ${_output}/result.json")
 if(_failed)
-  message(FATAL_ERROR "Workload failed (${_result}); see captured logs")
+  message(FATAL_ERROR "Workload failed (${_result}); see captured logs:\n"
+    "  stdout: ${_output}/${_i}.stdout.log\n"
+    "  stderr: ${_output}/${_i}.stderr.log")
 endif()

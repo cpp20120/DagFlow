@@ -16,6 +16,7 @@ namespace dagflow {
 class Handle;
 namespace detail {
 struct CompletionState;
+struct CompletionWaiter;
 
 /// One move-only obligation to complete an operation. A live credit protects
 /// both operation storage and the authority to fork more credits (C-01..03).
@@ -75,10 +76,12 @@ struct CompletionState {
   std::atomic<bool> has_error{false};
   enum class Dependents : unsigned char { unused, registered, closed };
   std::atomic<Dependents> dependent_gate{Dependents::unused};
-  // Cold paths only: error capture and combine's dependent registration.
+  // Cold paths only: errors, dependent registration and parked worker waits.
+  // dependent_gate also closes worker registration before terminal delivery.
   std::mutex mutex;
   std::exception_ptr error;
   std::vector<CompletionCredit, RuntimeAllocator<CompletionCredit>> dependents;
+  CompletionWaiter* worker_waiters{};  // Intrusive stack records, under mutex.
   // A terminal worklist carries the retiring credit's storage reference.
   CompletionState* next_terminal{};
   void* payload{};

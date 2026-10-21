@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.26)
 file(MAKE_DIRECTORY "${CHECK_DIR}")
 
 function(configure_case name expected)
-  execute_process(COMMAND "${CMAKE_COMMAND}" -S "${SOURCE_DIR}"
+  execute_process(COMMAND "${CMAKE_COMMAND}" --fresh -S "${SOURCE_DIR}"
     -B "${CHECK_DIR}/${name}" -G Ninja "-DCMAKE_CXX_COMPILER=${CXX}"
     -DDAGFLOW_BUILD_SHARED=OFF -DDAGFLOW_BUILD_STATIC=OFF -DDAGFLOW_BUILD_TESTS=OFF
     -DDAGFLOW_BUILD_EXAMPLES=OFF -DDAGFLOW_INSTALL=OFF -DDAGFLOW_BUILD_BENCH=OFF
@@ -46,7 +46,7 @@ add_executable(probe main.cpp)
 dagflow_apply_target_policy(probe)
 target_sources(probe PRIVATE late.cpp)
 ")
-execute_process(COMMAND "${CMAKE_COMMAND}" -S "${probe}" -B "${probe}/build"
+execute_process(COMMAND "${CMAKE_COMMAND}" --fresh -S "${probe}" -B "${probe}/build"
   -G Ninja "-DCMAKE_CXX_COMPILER=${CXX}"
   RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE error)
 if(NOT result EQUAL 0)
@@ -104,7 +104,7 @@ dagflow_project(CAPABILITIES static-analysis)
 add_executable(probe src/main.cpp)
 dagflow_finalize_project()
 ")
-execute_process(COMMAND "${CMAKE_COMMAND}" -S "${analysis_probe}" -B "${analysis_probe}/build"
+execute_process(COMMAND "${CMAKE_COMMAND}" --fresh -S "${analysis_probe}" -B "${analysis_probe}/build"
   -G Ninja "-DCMAKE_CXX_COMPILER=${CXX}"
   RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE error)
 if(NOT result EQUAL 0)

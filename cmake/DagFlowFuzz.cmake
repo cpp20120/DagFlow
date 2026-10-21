@@ -10,20 +10,15 @@ if(DAGFLOW_RUNTIME_DIAGNOSTICS)
   target_compile_definitions(dagflow_fuzz_runtime PUBLIC DAGFLOW_RUNTIME_DIAGNOSTICS=1)
 endif()
 
-set(DAGFLOW_FUZZ_LAYERS "containers;function;queues;scope;pool;graph;parking;lifecycle;accounting;scheduler;credits;allocation;exceptions;ranges;graph_scope;joins;saturation;scope_races" CACHE STRING
-  "Fuzz layers to build (CMake list; defaults to 18 active layers)")
+set(DAGFLOW_FUZZ_LAYERS "containers;function;queues;scope;pool;graph;parking;lifecycle;accounting;scheduler;credits;allocation;exceptions;ranges;graph_scope;joins;saturation;scope_races;wake_protocol" CACHE STRING
+  "Fuzz layers to build (CMake list; defaults to 19 active layers)")
 if(NOT DAGFLOW_FUZZ_LAYERS)
   message(FATAL_ERROR "DAGFLOW_FUZZ_LAYERS must contain at least one layer")
 endif()
 set(_dagflow_fuzz_layers ${DAGFLOW_FUZZ_LAYERS})
 list(REMOVE_DUPLICATES _dagflow_fuzz_layers)
 foreach(layer IN LISTS _dagflow_fuzz_layers)
-  if(layer STREQUAL "wake_protocol")
-    message(FATAL_ERROR
-      "wake_protocol is disabled while DAGFLOW_FUZZ_POINT calls are commented out. "
-      "Remove it from DAGFLOW_FUZZ_LAYERS or use -U DAGFLOW_FUZZ_LAYERS to restore active defaults.")
-  endif()
-  if(NOT layer MATCHES "^(containers|function|queues|scope|pool|graph|parking|lifecycle|accounting|scheduler|credits|allocation|exceptions|ranges|graph_scope|joins|saturation|scope_races)$")
+  if(NOT layer MATCHES "^(containers|function|queues|scope|pool|graph|parking|lifecycle|accounting|scheduler|credits|allocation|exceptions|ranges|graph_scope|joins|saturation|scope_races|wake_protocol)$")
     message(FATAL_ERROR "Unknown DAGFLOW_FUZZ_LAYERS entry: ${layer}")
   endif()
   dagflow_add_fuzzer(dagflow_fuzz_${layer}

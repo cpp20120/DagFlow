@@ -159,6 +159,13 @@ def wake_protocols() -> None:
                             seed("wake_protocol",
                                  f"protocol-{workers}-{shards}-{batch}-{clustered}-{mode}-{variant}",
                                  [mode] + cfg + tail)
+    for workers in (1, 4):
+        for via_task in (0, 1):
+            for before_cv in (0, 1):
+                seed("wake_protocol", f"worker-wait-{workers}-{via_task}-{before_cv}",
+                     [4, workers - 1, workers - 1, 0, 1, via_task, before_cv])
+    for via_task in (0, 1):
+        seed("wake_protocol", f"nested-worker-wait-{via_task}", [5, via_task])
 
 
 if __name__ == "__main__":

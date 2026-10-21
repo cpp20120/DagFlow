@@ -25,6 +25,8 @@ class ParkingLot {
   void wait(uint32_t worker, uint64_t epoch, uint32_t timeout_us,
             const std::atomic<bool>& stop);
   void wake_one(uint32_t shard);
+  // Completion notification targets the waiting worker, including nested waits.
+  void wake_worker(uint32_t worker);
   void wake_all();
 #if defined(DAGFLOW_FUZZ_HOOKS)
   [[nodiscard]] uint64_t fuzz_epoch(uint32_t worker) const noexcept {
@@ -51,7 +53,11 @@ class ParkingLot {
   };
   bool wake_domain(uint32_t shard);
   bool wake_word(uint32_t word_index, uint64_t mask);
+#if defined(DAGFLOW_FUZZ_HOOKS)
+  void signal(uint32_t worker, bool claimed, bool checkpoint = true);
+#else
   void signal(uint32_t worker, bool claimed);
+#endif
   const std::span<const uint32_t> members_;
   OwnedArray<Waiter> waiters_;
   OwnedArray<Domain> domains_;

@@ -1,5 +1,10 @@
 # DagFlow: current lifetime, ownership, custody, and completion model
 
+> **Historical snapshot — superseded by [the runtime protocol](protocol.md).**
+> The descriptions below of shutdown, task allocation, completion ownership and
+> TaskScope are obsolete. The original snapshot text is retained for history;
+> its “current” status and test counts do not describe today's implementation.
+
 > **Status:** description of the current implementation in the supplied DagFlow snapshot.  
 > **Scope:** `Pool`, workers, scheduler queues, `ScheduledTask`, task allocator, `Handle::Counter`, `TaskGraph`, `RunState`, nodes, lanes, tokens, cancellation, `TaskScope`, and user-owned captures/ranges.  
 > **Not a redesign:** this document first describes what the code does now and the invariants on which that behavior relies. Design changes can be derived from this model later.
@@ -581,7 +586,7 @@ The `ScheduledTask` object is constructed with the block and remains constructed
 
 ```mermaid
 stateDiagram-v2
-    [*] --> ConstructedFree: Block allocation constructs Slot::object
+    [*] --> ConstructedFree: Block allocation constructs Slotobject
     ConstructedFree --> CheckedOut: acquire
     CheckedOut --> ConstructedFree: release / return_local
     ConstructedFree --> Destroyed: free block trimming or allocator destruction
@@ -1880,7 +1885,7 @@ while target count != 0:
 
 ```mermaid
 flowchart TD
-    W[Pool::wait(handle)] --> SAME{"caller is worker of same Pool?"}
+    W[Pool::wait handle ] --> SAME{"caller is worker of same Pool?"}
     SAME -->|no| CV[block on Counter CV]
     SAME -->|yes| LOOP[while counter != 0]
     LOOP --> ACQ[try_acquire any pool work]

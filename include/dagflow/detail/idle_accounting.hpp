@@ -8,6 +8,9 @@
 #include <exception>
 #include <limits>
 #include <mutex>
+#if defined(DAGFLOW_TEST_FAULT_INJECTION)
+#include <dagflow/detail/test_faults.hpp>
+#endif
 
 namespace dagflow::detail {
 // Each lane has exactly one writer. Observers read only while waiting for idle.
@@ -31,7 +34,13 @@ class IdleAccounting {
   void retire(uint32_t worker) noexcept {
     auto& retired = workers_[worker].retired;
     const auto previous = retired.load(std::memory_order_relaxed);
+#if defined(DAGFLOW_TEST_FAULT_INJECTION)
+    // Simulate a saturated lane without writing an impossible live counter.
+    if (test_faults::force_worker_retire_overflow ||
+        previous == std::numeric_limits<uint64_t>::max()) std::terminate();
+#else
     if (previous == std::numeric_limits<uint64_t>::max()) std::terminate();
+#endif
     retired.store(previous + 1, std::memory_order_release);
   }
   void worker_idle();
@@ -50,7 +59,12 @@ class IdleAccounting {
   [[noreturn]] static void publication_exhausted();
   static void publish(Lane& lane) {
     const auto previous = lane.published.load(std::memory_order_relaxed);
+#if defined(DAGFLOW_TEST_FAULT_INJECTION)
+    if (test_faults::force_worker_publish_overflow ||
+        previous == std::numeric_limits<uint64_t>::max())
+#else
     if (previous == std::numeric_limits<uint64_t>::max())
+#endif
       publication_exhausted();
     lane.published.store(previous + 1, std::memory_order_release);
   }

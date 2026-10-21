@@ -1,5 +1,10 @@
 # DagFlow: current lifetime, ownership, custody, and completion model
 
+> **Historical snapshot — superseded by [the runtime protocol](protocol.md).**
+> The descriptions below of shutdown, task allocation, completion ownership and
+> TaskScope are obsolete. The original snapshot text is retained for history;
+> its “current” status and test counts do not describe today's implementation.
+
 > **Status:** historical snapshot, not the current runtime contract. In particular,
 > inline overflow and stop-only destruction below have been replaced by
 > [shared overflow and graceful shutdown](pool-lifecycle.md). For current credits,

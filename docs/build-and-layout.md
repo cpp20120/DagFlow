@@ -87,6 +87,39 @@ without executing them. To run a particular benchmark explicitly, build its
 cases, JSON results, comparison and PGO. Normal builds do not execute
 benchmark campaigns or invoke Python.
 
+## CLion run targets
+
+`dagflow_example*`, `dagflow_runtime_suite`, and the test executables can be run
+and debugged as ordinary CMake applications. Targets such as `run_*`,
+`dagflow_run_*`, `dagflow_check`, and build aggregates are CMake commands;
+libraries likewise have no executable to launch. CLion can create application
+configurations for these targets with an empty Executable field, producing
+`Incorrect run configuration: Executable is not specified` after the build.
+See the [CLion CMake Application settings](https://www.jetbrains.com/help/clion/run-debug-configuration-application.html).
+
+For those configurations, use the CMake executable from the selected toolchain,
+with arguments `--build "<build-directory>" --target "<target>" --config Debug`
+(or the appropriate configuration). Disable the **Build** step under **Before
+launch**: CMake performs that step itself, including running custom commands.
+This preserves exit codes and avoids running scenarios twice. Use **Run** for
+these commands; select the underlying executable when debugging C++ code.
+
+To repair existing local configurations from the enabled CLion profiles and
+their CMake File API models:
+
+```sh
+python3 scripts/repair-clion-runs.py          # preview
+python3 scripts/repair-clion-runs.py --apply  # back up and repair
+```
+
+The optional maintenance script updates only CMake run configurations in
+`.idea/workspace.xml`, resolves old profile references against enabled profiles,
+and saves the previous workspace under `out/clion-backups/`. It reports targets
+missing from every available model instead of inventing executables. Reload
+the project after applying; close CLion before applying if it overwrites external
+workspace edits. Normal CMake builds and CLI run targets do not use this script
+or require Python.
+
 ## Dependency and toolchain controls
 
 `cmake/DagFlowDependencies.cmake` maps enabled components to `vcpkg.json`

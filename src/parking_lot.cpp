@@ -3,6 +3,9 @@
 #include <cstddef>
 #include <dagflow/detail/fuzz_points.hpp>
 #include <dagflow/detail/parking_lot.hpp>
+#if defined(DAGFLOW_TEST_FAULT_INJECTION)
+#include <dagflow/detail/test_faults.hpp>
+#endif
 
 #if defined(__i386__) || defined(__x86_64__) || defined(_M_IX86) || \
     defined(_M_X64)
@@ -69,7 +72,7 @@ uint64_t ParkingLot::prepare(uint32_t worker) noexcept {
   idle_[waiter.word_index].fetch_or(waiter.bit, std::memory_order_seq_cst);
   // Pair with the publisher fence: registration precedes the final queue scan.
   std::atomic_thread_fence(std::memory_order_seq_cst);
-  // DAGFLOW_FUZZ_POINT(idle_announce);
+  DAGFLOW_FUZZ_POINT(idle_announce);
   return epoch;
 }
 void ParkingLot::cancel(uint32_t worker) noexcept {
@@ -87,13 +90,16 @@ void ParkingLot::wait(uint32_t worker, uint64_t epoch, uint32_t timeout_us,
     }
     spin_pause();
   }
-  // DAGFLOW_FUZZ_POINT(before_cv);
+  DAGFLOW_FUZZ_POINT(before_cv);
   std::unique_lock lock(waiter.mutex);
   // SC pairs with signal's epoch increment followed by its sleeping probe:
   // either this predicate observes the signal or the notifier takes the mutex.
   waiter.sleeping.store(true, std::memory_order_seq_cst);
   runtime_count(RuntimeEvent::park_call);
   try {
+#if defined(DAGFLOW_TEST_FAULT_INJECTION)
+    test_faults::parking_wait();
+#endif
     const bool signalled =
         waiter.cv.wait_for(lock, std::chrono::microseconds(timeout_us), [&] {
           return stop.load(std::memory_order_acquire) ||
@@ -108,7 +114,21 @@ void ParkingLot::wait(uint32_t worker, uint64_t epoch, uint32_t timeout_us,
   waiter.sleeping.store(false, std::memory_order_seq_cst);
   cancel(worker);
 }
+void ParkingLot::wake_worker(uint32_t worker) {
+  // Completion holds its registration mutex to protect waiter/Pool lifetime.
+  // Keep the blocking fuzz checkpoint restricted to unlocked queue/shutdown
+  // notifications. Completion races are gated at prepare/before_cv instead.
+#if defined(DAGFLOW_FUZZ_HOOKS)
+  signal(worker, false, false);
+#else
+  signal(worker, false);
+#endif
+}
+#if defined(DAGFLOW_FUZZ_HOOKS)
+void ParkingLot::signal(uint32_t worker, bool claimed, bool checkpoint) {
+#else
 void ParkingLot::signal(uint32_t worker, bool claimed) {
+#endif
   auto& waiter = waiters_[worker];
   // Clear exactly the registration being notified, before changing the epoch.
   // A claimed bit must not be cleared again: the owner may already have
@@ -118,7 +138,9 @@ void ParkingLot::signal(uint32_t worker, bool claimed) {
                                                   std::memory_order_seq_cst) &
                waiter.bit) != 0;
   waiter.epoch.fetch_add(1, std::memory_order_seq_cst);
-  // DAGFLOW_FUZZ_POINT(wake_claim);
+#if defined(DAGFLOW_FUZZ_HOOKS)
+  if (checkpoint) DAGFLOW_FUZZ_POINT(wake_claim);
+#endif
   if (!claimed) return;
   runtime_count(RuntimeEvent::wake_signal);
   // Announced workers that are scanning/spinning observe the epoch directly.

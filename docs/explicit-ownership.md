@@ -1,5 +1,8 @@
 # Явное владение в runtime
 
+> Единый реестр действующих контрактов, реализации и проверок:
+> [protocol.md](protocol.md). Ниже — пояснение модели владения.
+
 Этот документ описывает действующий контракт времени жизни. Он дополняет
 [текущий план улучшений](runtime-improvement-plan.md) и не является обещанием
 конкретной реализации очереди или allocator backend.
@@ -38,7 +41,7 @@ Scheduler queue
       │ acquisition
       ▼
 Executor
-      │ fn.reset → packet destroy → credit.finish
+      │ callable/packet destroy (или release graph slot) → credit.finish
       ▼
 освобождение backend
 ```
@@ -57,18 +60,21 @@ RAII-путём. Очередь хранит указатель и custody, но
 
 1. уничтожается operation payload;
 2. читается сохранённая ошибка (без mutex, если ошибок не было);
-3. публикуется `ready()`, атомарно закрывается регистрация dependents;
-   только при наличии регистраций под mutex забираются их credits,
-   затем будятся ожидающие через atomic readiness;
+3. публикуется `ready()`, атомарно закрывается gate регистрации dependents
+   и worker waiters; при наличии регистраций под mutex забираются dependent
+   credits и сигналятся ожидающие workers, затем выполняется atomic notify;
 4. итеративно распространяется ошибка и закрываются дочерние credits;
 5. освобождается последнее storage reference.
 
 Регистрация dependents в `combine` помечает атомарный gate под mutex.
 Финальное завершение либо видит эту отметку и забирает список под тем же mutex,
 либо закрывает gate первым, и поздняя регистрация сразу гасит credit против
-готового источника. Обычный путь без ошибки и dependents mutex не берёт.
-Ожидание использует `ready.wait(false)`; payload уничтожается до публикации
-ready, а финальный storage reference защищает доставку dependents после неё.
+готового источника. Обычный путь без ошибки, dependents и worker waiters mutex
+не берёт.
+Внешнее ожидание использует `ready.wait(false)`; workers помогают и при
+необходимости регистрируют completion waiter перед парковкой. Payload уничтожается
+до публикации ready, а финальный storage reference защищает доставку dependents
+после неё.
 
 `Handle` удерживает только completion state. Он может быть скопирован или
 перемещён и может жить после `Pool`, если работа уже завершена. Копия Handle не

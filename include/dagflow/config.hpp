@@ -33,4 +33,4 @@ constexpr uint32_t DAGFLOW_DEFAULT_CENTRAL_BATCH = 1024;
 #endif
 /// Default worker parking backoff bounds, in microseconds.
 constexpr uint32_t DAGFLOW_DEFAULT_IDLE_US_MIN = 50;
-constexpr uint32_t DAGFLOW_DEFAULT_IDLE_US_MAX = 200;
+constexpr uint32_t DAGFLOW_DEFAULT_IDLE_US_MAX = 1'000;

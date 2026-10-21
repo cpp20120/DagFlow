@@ -1,4 +1,8 @@
 #include <dagflow/task_graph.hpp>
+#include <dagflow/detail/fuzz_points.hpp>
+#if defined(DAGFLOW_TEST_FAULT_INJECTION)
+#include <dagflow/detail/test_faults.hpp>
+#endif
 #include <limits>
 
 namespace dagflow {
@@ -11,7 +15,13 @@ void TaskGraph::add_edge(NodeId a, NodeId b) {
   ensure_not_running();
   auto& from = builder_.nodes.at(a.idx);
   auto& destination = builder_.nodes.at(b.idx);
+#if defined(DAGFLOW_TEST_FAULT_INJECTION)
+  if (builder_.edge_count == std::numeric_limits<index_type>::max() ||
+      (detail::test_faults::graph_edge_limit &&
+       builder_.edge_count >= detail::test_faults::graph_edge_limit))
+#else
   if (builder_.edge_count == std::numeric_limits<index_type>::max())
+#endif
     throw std::length_error("TaskGraph: too many edges for uint32_t offsets");
   from.successors.push_back(static_cast<index_type>(b.idx));
   ++destination.predecessor_count;
@@ -336,6 +346,7 @@ void TaskGraph::execute(RunState& state, index_type i,
          runtime.lanes.fetch_sub(1, std::memory_order_acq_rel) == 1) &&
         !state.cancel.load(std::memory_order_acquire)) {
       for (index_type edge = node.edge_begin; edge < node.edge_end; ++edge) {
+        DAGFLOW_FUZZ_POINT(graph_before_dependency_check);
         if (state.cancel.load(std::memory_order_acquire)) break;
         const auto j = state.edges[edge];
         // One incoming edge has exactly one releaser. With multiple incoming
@@ -356,6 +367,7 @@ void TaskGraph::execute(RunState& state, index_type i,
       }
     }
     if (next == no_node) break;
+    DAGFLOW_FUZZ_POINT(graph_before_inline_continuation);
     if ((budget == 0 || --budget == 0) &&
         !state.cancel.load(std::memory_order_acquire)) {
       detail::runtime_count(detail::RuntimeEvent::graph_continuations);

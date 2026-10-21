@@ -39,7 +39,7 @@ function(_dagflow_project_coverage_finalize)
   foreach(_arg IN LISTS _gcov_tool)
     list(APPEND _gcov_args --gcov-tool "${_arg}")
   endforeach()
-  set(_format_args)
+  set(_format_args --branch-coverage)
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     # llvm-cov's gcov format has no function end positions. lcov's heuristic
     # cannot reliably reconstruct them for C++ inline functions/destructors.

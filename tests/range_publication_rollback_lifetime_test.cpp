@@ -8,8 +8,10 @@
 #include "adversarial_support.hpp"
 
 namespace {
-void exercise(bool stealing) {
-  dagflow::Pool pool(adversarial::config(2));
+void exercise(bool stealing, bool strict_worker = false) {
+  auto cfg = adversarial::config(2);
+  if (strict_worker) cfg.worker_wait_policy = dagflow::WorkerWaitPolicy::Reject;
+  dagflow::Pool pool(cfg);
   std::latch entered(1), allocation_failed(1), release(1);
   std::atomic<unsigned> calls{0}, destroyed{0};
   std::atomic<bool> returned{false};
@@ -26,9 +28,9 @@ void exercise(bool stealing) {
   struct FailureGate {
     std::latch &entered, &failed;
   } gate{entered, allocation_failed};
-  std::thread publisher([&] {
+  const auto publish = [&] {
     // Prime this thread's accounting registration before counting allocations.
-    pool.wait(pool.submit([] {}));
+    if (!strict_worker) pool.wait(pool.submit([] {}));
     std::vector<unsigned> values(size);
     auto fn = [&, owner = std::unique_ptr<Capture>(new Capture{
                       calls, destroyed, accepted})](unsigned& value) {
@@ -65,11 +67,20 @@ void exercise(bool stealing) {
       CHECK(values[i] == unsigned(i < accepted));
     returned.store(true);
     // The backing vector dies here, immediately after publication throws.
-  });
+  };
+  std::thread publisher;
+  dagflow::Handle worker_publisher;
+  if (strict_worker)
+    worker_publisher = pool.submit(publish);
+  else
+    publisher = std::thread(publish);
   allocation_failed.wait();
   CHECK(!returned && destroyed == 0 && calls == 0);
   release.count_down();
-  publisher.join();
+  if (strict_worker)
+    pool.wait_and_rethrow(worker_publisher);
+  else
+    publisher.join();
   CHECK(returned && destroyed == 1 && calls == accepted);
   pool.wait(pool.submit([] {}));  // Recovery after a partially accepted range.
 }
@@ -79,5 +90,9 @@ int main() {
   exercise(false);
   CHECK(adversarial::allocation::live == 0);
   exercise(true);
+  CHECK(adversarial::allocation::live == 0);
+  exercise(false, true);
+  CHECK(adversarial::allocation::live == 0);
+  exercise(true, true);
   CHECK(adversarial::allocation::live == 0);
 }

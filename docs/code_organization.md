@@ -1,5 +1,8 @@
 # Code organization and API migration
 
+> Current contracts, implementations, and checks are collected in
+> [protocol.md](protocol.md). This document explains layout and API migration.
+
 The cleanup separates graph construction, graph execution, scheduling, and
 storage. Graph definitions now have separate per-run counters, reusable sequential
 runs, bounded admission, and iterative continuation execution. See

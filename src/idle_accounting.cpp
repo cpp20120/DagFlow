@@ -3,6 +3,9 @@
 #include <exception>
 #include <limits>
 #include <stdexcept>
+#if defined(DAGFLOW_TEST_FAULT_INJECTION)
+#include <dagflow/detail/test_faults.hpp>
+#endif
 
 namespace dagflow::detail {
 namespace {
@@ -65,8 +68,11 @@ IdleAccounting::Lane& IdleAccounting::producer_lane() {
   return *entry.lane;
 }
 void IdleAccounting::publish_external() {
+#if defined(DAGFLOW_TEST_FAULT_INJECTION)
+  test_faults::external_publication();
+#endif
   publish(producer_lane());
-  // DAGFLOW_FUZZ_POINT(external_publish);
+  DAGFLOW_FUZZ_POINT(external_publish);
 }
 bool IdleAccounting::idle_locked() const noexcept {
   // Registry is fixed under mutex_. Retirements are monotonic: equal totals
@@ -107,7 +113,12 @@ void IdleAccounting::wait() {
   waiters_.fetch_add(1, std::memory_order_relaxed);
   std::atomic_thread_fence(std::memory_order_seq_cst);
   try {
-    while (!idle_locked()) cv_.wait(lock);
+    while (!idle_locked()) {
+#if defined(DAGFLOW_TEST_FAULT_INJECTION)
+      test_faults::idle_wait();
+#endif
+      cv_.wait(lock);
+    }
   } catch (...) {
     waiters_.fetch_sub(1, std::memory_order_relaxed);
     throw;

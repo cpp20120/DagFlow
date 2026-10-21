@@ -3,7 +3,7 @@
 See the [test suite guide](README.md) for ordinary runtime tests, allocation
 checks, and build integration coverage.
 
-These thirteen executables are normal CTest tests, enabled by
+These fourteen executables are normal CTest tests, enabled by
 `DAGFLOW_BUILD_TESTS=ON` when a runtime library is built. They require neither
 `DAGFLOW_FUZZ_HOOKS` nor a fuzzing build. Each has a 60-second CTest timeout;
 lost-wakeup checks use a longer parking timeout so polling cannot rescue them
@@ -23,6 +23,7 @@ before CTest reports a hang.
 | `cancelled_capture_reentry_test` | Cancel queued children on the only worker; skipped captures reject publication and self-join while recursively helping independent tasks; a fresh scope remains healthy. |
 | `nested_helping_context_restore_test` | Eight nested scopes help on the only worker, with alternating failures and closed admission; ancestor self-join detection and descendant authority survive unwinding, and subsequent tasks inherit no stale frame. |
 | `graph_cancel_continuation_reuse_race_test` | A driver, throwing branch and external canceller meet near invocation boundaries 64/128; immediately reuse the graph after readiness without waiting for pool idle, while retaining immutable old errors. |
+| `scheduler_contention_protocol_test` | Two external producers race on shared ingress/overflow while four owners drain and steal; each packet must transfer custody exactly once, including 63/64/65 and 127/128 boundaries. |
 | `exception_payload_last_release_test` | Destroy the source pool, concurrently release fan-in observers on eight foreign threads, then destroy the last exception-owned resource on a designated thread; its destructor releases another completion and submits/waits in a surviving pool. |
 
 Build the complete group in a configured build directory:

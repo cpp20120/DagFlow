@@ -1,4 +1,7 @@
 #include <dagflow/task_scope.hpp>
+#if defined(DAGFLOW_TEST_FAULT_INJECTION)
+#include <dagflow/detail/test_faults.hpp>
+#endif
 #include <mutex>
 #include <stdexcept>
 
@@ -59,7 +62,12 @@ detail::CompletionCredit TaskScope::reserve(
   }
   for (;;) {
     if (admission & State::closed_bit) return {};
+#if defined(DAGFLOW_TEST_FAULT_INJECTION)
+    if ((admission & State::publisher_mask) == State::publisher_mask ||
+        detail::test_faults::force_scope_admission_overflow)
+#else
     if ((admission & State::publisher_mask) == State::publisher_mask)
+#endif
       throw std::overflow_error("TaskScope: too many concurrent publishers");
     if (state.admission.compare_exchange_weak(admission, admission + 1,
                                               std::memory_order_acquire,

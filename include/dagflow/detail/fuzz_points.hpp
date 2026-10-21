@@ -13,7 +13,9 @@ enum class Point : unsigned {
   external_publish,
   before_execute,
   before_retire,
-  external_retry
+  external_retry,
+  graph_before_dependency_check,
+  graph_before_inline_continuation
 };
 inline thread_local int allocation_budget = -1;
 using Callback = void (*)(Point, void*) noexcept;

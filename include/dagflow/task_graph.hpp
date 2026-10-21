@@ -10,6 +10,9 @@
 #include <dagflow/detail/small_function.hpp>
 #include <dagflow/detail/small_vector.hpp>
 #include <dagflow/thread_pool.hpp>
+#if defined(DAGFLOW_TEST_FAULT_INJECTION)
+#include <dagflow/detail/test_faults.hpp>
+#endif
 #include <exception>
 #include <limits>
 #include <memory>
@@ -158,10 +161,21 @@ class TaskGraph {
   template <class F>
   NodeId emplace_indexed(F&& f, NodeOptions opt) {
     ensure_not_running();
+#if defined(DAGFLOW_TEST_FAULT_INJECTION)
+    if (!detail::test_faults::bypass_graph_early_validation &&
+        opt.capacity == 0 && opt.overflow == Overflow::Block)
+#else
     if (opt.capacity == 0 && opt.overflow == Overflow::Block)
+#endif
       throw std::invalid_argument(
           "TaskGraph: Block requires positive capacity");
+#if defined(DAGFLOW_TEST_FAULT_INJECTION)
+    if (builder_.nodes.size() == no_node ||
+        (detail::test_faults::graph_node_limit &&
+         builder_.nodes.size() >= detail::test_faults::graph_node_limit))
+#else
     if (builder_.nodes.size() == no_node)
+#endif
       throw std::length_error("TaskGraph: too many nodes for uint32_t indices");
     Work work(std::forward<F>(f));
     builder_.nodes.emplace_back();

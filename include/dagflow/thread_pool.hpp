@@ -33,18 +33,29 @@ enum class Priority : uint8_t { High = 0, Normal = 1 };
 /// Spawn prefers worker-local execution; Enqueue uses the shared ingress.
 enum class SubmissionMode : uint8_t { Spawn, Enqueue };
 
+/// Reject diagnoses explicit waits on unfinished handles from this pool's
+/// tasks, including waits on another pool. Use graph dependencies and external
+/// joins. Range publication failure still drains accepted work to protect
+/// borrows.
+enum class WorkerWaitPolicy : uint8_t { Help, Reject };
+
 struct Config {
   uint32_t threads = std::thread::hardware_concurrency();
   uint32_t shards = 0;
   uint32_t central_batch = DAGFLOW_DEFAULT_CENTRAL_BATCH;
   uint32_t idle_us_min = DAGFLOW_DEFAULT_IDLE_US_MIN;
   uint32_t idle_us_max = DAGFLOW_DEFAULT_IDLE_US_MAX;
-  bool pin_threads = true;
+  bool pin_threads = false;
   /// Empty selects balanced contiguous worker groups. Otherwise one valid
   /// shard ID per worker; shards=0 still means one shard per worker.
   /// Storage uses the runtime backend. Copy another allocator's vector with
   /// assign(begin, end); initializer-list assignment is supported directly.
   std::vector<uint32_t, detail::RuntimeAllocator<uint32_t>> worker_shards;
+  WorkerWaitPolicy worker_wait_policy = WorkerWaitPolicy::Help;
+  /// Called on the executing worker for an uncaught detached exception.
+  /// Must be thread-safe and noexcept. Null preserves discard semantics.
+  /// A handler may call std::terminate() to enforce a fail-fast policy.
+  void (*detached_error_handler)(std::exception_ptr) noexcept = nullptr;
 };
 
 struct SubmitOptions {
@@ -163,7 +174,7 @@ class Pool {
   }
 
   /// Submit without a per-task completion handle. Track lifetime at the caller.
-  /// Uncaught task exceptions are discarded; capture/report errors explicitly.
+  /// Uncaught exceptions go to Config::detached_error_handler when configured.
   template <class F>
   void submit_detached(F&& f, SubmitOptions opt = {}) {
     enqueue(
@@ -239,11 +250,10 @@ class Pool {
         detail::CompletionCredit::create(std::move(callable_owner));
     auto result = publication.handle();
     try {
+      auto base = begin;
       for (std::size_t c = 0; c < chunks; ++c) {
         const std::size_t lo = c * n / chunks;
         const std::size_t hi = (c + 1) * n / chunks;
-        auto base =
-            std::next(begin, static_cast<std::iter_difference_t<It>>(lo));
         enqueue(
             [base, count = hi - lo,
              callable](detail::CompletionCredit&) mutable {
@@ -251,11 +261,14 @@ class Pool {
               for (std::size_t i = 0; i < count; ++i, ++it) (*callable)(*it);
             },
             opt, publication.fork());
+        // Advance once per chunk, including for non-random-access iterators.
+        if (c + 1 < chunks)
+          std::advance(base, static_cast<std::iter_difference_t<It>>(hi - lo));
       }
     } catch (...) {
       publication.finish();
       // Drain all borrowed range users before a publication error escapes.
-      wait(result);
+      wait_impl(result, false);
       throw;
     }
     return result;  // Sentinel retires; the last credit destroys the callable.
@@ -345,7 +358,7 @@ class Pool {
       }
     } catch (...) {
       publication.finish();
-      wait(result);
+      wait_impl(result, false);
       throw;
     }
     return result;
@@ -372,6 +385,10 @@ class Pool {
   /// Completion-only: use h.rethrow_if_failed() after waiting to observe
   /// errors.
   void wait(const Handle& h);
+
+  /// Current thread's nested cooperative waits; zero outside helping waits.
+  /// Helping uses the native stack. This diagnostic is not a recursion limit.
+  [[nodiscard]] static uint32_t worker_wait_depth() noexcept;
 
   /// Wait cooperatively when called from a worker, then rethrow task failure.
   /// An empty handle is a completed no-op, just as for wait().
@@ -419,6 +436,7 @@ class Pool {
   };
   void enter_publication();
   void leave_publication() noexcept;
+  void wait_impl(const Handle& handle, bool check_policy);
 
   // Windows DLL clients cannot access an auto-exported thread_local data
   // symbol directly from a header template. Elsewhere keep the TLS check
@@ -469,6 +487,7 @@ class Pool {
 
   /// TLS: owning pool, or nullptr on an external thread.
   static thread_local Pool* tls_pool_;
+  static thread_local uint32_t tls_wait_depth_;
 
   /// Configuration.
   Config cfg_;

@@ -1,6 +1,9 @@
 #include <algorithm>
 #include <dagflow/detail/fuzz_points.hpp>
 #include <dagflow/detail/scheduler.hpp>
+#if defined(DAGFLOW_TEST_FAULT_INJECTION)
+#include <dagflow/detail/test_faults.hpp>
+#endif
 #include <exception>
 #include <stdexcept>
 
@@ -78,17 +81,29 @@ bool Scheduler::try_submit_local(uint32_t id, ScheduledTask* task) {
   return try_submit_external(local.home_shard, task);
 }
 uint32_t Scheduler::select_shard(std::optional<uint32_t> affinity) {
+  // There is no routing decision (or shared counter to update) with one shard.
+  if (shard_count_ == 1) return 0;
   if (affinity) return home_shard(*affinity % worker_count_);
   return next_shard_.fetch_add(1, std::memory_order_relaxed) % shard_count_;
 }
 bool Scheduler::try_submit_external(uint32_t shard, ScheduledTask* task) {
+#if defined(DAGFLOW_TEST_FAULT_INJECTION)
+  // A full ingress queue rejects without changing task custody. The bounded
+  // test-only counter reproduces that exact API result without relying on
+  // scheduling races or allocating millions of pending packets.
+  if (test_faults::reject_external_ingress != 0) {
+    --test_faults::reject_external_ingress;
+    runtime_count(RuntimeEvent::ingress_full);
+    return false;
+  }
+#endif
   auto& queues = shards_[shard];
   const bool accepted =
       (task->prio == Priority::High ? queues.high : queues.normal)
           .try_push(task);
   runtime_count(accepted ? RuntimeEvent::ingress_push
                          : RuntimeEvent::ingress_full);
-  // if (accepted) DAGFLOW_FUZZ_POINT(external_publish);
+  if (accepted) DAGFLOW_FUZZ_POINT(external_publish);
   return accepted;
 }
 

@@ -1,5 +1,8 @@
 # DagFlow tests
 
+The [runtime protocol registry](../docs/protocol.md) maps individual contracts
+to implementations and existing checks, and marks untested boundary conditions.
+
 The ordinary test suite checks runtime correctness, ownership, allocation
 failures, public APIs, and build integration. Tests are registered with CTest by
 [`cmake/DagFlowTests.cmake`](../cmake/DagFlowTests.cmake) when both
@@ -12,7 +15,7 @@ before aborting; checks remain active in Release builds. Runtime unit tests have
 a 60-second CTest timeout. A passing concurrency test samples thread schedules;
 it does not prove the absence of every race.
 
-The thirteen targeted lifetime/race regressions are documented separately in
+The fourteen targeted lifetime/race regressions are documented separately in
 [`adversarial-tests.md`](adversarial-tests.md). Coverage-guided harnesses and
 their input corpora are described in [`fuzz/README.md`](../fuzz/README.md).
 Ordinary tests do not need libFuzzer, Python, or a seed corpus.
@@ -56,8 +59,8 @@ Labels select groups; their availability depends on the enabled components:
 | Label | Tests selected |
 | --- | --- |
 | `unit` | Ordinary C++ runtime and allocation tests; also the Linux perf-control test when enabled. |
-| `adversarial` / `runtime` | The thirteen lifetime/race regressions. These use both labels and do not carry `unit`. |
-| `concurrency` | The thirteen adversarial regressions plus queue, idle-accounting, scheduler-topology, and pool-lifecycle tests. |
+| `adversarial` / `runtime` | The fourteen lifetime/race regressions. These use both labels and do not carry `unit`. |
+| `concurrency` | The fourteen adversarial regressions plus queue, idle-accounting, scheduler-topology, and pool-lifecycle tests. |
 | `benchmark` | Benchmark smoke checks, JSON/CLI checks, and Linux perf-control checks. |
 | `schema` | Stress-harness and runtime-suite JSON/CLI checks. |
 | `build` | CMake configuration regressions and the campaign test. |
@@ -75,6 +78,77 @@ ctest --test-dir out/build/tests -R '^dagflow_queue_tests$' --repeat until-fail:
 Use `-V` for successful-test output too. Failure logs are saved under the build
 directory's `Testing/Temporary/LastTest.log`. Repeating a race test samples more
 interleavings; it does not replace sanitizer runs.
+
+## Model-based PBT / stateful PBT
+
+`dagflow_model_property_tests` builds the dependency-free state-machine suites;
+`ctest -L pbt` executes them alongside the runner self-tests. The existing
+example-based unit, allocation and adversarial tests remain unchanged. The
+models specify legal operations, preconditions, state transitions and
+invariants. Random traces also exercise rollback/rejection; concurrent queue
+histories are checked against valid serial orders rather than an assumed
+scheduling order.
+
+| Component | Reference model / principal properties |
+| --- | --- |
+| `storage` | Small-vector contents/capacity, callable moves and lifetime, owned arrays/objects, allocator storage and exception rollback. |
+| `queue` | Ring FIFO/bounded admission/failed-move custody, Chase–Lev owner/thief races and unique acquisition. |
+| `packet` | Construct/invoke/move/destroy, priority, capture cleanup before readiness, forked completion credits and surviving observers. |
+| `completion` | Credit fork/move/fail/finish, last-credit cleanup, copied/moved observers, combined errors and readiness. |
+| `topology` | Worker/shard normalization, valid/invalid explicit placement, immutable rebuild, membership partition, affinity and unbound routing. |
+| `scheduler` | Local/shared/overflow custody, admission, drain and placement across sparse and shared domains. |
+| `parking` | Prepare/cancel/wake/wait epochs across bitmap boundaries (1, 63–65, 127–129 workers). |
+| `accounting` | Worker/external publication, retirement, waiters, producer-lane churn and instance recreation. |
+| `pool` | Admission/close/shutdown/destruction/recreation, descendants after close, detached reporting, result failures and cleanup. |
+| `wait` | Reject for unfinished same-/cross-pool handles, ready observations and nested Help depth restoration. |
+| `scope` | Scope admission, pending descendants, close/cancel/join and capture ownership. |
+| `graph` | DAG edges/tokens/cycle rejection, run/reuse/reset, result errors/cancel, GraphScope lifecycle. |
+| `range` | Forward/contiguous/deque ranges, split boundaries, detached batches, partial failures, borrowed lifetime and GraphScope ranges. |
+| `branch_protocol` | Worker-side batches at 64/65 boundaries, nested cooperative waits, worker-owned borrowed ranges, graph Fail/Drop/cancellation, 64-step continuation chains and fan-out/fan-in joins with priority/affinity changes. |
+| `branch_closure` | Boundary partitions across iterator/span overloads, empty WS, multi-chunk GraphScope ranges and replay, active graph mutation rejection, over-limit small-vector reserve and recovery. |
+| `coverage_boundary` | Raw C callback admission and failure, CPU-pinned worker progress, worker-only idle prohibition, packet constructor failure/credit rollback, graph builder rejection, cyclic scope destructor cleanup and const/mutable vector bounds. |
+
+`worker_help_announced_test` and `graph_cancellation_edge_test` use test-only
+`DAGFLOW_FUZZ_HOOKS` on an isolated fault runtime: the former synchronizes a
+publish between parking announcement and cooperative `help(true)`; the latter
+synchronizes cancellation during graph dependency propagation and the inline
+continuation budget. The checkpoints compile to no-ops in production builds.
+`scheduler_targeted_paths_test` exercises periodic high-priority ingress poll
+and local home-shard steals without depending on random scheduling. See
+[`branch-closure-coverage.md`](branch-closure-coverage.md) for replay and
+coverage limitations.
+
+`scheduler_contention_protocol_test` is a separate adversarial test: two
+producers race on central ingress and overflow while four independent owners
+acquire or steal. Its exactly-once oracle does not assume dequeue order.
+Both new targets also run with `DAGFLOW_TEST_TINY_QUEUES=ON` to amplify
+overflow/recruitment and worker-helping paths.
+
+All suites run in ordinary CTest, without needing RapidCheck or libFuzzer.
+The property harness tests verify deterministic SplitMix64 generation, codec,
+precondition-preserving shrinking and exact failure identity. To amplify the
+same cases or reproduce an individual failure:
+
+```sh
+cmake --build out/build/tests --target dagflow_model_property_tests --parallel 4
+ctest --test-dir out/build/tests -L pbt --output-on-failure
+DAGFLOW_PROPERTY_SEED=123 DAGFLOW_PROPERTY_CASES=256 DAGFLOW_PROPERTY_STEPS=128 \
+  ctest --test-dir out/build/tests -L pbt --output-on-failure
+# Replay the exact trace reported by the runner (use its model name and trace):
+DAGFLOW_PROPERTY_MODEL='worker wait policy and nested help transitions' \
+DAGFLOW_PROPERTY_TRACE='0,0,0;6,0,0;2,0,0;6,0,0' \
+  out/build/tests/dagflow_wait_property_tests
+```
+
+The `coverage_boundary` target specifically targets lines identified by the 2026-10-21
+LCOV audit; see [`coverage-gaps-2026-10-21.md`](coverage-gaps-2026-10-21.md)
+for the remaining non-reachable failure conditions and instrumentation limits.
+
+A replay selects one machine via `DAGFLOW_PROPERTY_MODEL`; the runner rejects
+traces violating its command preconditions. Increasing step counts does not
+prove all interleavings, liveness under arbitrary contention, or near-integer-
+wraparound behavior; see the limits in `docs/protocol.md`. Different seeds and
+sanitizers complement, rather than replace, the deterministic unit regressions.
 
 ## Native architecture coverage in CI
 
@@ -183,6 +257,7 @@ ctest --test-dir out/build/tests --output-on-failure --no-tests=error
 | [`dagflow_perf_control_tests`](perf_control_tests.cpp) | Enable/disable sequencing and both acknowledgement formats through pipes; requires Linux and the stress benchmark, but no live perf recording. |
 | [`dagflow_campaign_tests`](campaign_tests.cmake) | Campaign summary/manifest generation and rejection of synthetic slowdowns, mismatched arguments, and failed results; requires the runtime suite. |
 | [`dagflow_cmake_configuration_tests`](cmake_configuration_tests.cmake) | Optional dependency handling, invalid settings, PGO dependencies for late-added sources, independent tool lookup, capability registration, and analysis source filtering; registered with Ninja and non-MSVC Clang. |
+| [`dagflow_benchmark_run_tests`](benchmark_run_tests.cmake) | CMake run targets preserve positional arguments, quoted spaces, cache overrides, empty argument lists, and the generic scenario list API. |
 | [`install_consumer/`](install_consumer/CMakeLists.txt) | Separate consumer project validates installed package discovery and preferred/shared/static exported targets. CI installs, builds, and runs it separately from the main CTest suite. |
 | [`cmake_capabilities/`](cmake_capabilities/CMakeLists.txt) | Separate project exercises embedded toolkit capabilities, metadata, fuzzing, and optional RapidCheck fixtures; see [capability validation](../docs/cmake-capabilities-validation.md). |
 

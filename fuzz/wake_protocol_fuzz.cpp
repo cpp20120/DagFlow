@@ -26,8 +26,10 @@ struct Gate {
   std::latch arrived, release{1}, first_wake{1};
   std::atomic<bool> armed{true}, released{false}, saw_wake{false};
   std::atomic<unsigned> wake_count{0};
+  const bool helping_only;
 
-  Gate(Point point, unsigned participants) : target(point), arrived(participants) {
+  Gate(Point point, unsigned participants, bool helping = false)
+      : target(point), arrived(participants), helping_only(helping) {
     dagflow::detail::fuzz_points::install(&hit, this);
   }
   ~Gate() { dagflow::detail::fuzz_points::clear(); }
@@ -42,7 +44,8 @@ struct Gate {
       self.wake_count.fetch_add(1, std::memory_order_relaxed);
       if (!self.saw_wake.exchange(true)) self.first_wake.count_down();
     }
-    if (point == self.target && self.armed.load(std::memory_order_acquire)) {
+    if (point == self.target && self.armed.load(std::memory_order_acquire) &&
+        (!self.helping_only || dagflow::Pool::worker_wait_depth() != 0)) {
       self.arrived.count_down();
       self.release.wait();
     }
@@ -161,16 +164,99 @@ void physical_retirement(dagflow::fuzz::Bytes& bytes) {
   check(!premature.load());
   pool.shutdown();
 }
+
+void worker_completion(dagflow::fuzz::Bytes& bytes) {
+  auto cfg = config(bytes);
+  const bool via_task = bytes.bit();
+  Gate gate(bytes.bit() ? Point::before_cv : Point::idle_announce, cfg.threads,
+            true);
+  auto completion = dagflow::detail::CompletionCredit::create();
+  auto handle = completion.handle();
+  dagflow::Pool pool(cfg);
+  std::latch entered(cfg.threads);
+  std::atomic<unsigned> finished{0};
+  for (unsigned i = 0; i < cfg.threads; ++i) {
+    pool.submit_detached([&] {
+      entered.count_down();
+      entered.wait();
+      pool.wait(handle);
+      check(handle.ready());
+      finished.fetch_add(1);
+    });
+  }
+  gate.arrived.wait();  // Every worker is suspended inside Pool::wait.
+  if (via_task) {
+    // Wake for new work must resume helping even though the handle is pending.
+    pool.submit_detached(
+        [credit = std::move(completion)]() mutable { credit.finish(); });
+  } else {
+    // No queue publication: only completion can wake the suspended workers.
+    completion.finish();
+  }
+  gate.open();
+  pool.wait_idle();
+  check(finished.load() == cfg.threads);
+}
+void nested_worker_completion(dagflow::fuzz::Bytes& bytes) {
+  struct NestedGate {
+    std::latch outer{1}, inner{1}, release_outer{1}, release_inner{1};
+    std::atomic<bool> first_outer{true}, first_inner{true};
+    NestedGate() { dagflow::detail::fuzz_points::install(&hit, this); }
+    ~NestedGate() { dagflow::detail::fuzz_points::clear(); }
+    static void hit(Point point, void* context) noexcept {
+      if (point != Point::before_cv) return;
+      auto& gate = *static_cast<NestedGate*>(context);
+      const auto depth = dagflow::Pool::worker_wait_depth();
+      if (depth == 1 && gate.first_outer.exchange(false)) {
+        gate.outer.count_down();
+        gate.release_outer.wait();
+      } else if (depth == 2 && gate.first_inner.exchange(false)) {
+        gate.inner.count_down();
+        gate.release_inner.wait();
+      }
+    }
+  } gate;
+  auto outer = dagflow::detail::CompletionCredit::create();
+  auto inner = dagflow::detail::CompletionCredit::create();
+  auto outer_handle = outer.handle(), inner_handle = inner.handle();
+  dagflow::Config cfg;
+  cfg.threads = 1;
+  cfg.idle_us_min = cfg.idle_us_max = UINT32_MAX;
+  dagflow::Pool pool(cfg);
+  pool.submit_detached([&] { pool.wait(outer_handle); });
+  gate.outer.wait();
+  pool.submit_detached([&] { pool.wait(inner_handle); });
+  gate.release_outer.count_down();
+  gate.inner.wait();
+  // The outer completion signals the worker while the inner wait owns its
+  // parking slot. The inner registration must still receive its own wake.
+  outer.finish();
+  if (bytes.bit())
+    pool.submit_detached([&] { inner.finish(); });
+  else
+    inner.finish();
+  gate.release_inner.count_down();
+  pool.wait_idle();
+  check(outer_handle.ready() && inner_handle.ready());
+}
 } // namespace
 
 extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size) {
   if (size > 4096) return 0;
   dagflow::fuzz::Bytes bytes(data, size);
-  switch (bytes.bound(4)) {
+  switch (bytes.bound(6)) {
     case 0: publication_and_relay(bytes, false); break;
     case 1: publication_and_relay(bytes, true); break;
     case 2: shutdown_wake(bytes); break;
-    default: physical_retirement(bytes); break;
+    case 3:
+      physical_retirement(bytes);
+      break;
+    case 4:
+      worker_completion(bytes);
+      break;
+    default:
+      nested_worker_completion(bytes);
+      break;
   }
   return 0;
 }

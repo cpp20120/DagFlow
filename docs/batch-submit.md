@@ -1,10 +1,14 @@
 # Explicit detached batch submission
 
+> The canonical contract/implementation/test registry is [protocol.md](protocol.md).
+> This document provides batch usage examples and implementation explanations.
+
 `Pool::submit_batch_detached(std::span<F>, SubmitOptions = {})` consumes a span
 of callable objects by move. Each callable executes as an independent detached
 task. There is no per-task handle or shared batch completion state; exceptions
-from task bodies follow `submit_detached` policy and are discarded. Capture an
-error sink if needed, and keep borrowed data alive until accepted work finishes.
+from task bodies follow `submit_detached` policy: they call the configured
+`Config::detached_error_handler`, or are discarded when it is null. Keep borrowed
+data alive until accepted work finishes.
 
 ```cpp
 std::vector<decltype(make_job(0))> jobs;
