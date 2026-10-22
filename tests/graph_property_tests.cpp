@@ -18,7 +18,7 @@ using Graph = dagflow::TaskGraph;
 // lanes, packets and scheduler order. Only complete runs mutate the definition.
 class GraphMachine {
   static constexpr unsigned limit = 8;
-  enum Op { add, edge, tokens, seal, start, wait, reset, clear };
+  enum Op : unsigned { add, edge, tokens, seal, start, wait, reset, clear };
   struct Node {
     unsigned tokens = 1;
     unsigned capacity = 1;
@@ -261,7 +261,7 @@ class GraphOutcomeMachine {
 // GraphScope has its own state machine: dirty definitions start implicitly,
 // repeated run observes one run, and wait consumes that run exactly once.
 class GraphScopeMachine {
-  enum Op { add, then, join, start, wait, clear, destroy };
+  enum Op : unsigned { add, then, join, start, wait, clear, destroy };
   struct Model {
     unsigned nodes = 0;
     bool dirty = false;

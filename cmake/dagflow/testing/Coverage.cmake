@@ -70,7 +70,7 @@ function(_dagflow_project_coverage_finalize)
       --output-directory "${DAGFLOW_COVERAGE_DIR}/html"
     # A second view omits compiler-generated exception paths while preserving
     # the unfiltered (raw) report above for comparison.
-    COMMAND "${_genhtml}" ${_format_args} --filter exception
+    COMMAND "${_genhtml}" ${_format_args} --rc no_exception_branch=1
       --ignore-errors inconsistent,corrupt
       "${DAGFLOW_COVERAGE_DIR}/filtered.info"
       --output-directory "${DAGFLOW_COVERAGE_DIR}/html-noexcept"

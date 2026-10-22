@@ -20,7 +20,7 @@ using dagflow::test::property::require;
 // model specifies visit multiplicity, error outcome and callable ownership,
 // without reproducing the implementation's chunk/tile partition algorithm.
 class RangeMachine {
-  enum Op {
+  enum Op : unsigned {
     resize,
     fixed,
     split,
@@ -183,7 +183,7 @@ class RangeMachine {
 // A graph range retains its definition and borrowed iterators between runs,
 // unlike a Pool range, whose callable must disappear at completion.
 class GraphRangeMachine {
-  enum Op { append, start, wait, clear, observe };
+  enum Op : unsigned { append, start, wait, clear, observe };
   struct Slice {
     unsigned offset;
     unsigned length;
