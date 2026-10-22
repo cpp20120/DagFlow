@@ -23,6 +23,7 @@
 #include <atomic>
 #include <cstddef>
 #include <dagflow/config.hpp>
+#include <dagflow/detail/fuzz_points.hpp>
 #include <dagflow/detail/runtime_diagnostics.hpp>
 #include <limits>
 #include <type_traits>
@@ -59,6 +60,7 @@ class chase_lev_deque {
 
     buffer_[static_cast<std::size_t>(b) & (N - 1)].store(
         value, std::memory_order_relaxed);
+    DAGFLOW_FUZZ_POINT(deque_before_publish);
     bottom_.store(b + 1, std::memory_order_release);
     return true;
   }
@@ -67,6 +69,7 @@ class chase_lev_deque {
   [[nodiscard]] bool try_pop(T& out) noexcept {
     const auto b = bottom_.load(std::memory_order_relaxed) - 1;
     bottom_.store(b, std::memory_order_release);
+    DAGFLOW_FUZZ_POINT(deque_after_owner_claim);
     std::atomic_thread_fence(std::memory_order_seq_cst);
     auto t = top_.load(std::memory_order_relaxed);
 
@@ -78,6 +81,7 @@ class chase_lev_deque {
     const T value = buffer_[static_cast<std::size_t>(b) & (N - 1)].load(
         std::memory_order_relaxed);
     if (t == b) {
+      DAGFLOW_FUZZ_POINT(deque_before_owner_cas);
       const bool won = top_.compare_exchange_strong(
           t, t + 1, std::memory_order_seq_cst, std::memory_order_relaxed);
       bottom_.store(b + 1, std::memory_order_release);
@@ -91,6 +95,7 @@ class chase_lev_deque {
   [[nodiscard]] bool try_steal(T& out) noexcept {
     runtime_count(RuntimeEvent::steal_probe);
     auto t = top_.load(std::memory_order_acquire);
+    DAGFLOW_FUZZ_POINT(deque_after_thief_snapshot);
     // A failed empty probe does not compete for a slot. Avoid the expensive
     // arbitration fence in that common case; a possible success still uses
     // the original fence, bottom recheck and last-item CAS protocol below.
@@ -107,6 +112,7 @@ class chase_lev_deque {
 
     const T value = buffer_[static_cast<std::size_t>(t) & (N - 1)].load(
         std::memory_order_relaxed);
+    DAGFLOW_FUZZ_POINT(deque_before_thief_cas);
     if (!top_.compare_exchange_strong(t, t + 1, std::memory_order_seq_cst,
                                       std::memory_order_relaxed)) {
       runtime_count(RuntimeEvent::steal_lost);

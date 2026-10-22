@@ -102,10 +102,16 @@ void ParkingLot::wait(uint32_t worker, uint64_t epoch, uint32_t timeout_us,
 #endif
     const bool signalled =
         waiter.cv.wait_for(lock, std::chrono::microseconds(timeout_us), [&] {
-          return stop.load(std::memory_order_acquire) ||
-                 waiter.epoch.load(std::memory_order_seq_cst) != epoch;
+          const bool signalled =
+              stop.load(std::memory_order_acquire) ||
+              waiter.epoch.load(std::memory_order_seq_cst) != epoch;
+          if (!signalled) DAGFLOW_FUZZ_POINT(parking_predicate_false);
+          return signalled;
         });
-    if (!signalled) runtime_count(RuntimeEvent::park_timeout);
+    if (!signalled) {
+      DAGFLOW_FUZZ_POINT(parking_timed_out);
+      runtime_count(RuntimeEvent::park_timeout);
+    }
   } catch (...) {
     waiter.sleeping.store(false, std::memory_order_seq_cst);
     cancel(worker);

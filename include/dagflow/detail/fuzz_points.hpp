@@ -15,7 +15,21 @@ enum class Point : unsigned {
   before_retire,
   external_retry,
   graph_before_dependency_check,
-  graph_before_inline_continuation
+  graph_before_inline_continuation,
+  deque_before_publish,
+  deque_after_owner_claim,
+  deque_before_owner_cas,
+  deque_after_thief_snapshot,
+  deque_before_thief_cas,
+  completion_before_ready,
+  completion_after_ready,
+  completion_before_register,
+  scope_before_cancel_check,
+  scope_after_cancel_check,
+  task_before_destroy,
+  task_after_destroy,
+  parking_predicate_false,
+  parking_timed_out
 };
 inline thread_local int allocation_budget = -1;
 using Callback = void (*)(Point, void*) noexcept;

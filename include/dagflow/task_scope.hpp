@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <dagflow/detail/fuzz_points.hpp>
 #include <dagflow/detail/runtime_memory.hpp>
 #include <dagflow/thread_pool.hpp>
 #include <exception>
@@ -111,7 +112,10 @@ class TaskScope {
   static void invoke(State& state, detail::CompletionCredit& credit,
                      F& function) {
     ActiveFrame frame(state);
-    if (is_cancelled(state)) return;
+    DAGFLOW_FUZZ_POINT(scope_before_cancel_check);
+    const bool cancelled = is_cancelled(state);
+    DAGFLOW_FUZZ_POINT(scope_after_cancel_check);
+    if (cancelled) return;
     Context context(state, credit);
     try {
       if constexpr (std::is_invocable_v<F&, Context&>)

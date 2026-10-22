@@ -181,7 +181,7 @@ if(DAGFLOW_TARGET)
         "${CMAKE_CURRENT_SOURCE_DIR}/scripts/protocol_mutation_campaign.py"
         --cxx "${CMAKE_CXX_COMPILER}"
       WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-      COMMENT "Mutation-check TaskGraph and Completion against independent models"
+      COMMENT "Mutation-check protocols against reference models and schedule exploration"
       USES_TERMINAL)
   endif()
 
@@ -202,6 +202,23 @@ if(DAGFLOW_TARGET)
     target_compile_definitions(dagflow_test_fault_runtime PUBLIC
       DAGFLOW_RUNTIME_DIAGNOSTICS=1)
   endif()
+  add_custom_target(dagflow_schedule_exploration_tests)
+  dagflow_add_runtime_unit_test(dagflow_schedule_exploration_support_tests
+    tests/schedule_exploration_support_tests.cpp)
+  set_tests_properties(dagflow_schedule_exploration_support_tests PROPERTIES
+    LABELS "runtime;schedule-exploration" TIMEOUT 30)
+  add_dependencies(dagflow_schedule_exploration_tests
+    dagflow_schedule_exploration_support_tests)
+  foreach(_protocol IN ITEMS scheduler completion parking)
+    set(_schedule_target dagflow_${_protocol}_schedule_exploration_tests)
+    dagflow_add_runtime_unit_test(${_schedule_target}
+      tests/${_protocol}_schedule_exploration_tests.cpp)
+    target_compile_definitions(${_schedule_target} PRIVATE DAGFLOW_FUZZ_HOOKS)
+    target_link_libraries(${_schedule_target} PRIVATE dagflow_test_fault_runtime)
+    set_tests_properties(${_schedule_target} PROPERTIES
+      LABELS "runtime;concurrency;schedule-exploration" TIMEOUT 120)
+    add_dependencies(dagflow_schedule_exploration_tests ${_schedule_target})
+  endforeach()
   dagflow_add_runtime_unit_test(dagflow_fault_injection_property_tests
     tests/fault_injection_property_tests.cpp)
   target_compile_definitions(dagflow_fault_injection_property_tests PRIVATE

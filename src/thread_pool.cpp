@@ -404,6 +404,7 @@ std::exception_ptr detail::CompletionState::get_error() noexcept {
 }
 
 void detail::CompletionState::add_dependent(CompletionCredit dependent) {
+  DAGFLOW_FUZZ_POINT(completion_before_register);
   // Claiming the gate before appending obliges the final credit to acquire the
   // mutex before delivering edges or notifying waiters. Closure sends late
   // edges down the ready path. An unregistered source never locks on
@@ -455,7 +456,9 @@ void detail::CompletionState::retire(CompletionState* state) noexcept {
     // Publish readiness before closing registration: a late registrant that
     // sees closed can immediately propagate the now immutable error. The final
     // credit's storage reference keeps this state alive through edge delivery.
+    DAGFLOW_FUZZ_POINT(completion_before_ready);
     current->ready.store(true, std::memory_order_release);
+    DAGFLOW_FUZZ_POINT(completion_after_ready);
     if (current->dependent_gate.exchange(Dependents::closed,
                                          std::memory_order_acq_rel) ==
         Dependents::registered) {
@@ -619,7 +622,9 @@ void Pool::execute_task(uint32_t id, Task* task) {
   // `destroy` releases the packet before readiness: owning TaskModels destroy
   // their callable/allocation, graph slots release their exclusive borrow.
   // In both cases the executor must never access the base pointer afterward.
+  DAGFLOW_FUZZ_POINT(task_before_destroy);
   ops->destroy(task);
+  DAGFLOW_FUZZ_POINT(task_after_destroy);
   done.finish();
   // The handle may now be ready while pool quiescence still waits for
   // retirement.
