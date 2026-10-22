@@ -65,6 +65,7 @@ Labels select groups; their availability depends on the enabled components:
 | `schema` | Stress-harness and runtime-suite JSON/CLI checks. |
 | `build` | CMake configuration regressions and the campaign test. |
 | `harness` | Campaign output and comparison checks. |
+| `schedule-exploration` | Bounded systematic actor schedules through runtime checkpoints, plus the enumerator self-test. |
 
 Example executables are registered as `dagflow_example_*`; select them with
 `-R '^dagflow_example_'`. They have no label in the DagFlow adapter.
@@ -88,6 +89,19 @@ real-time history consistency rather than relying only on line coverage. An opti
 mutation campaign compiles four isolated C++ queue mutants; it is not part of
 normal CTest or production builds. Full contracts, limitations and commands:
 [`model-based-verification.md`](model-based-verification.md).
+
+## Bounded protocol schedule exploration
+
+`dagflow_schedule_exploration_tests` builds the enumerator self-test and three
+runtime executables. `ctest -L schedule-exploration` explores all runnable actor
+choices at their declared checkpoints in fresh fixtures, with replay and bounded
+watchdogs. This includes deque publication/CAS, scheduler custody, completion
+registration/retirement, TaskScope and TaskGraph cancellation, and parking epochs.
+Production builds have no hooks or controller locks. See
+[`schedule-exploration.md`](schedule-exploration.md) for exact bounds and
+weak-memory/CV-tail limitations; see
+[`protocol-mutation-campaign.md`](protocol-mutation-campaign.md) for isolated
+ordering, custody, credit and propagation mutants, including survivors.
 
 ## Model-based PBT / stateful PBT
 
