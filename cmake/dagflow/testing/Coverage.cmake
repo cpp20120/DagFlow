@@ -53,10 +53,12 @@ function(_dagflow_project_coverage_finalize)
     list(APPEND _exclude_args --exclude "${_pattern}")
   endforeach()
   file(MAKE_DIRECTORY "${DAGFLOW_COVERAGE_DIR}")
+  # LCOV 2.x may reject inconsistent GCC gcov exception-branch tags;
+  # tolerate that metadata mismatch while retaining branch capture.
   add_custom_target(coverage-report
     COMMAND "${_lcov}" --directory "${CMAKE_BINARY_DIR}" --zerocounters
     COMMAND "${CMAKE_CTEST_COMMAND}" --test-dir "${CMAKE_BINARY_DIR}" -C "$<CONFIG>" --output-on-failure
-    COMMAND "${_lcov}" ${_gcov_args} ${_format_args} ${_exclude_args} --ignore-errors unused
+    COMMAND "${_lcov}" ${_gcov_args} ${_format_args} ${_exclude_args} --ignore-errors unused,mismatch
       --directory "${CMAKE_BINARY_DIR}" --capture
       --output-file "${DAGFLOW_COVERAGE_DIR}/coverage.info"
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${DAGFLOW_COVERAGE_DIR}/coverage.info"

@@ -1,4 +1,8 @@
 
+#if defined(_WIN32) && !defined(NOMINMAX)
+#define NOMINMAX
+#endif
+
 #include <algorithm>
 #include <chrono>
 #include <condition_variable>

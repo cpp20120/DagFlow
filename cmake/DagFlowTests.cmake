@@ -289,6 +289,9 @@ if(DAGFLOW_TARGET)
 
   # Bounded lifetime/race regressions; independent of disabled fuzz hooks.
   add_custom_target(dagflow_adversarial_tests)
+  add_dependencies(dagflow_adversarial_tests
+    dagflow_worker_help_announced_test
+    dagflow_graph_cancellation_edge_test)
   foreach(_case IN ITEMS
       pool_address_reuse_tls
       completion_last_credit_race
