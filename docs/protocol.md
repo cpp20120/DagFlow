@@ -84,6 +84,12 @@ construct packet → reserve admission → count publication → publish queue
 | POOL-09 | Повторные/конкурентные внешние shutdown сериализованы mutex. Собственный worker получает `logic_error` до этого mutex; уничтожение Pool на собственном worker недопустимо и завершает процесс через noexcept destructor. | [Pool::shutdown][pool-cpp] | [lifecycle][lifecycle]: `close_and_descendants`; self-destruction — предусловие |
 | POOL-10 | Внешние callers должны закончить доступ до уничтожения Pool storage; Pool живёт до уничтожения связанных graph/scope. Shutdown не закрывает произвольные внешние credits, например sentinel открытого TaskScope. Пользователь обязан завершить callback: timeout/cancellation принудительно его не прерывают. | [Pool API][pool-hpp], [TaskScope::State][scope-cpp] | [lifecycle][lifecycle], [task_scope_tests.cpp][scope-test]; lifetime/deadlock пользователя автоматически не проверяются |
 
+Для POOL-04/05/06/08 дополнительно есть
+[ограниченная weak-memory композиция](../tests/weak-memory-shutdown.md):
+admission → physical drain → stop, включая одновременный idle waiter.
+Она использует абстрактную передачу packet; реальные очереди, parking и OS join
+не входят в эту модель. Границы перебора и выжившая мутация описаны отдельно.
+
 <a id="packet"></a>
 ## Packet: публикация, custody, cleanup
 
@@ -157,6 +163,10 @@ construct packet → reserve admission → count publication → publish queue
 
 <a id="idle"></a>
 ## Physical idle accounting
+
+Дополнительные [Relacy-модели](../tests/weak-memory-idle-accounting.md) проверяют
+видимость cleanup, parent/child handoff и двух одновременных/повторных waiters.
+Точные пределы полного и ограниченного перебора указаны в документе моделей.
 
 | ID | Контракт | Реализация | Проверка |
 | --- | --- | --- | --- |

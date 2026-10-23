@@ -29,7 +29,10 @@ enum class Point : unsigned {
   task_before_destroy,
   task_after_destroy,
   parking_predicate_false,
-  parking_timed_out
+  parking_timed_out,
+  graph_before_lane_join,
+  graph_after_lane_join,
+  shutdown_before_drain
 };
 inline thread_local int allocation_budget = -1;
 using Callback = void (*)(Point, void*) noexcept;

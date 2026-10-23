@@ -92,16 +92,27 @@ normal CTest or production builds. Full contracts, limitations and commands:
 
 ## Bounded protocol schedule exploration
 
-`dagflow_schedule_exploration_tests` builds the enumerator self-test and three
+`dagflow_schedule_exploration_tests` builds the enumerator self-test and four
 runtime executables. `ctest -L schedule-exploration` explores all runnable actor
 choices at their declared checkpoints in fresh fixtures, with replay and bounded
 watchdogs. This includes deque publication/CAS, scheduler custody, completion
-registration/retirement, TaskScope and TaskGraph cancellation, and parking epochs.
+registration/retirement, TaskScope and TaskGraph cancellation, parking epochs
+and required CV notifications, multi-lane graphs and fan-in, and nested helping
+during shutdown.
 Production builds have no hooks or controller locks. See
 [`schedule-exploration.md`](schedule-exploration.md) for exact bounds and
 weak-memory/CV-tail limitations; see
 [`protocol-mutation-campaign.md`](protocol-mutation-campaign.md) for isolated
 ordering, custody, credit and propagation mutants, including survivors.
+
+Optional [weak-memory checks](weak-memory.md) run source-derived deque, parking,
+completion, idle accounting and shutdown models through Relacy, with ordering arguments and negative
+controls. Set `DAGFLOW_RELACY_INCLUDE_DIR` to enable the campaign target and
+five CTest cases labeled `weak-memory`; ordinary builds require no external
+model checker. See [parking/completion bounds](weak-memory-parking-completion.md)
+and [idle accounting bounds](weak-memory-idle-accounting.md), including multiple
+waiters, plus [shutdown composition](weak-memory-shutdown.md). Reports distinguish
+full search, preemption bounds, detected mutations and documented survivors.
 
 ## Model-based PBT / stateful PBT
 
@@ -326,7 +337,7 @@ the tiny-queue commands and detailed lifetime invariants.
 
 ### Runtime protocol mutation campaign
 
-See [TaskGraph/Completion mutation campaign](protocol-mutation-campaign.md)
-for the six isolated source mutations, the new first-failure reference model,
-and replay instructions. Opt in with `dagflow_protocol_mutation_campaign`;
+See [runtime protocol mutation campaign](protocol-mutation-campaign.md)
+for isolated source/header mutations, independent reference and schedule
+oracles, and replay instructions. Opt in with `dagflow_protocol_mutation_campaign`;
 normal PBT/CTest runs never execute mutants.

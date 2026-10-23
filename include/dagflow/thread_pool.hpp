@@ -389,6 +389,12 @@ class Pool {
   /// Current thread's nested cooperative waits; zero outside helping waits.
   /// Helping uses the native stack. This diagnostic is not a recursion limit.
   [[nodiscard]] static uint32_t worker_wait_depth() noexcept;
+#if defined(DAGFLOW_FUZZ_HOOKS)
+  [[nodiscard]] static uint32_t fuzz_worker_id() noexcept { return tls_id_; }
+  [[nodiscard]] bool fuzz_stopped() const noexcept {
+    return stop_.load(std::memory_order_acquire);
+  }
+#endif
 
   /// Wait cooperatively when called from a worker, then rethrow task failure.
   /// An empty handle is a completed no-op, just as for wait().

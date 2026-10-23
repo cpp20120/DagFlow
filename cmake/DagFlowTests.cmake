@@ -183,6 +183,33 @@ if(DAGFLOW_TARGET)
       WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
       COMMENT "Mutation-check protocols against reference models and schedule exploration"
       USES_TERMINAL)
+
+    # Optional external model checker. Ordinary core builds stay dependency-free;
+    # callers provide an existing checkout rather than downloading at configure.
+    set(DAGFLOW_RELACY_INCLUDE_DIR "" CACHE PATH
+      "Optional directory containing relacy/relacy.hpp for weak-memory checks")
+    if(DAGFLOW_RELACY_INCLUDE_DIR)
+      if(NOT EXISTS "${DAGFLOW_RELACY_INCLUDE_DIR}/relacy/relacy.hpp")
+        message(FATAL_ERROR "DAGFLOW_RELACY_INCLUDE_DIR lacks relacy/relacy.hpp")
+      endif()
+      set(_dagflow_weak_memory_command ${Python3_EXECUTABLE}
+        "${CMAKE_CURRENT_SOURCE_DIR}/scripts/weak_memory_campaign.py"
+        --cxx "${CMAKE_CXX_COMPILER}"
+        --relacy "${DAGFLOW_RELACY_INCLUDE_DIR}")
+      add_custom_target(dagflow_weak_memory_campaign
+        COMMAND ${_dagflow_weak_memory_command}
+          --report "${CMAKE_CURRENT_BINARY_DIR}/weak-memory/report.json"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        COMMENT "Check runtime protocols and shutdown weak-memory counterexamples"
+        USES_TERMINAL)
+      foreach(_protocol IN ITEMS deque parking completion idle_accounting shutdown)
+        add_test(NAME dagflow_${_protocol}_weak_memory_tests
+          COMMAND ${_dagflow_weak_memory_command} --protocol ${_protocol}
+            --report "${CMAKE_CURRENT_BINARY_DIR}/weak-memory/${_protocol}/report.json")
+        set_tests_properties(dagflow_${_protocol}_weak_memory_tests PROPERTIES
+          LABELS "runtime;weak-memory" TIMEOUT 360)
+      endforeach()
+    endif()
   endif()
 
   # Compile a separate, instrumented runtime solely for deterministic
@@ -194,7 +221,10 @@ if(DAGFLOW_TARGET)
   target_include_directories(dagflow_test_fault_runtime PUBLIC include)
   target_compile_features(dagflow_test_fault_runtime PUBLIC cxx_std_23)
   target_compile_definitions(dagflow_test_fault_runtime PRIVATE
-    DAGFLOW_STATIC DAGFLOW_TEST_FAULT_INJECTION DAGFLOW_FUZZ_HOOKS)
+    DAGFLOW_STATIC DAGFLOW_TEST_FAULT_INJECTION)
+  # Parking's instrumented CV changes its private layout. Every consumer of
+  # this test-only runtime must compile against the same hook-enabled headers.
+  target_compile_definitions(dagflow_test_fault_runtime PUBLIC DAGFLOW_FUZZ_HOOKS)
   target_link_libraries(dagflow_test_fault_runtime PUBLIC Threads::Threads)
   dagflow_apply_allocator(dagflow_test_fault_runtime)
   dagflow_apply_optimization(dagflow_test_fault_runtime)
@@ -209,7 +239,7 @@ if(DAGFLOW_TARGET)
     LABELS "runtime;schedule-exploration" TIMEOUT 30)
   add_dependencies(dagflow_schedule_exploration_tests
     dagflow_schedule_exploration_support_tests)
-  foreach(_protocol IN ITEMS scheduler completion parking)
+  foreach(_protocol IN ITEMS scheduler completion parking complex)
     set(_schedule_target dagflow_${_protocol}_schedule_exploration_tests)
     dagflow_add_runtime_unit_test(${_schedule_target}
       tests/${_protocol}_schedule_exploration_tests.cpp)

@@ -1,5 +1,6 @@
 #pragma once
 #include <atomic>
+#include <chrono>
 #include <condition_variable>
 #include <cstdint>
 #include <dagflow/detail/runtime_memory.hpp>
@@ -35,12 +36,57 @@ class ParkingLot {
   [[nodiscard]] bool fuzz_sleeping(uint32_t worker) const noexcept {
     return waiters_[worker].sleeping.load(std::memory_order_seq_cst);
   }
+  // Configure before starting the waiter. Untimed waits expose missing
+  // notifications instead of allowing an epoch recheck at a timer deadline.
+  void fuzz_wait_without_timeout(uint32_t worker) noexcept {
+    waiters_[worker].cv.untimed = true;
+  }
+  [[nodiscard]] uint64_t fuzz_notifications(uint32_t worker) const noexcept {
+    return waiters_[worker].cv.notifications.load(std::memory_order_acquire);
+  }
 #endif
 
  private:
+#if defined(DAGFLOW_FUZZ_HOOKS)
+  // Record the primitive invocation itself, not an adjacent source hook.
+  // Removing cv.notify_one() must also remove this observable event.
+  struct WaitCondition {
+    std::condition_variable condition;
+    std::atomic<uint64_t> notifications{0};
+    bool untimed = false;
+    template <class Rep, class Period, class Predicate>
+    bool wait_for(std::unique_lock<std::mutex>& lock,
+                  std::chrono::duration<Rep, Period> duration,
+                  Predicate predicate) {
+      if (untimed) {
+        const auto before = notifications.load(std::memory_order_acquire);
+        bool committed = false;
+        condition.wait(lock, [&] {
+          const bool signalled = predicate();
+          if (!signalled) committed = true;
+          // Once a false predicate commits this test waiter to sleep, a
+          // spurious wake must not clear sleeping before the publisher checks
+          // its notification obligation. An initially true predicate still
+          // takes the ordinary no-notification path.
+          return signalled &&
+                 (!committed ||
+                  notifications.load(std::memory_order_acquire) != before);
+        });
+        return true;
+      }
+      return condition.wait_for(lock, duration, predicate);
+    }
+    void notify_one() noexcept {
+      notifications.fetch_add(1, std::memory_order_release);
+      condition.notify_one();
+    }
+  };
+#else
+  using WaitCondition = std::condition_variable;
+#endif
   struct Waiter {
     std::mutex mutex;
-    std::condition_variable cv;
+    WaitCondition cv;
     std::atomic<uint64_t> epoch{0};
     // Only a thread committing to CV sleep needs a mutex/notify handshake.
     std::atomic<bool> sleeping{false};

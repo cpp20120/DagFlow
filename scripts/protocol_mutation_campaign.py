@@ -28,6 +28,7 @@ MODELS = {
     "schedule_scheduler": "scheduler_schedule_exploration_tests.cpp",
     "schedule_completion": "completion_schedule_exploration_tests.cpp",
     "schedule_parking": "parking_schedule_exploration_tests.cpp",
+    "schedule_complex": "complex_schedule_exploration_tests.cpp",
 }
 
 
@@ -103,6 +104,22 @@ MUTANTS.update({
     "parking-drop-notify": (
         "parking_lot", "schedule_parking",
         "  waiter.cv.notify_one();", "  (void)waiter.cv;"),
+    "graph-premature-lane-join": (
+        "task_graph", "schedule_complex",
+        "runtime.lanes.fetch_sub(1, std::memory_order_acq_rel) == 1;",
+        "runtime.lanes.fetch_sub(1, std::memory_order_acq_rel) >= 1;"),
+    "graph-bypass-fanin": (
+        "task_graph", "schedule_complex",
+        "if (state.nodes[j].predecessor_count > 1 &&",
+        "if (false &&"),
+    "shutdown-stop-before-drain": (
+        "thread_pool", "schedule_complex",
+        "  DAGFLOW_FUZZ_POINT(shutdown_before_drain);\n"
+        "  accounting_->wait();\n"
+        "  stop_.store(true, std::memory_order_release);",
+        "  stop_.store(true, std::memory_order_release);\n"
+        "  DAGFLOW_FUZZ_POINT(shutdown_before_drain);\n"
+        "  accounting_->wait();"),
     # An intentional weak-memory probe: a synchronized SC explorer on x86 is
     # not expected to reliably distinguish this from release publication.
     "deque-relax-publication": (

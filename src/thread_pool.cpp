@@ -234,6 +234,7 @@ void Pool::shutdown() {
   // spawn descendants. Only after both barriers can stop mean "no work left".
   // Captures and final completion payloads are destroyed before lane
   // retirement.
+  DAGFLOW_FUZZ_POINT(shutdown_before_drain);
   accounting_->wait();
   stop_.store(true, std::memory_order_release);
   parking_->wake_all();

@@ -342,9 +342,12 @@ void TaskGraph::execute(RunState& state, index_type i,
     // Only concurrent lanes need an acquire/release join. For a compiled single
     // lane this driver owns completion and all callable writes. Do not use a
     // cancellation-time live count to bypass a multi-lane node's final join.
-    if ((node.lanes == 1 ||
-         runtime.lanes.fetch_sub(1, std::memory_order_acq_rel) == 1) &&
-        !state.cancel.load(std::memory_order_acquire)) {
+    DAGFLOW_FUZZ_POINT(graph_before_lane_join);
+    const bool last_lane =
+        node.lanes == 1 ||
+        runtime.lanes.fetch_sub(1, std::memory_order_acq_rel) == 1;
+    DAGFLOW_FUZZ_POINT(graph_after_lane_join);
+    if (last_lane && !state.cancel.load(std::memory_order_acquire)) {
       for (index_type edge = node.edge_begin; edge < node.edge_end; ++edge) {
         DAGFLOW_FUZZ_POINT(graph_before_dependency_check);
         if (state.cancel.load(std::memory_order_acquire)) break;

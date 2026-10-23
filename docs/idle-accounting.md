@@ -109,6 +109,15 @@ root task, retirement/wait races and long worker backoff. Existing queue overflo
 completion exception, graph and scope tests exercise the shared enqueue/retire
 paths. Sanitizer coverage does not replace weak-memory hardware validation.
 
+The optional [Relacy checks](../tests/weak-memory-idle-accounting.md) exercise
+source-derived retirement visibility, collection across two workers,
+parent/child handoffs, multiple/repeated idle waiters and the untimed notification
+race. They include ordering arguments and nine detected protocol mutations; the linked
+document records the exact bounds and the obligations outside these models.
+The [shutdown composition](../tests/weak-memory-shutdown.md) additionally checks
+admission drain followed by physical drain, and shutdown sharing the accounting
+CV with an ordinary idle waiter.
+
 See [the measured comparison](benchmarks/idle-accounting.md) for results and limits.
 Rebuild consumers for the changed `Pool` layout. Manual builds must also compile
 `src/idle_accounting.cpp`; CMake includes it automatically.
