@@ -2,7 +2,7 @@
 
 This stage extends the existing stateful PBT infrastructure **without removing
 unit tests or editing the production runtime**. Tested base: `DagFlow (1).zip`
-with `DagFlow-next-reachable-branch-PBT.patch` applied. All new tests use
+with `../.cache/DagFlow-next-reachable-branch-PBT.patch` applied. All new tests use
 `DAGFLOW_PROPERTY_SEED`, `DAGFLOW_PROPERTY_CASES`, `DAGFLOW_PROPERTY_STEPS`,
 `DAGFLOW_PROPERTY_MODEL` and `DAGFLOW_PROPERTY_TRACE` from
 `tests/property_support.hpp`, including valid-trace shrinking.

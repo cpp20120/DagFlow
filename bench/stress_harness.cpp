@@ -56,6 +56,7 @@ struct Options {
   uint32_t repeats = 7, warmup = 2, bursts = 64, warmup_ms = 200, min_ms = 0;
   uint32_t max_samples = 100000, batch = 0, fanout = 4, high_every = 8;
   uint32_t idle_us = 10000, sample_stride = 64;
+  uint32_t arrival_rate = 0;
   std::size_t tasks = 0;
   std::optional<uint32_t> iterations;
   bool json = false, latency = false;
@@ -94,6 +95,8 @@ Options parse(int argc, char** argv) {
              "  --producer-mode persistent|fresh --placement spread|hot|none\n"
              "  --verify checksum|exact|off --latency --sample-stride N "
              "--json\n"
+             "  --arrival-rate N (aggregate tasks/s; 0 is unlimited; scalar "
+             "external-contention only)\n"
              "  --cpus LIST --worker-cpus LIST --producer-cpus LIST (Linux CPU "
              "IDs)\n"
              "  --perf-control-fd N --perf-ack-fd N (perf --control fd:... -D "
@@ -160,6 +163,8 @@ Options parse(int argc, char** argv) {
         o.high_every = n;
       else if (key == "--sample-stride")
         o.sample_stride = n;
+      else if (key == "--arrival-rate")
+        o.arrival_rate = n;
       else if (key == "--perf-control-fd" && n <= INT32_MAX)
         o.control_fd = n;
       else if (key == "--perf-ack-fd" && n <= INT32_MAX)
@@ -184,6 +189,11 @@ Options parse(int argc, char** argv) {
        o.placement != "none") ||
       ((o.control_fd < 0) != (o.ack_fd < 0)))
     throw std::invalid_argument("invalid harness configuration (see --help)");
+  if (o.arrival_rate && (o.scenario != "external-contention" || o.batch ||
+                         !o.tasks || o.tasks > uint64_t{o.arrival_rate} * 60))
+    throw std::invalid_argument(
+        "paced ingress requires scalar external-contention and explicit tasks "
+        "covering at most 60 seconds");
   return o;
 }
 
@@ -392,11 +402,14 @@ struct Slot {
   std::atomic<uint64_t> value{0};
   std::atomic<uint32_t> visits{0};
   // Written once per sampled invocation; observed only after wait_idle().
-  int64_t submitted{}, started{}, finished{};
+  int64_t submitted{}, started{}, finished{}, scheduled{}, submit_returned{};
 };
 struct Submission {
   std::size_t slot;
   dagflow::SubmitOptions options;
+};
+struct alignas(64) PublicationWindow {
+  int64_t first{}, last{};
 };
 class Workload {
  public:
@@ -441,6 +454,7 @@ class Workload {
     for (auto spec : specs)
       expected.push_back(burn(spec.seed, spec.iterations));
     plans.resize(multi_producer() ? o.producers : 1);
+    publication_windows.resize(plans.size());
     // Same per-producer order, affinity and priority for scalar/batch
     // comparison. Consecutive tasks sharing options can be grouped by
     // submit_batch_detached.
@@ -448,6 +462,11 @@ class Workload {
       std::vector<std::vector<Submission>> buckets(workers * 2);
       for (std::size_t i = p; i < n; i += plans.size()) {
         auto opt = options_for(i);
+        if (o.arrival_rate) {
+          // Preserve global arrival order; affinity buckets would reorder time.
+          plans[p].push_back({i, opt});
+          continue;
+        }
         auto bucket = opt.affinity.value_or(0) * 2 +
                       (opt.priority == dagflow::Priority::High);
         buckets[bucket].push_back({i, opt});
@@ -484,6 +503,21 @@ class Workload {
   void stamp(std::size_t i) {
     if (sampled(i)) slots[i].submitted = now_ns();
   }
+  void pace(std::size_t i) {
+    if (!o.arrival_rate) return;
+    const auto due =
+        arrival_epoch +
+        static_cast<int64_t>(uint64_t{i} * 1'000'000'000 / o.arrival_rate);
+    // Absolute deadlines never move when submission falls behind. Delays are
+    // retained in scheduled-to-start latency, not hidden by closed-loop pacing.
+    auto left = due - now_ns();
+    if (left > 50'000)
+      std::this_thread::sleep_until(
+          Clock::time_point(std::chrono::duration_cast<Clock::duration>(
+              std::chrono::nanoseconds(due - 20'000))));
+    while (now_ns() < due) std::atomic_signal_fence(std::memory_order_seq_cst);
+    if (sampled(i)) slots[i].scheduled = due;
+  }
   void start(std::size_t i) {
     if (sampled(i)) slots[i].started = now_ns();
   }
@@ -509,6 +543,7 @@ class Workload {
       slots[i].value.store(0, std::memory_order_relaxed);
       slots[i].visits.store(0, std::memory_order_relaxed);
       slots[i].submitted = slots[i].started = slots[i].finished = 0;
+      slots[i].scheduled = slots[i].submit_returned = 0;
     }
     failed.store(false, std::memory_order_relaxed);
   }
@@ -526,6 +561,10 @@ class Workload {
           (!slots[i].submitted || slots[i].started < slots[i].submitted ||
            slots[i].finished < slots[i].started))
         throw std::runtime_error("invalid task timestamps");
+      if (o.arrival_rate && sampled(i) &&
+          (slots[i].submitted < slots[i].scheduled ||
+           slots[i].submit_returned < slots[i].submitted))
+        throw std::runtime_error("invalid arrival/publication timestamps");
       checksum += o.verify == "off"
                       ? 0
                       : slots[i].value.load(std::memory_order_relaxed);
@@ -540,6 +579,7 @@ class Workload {
   void produce(uint32_t producer) {
     const auto& plan = plans[producer];
     const auto batch = submit_batch();
+    publication_windows[producer].first = now_ns();
     for (std::size_t at = 0; at < plan.size();) {
       const auto i = plan[at].slot;
       const auto options = plan[at].options;
@@ -582,13 +622,18 @@ class Workload {
         }
         pool.submit_batch_detached(std::span(payloads.data(), count), options);
       } else {
+        pace(i);
+        if (at == 0) publication_windows[producer].first = now_ns();
         stamp(i);
         pool.submit_detached(Payload{this, i}, options);
+        if (o.arrival_rate && sampled(i)) slots[i].submit_returned = now_ns();
         ++at;
       }
     }
+    publication_windows[producer].last = now_ns();
   }
   void execute(Producers* persistent, const std::vector<int>& producer_cpus) {
+    arrival_epoch = now_ns() + (o.arrival_rate ? 1'000'000 : 0);
     if (multi_producer()) {
       if (persistent)
         persistent->run();
@@ -632,10 +677,12 @@ class Workload {
   uint32_t workers;
   std::string_view name;
   std::size_t n{}, fanout_count{};
+  int64_t arrival_epoch{};
   std::vector<Spec> specs;
   std::vector<uint64_t> expected;
   std::unique_ptr<Slot[]> slots;
   std::vector<std::vector<Submission>> plans;
+  std::vector<PublicationWindow> publication_windows;
   std::atomic<bool> failed{false};
 };
 
@@ -660,10 +707,11 @@ Usage usage() {
 }
 struct Sample {
   double elapsed_us{}, user_us{}, system_us{}, first_start_us{},
-      last_finish_us{}, drain_tail_us{};
+      last_finish_us{}, drain_tail_us{}, submission_window_us{};
   int64_t voluntary{}, involuntary{}, minor{}, major{}, max_rss_kb{};
   Counts counts{};
   std::vector<double> starts, finishes;
+  std::vector<double> scheduled_starts, producer_lags, submit_calls;
 };
 
 void run(const Options& o, uint32_t workers, std::string_view name,
@@ -729,6 +777,15 @@ void run(const Options& o, uint32_t workers, std::string_view name,
     const auto after_counts = dagflow::detail::runtime_counts();
     checksum = work.validate();  // Entirely outside the measured/perf phase.
     Sample sample;
+    if (work.multi_producer()) {
+      int64_t first = end, last = begin;
+      for (std::size_t p = 0; p < work.plans.size(); ++p)
+        if (!work.plans[p].empty()) {
+          first = std::min(first, work.publication_windows[p].first);
+          last = std::max(last, work.publication_windows[p].last);
+        }
+      sample.submission_window_us = us(last - first);
+    }
     sample.elapsed_us = us(end - begin);
     measured_us += sample.elapsed_us;
     sample.user_us = after.user_us - before.user_us;
@@ -746,6 +803,12 @@ void run(const Options& o, uint32_t workers, std::string_view name,
         const auto& slot = work.slots[i];
         sample.starts.push_back(us(slot.started - slot.submitted));
         sample.finishes.push_back(us(slot.finished - slot.submitted));
+        if (o.arrival_rate) {
+          sample.scheduled_starts.push_back(us(slot.started - slot.scheduled));
+          sample.producer_lags.push_back(us(slot.submitted - slot.scheduled));
+          sample.submit_calls.push_back(
+              us(slot.submit_returned - slot.submitted));
+        }
         first = std::min(first, slot.started);
         last = std::max(last, slot.finished);
       }
@@ -759,12 +822,21 @@ void run(const Options& o, uint32_t workers, std::string_view name,
       samples.size() < o.max_samples &&
       (samples.size() < minimum_samples || measured_us < o.min_ms * 1000.0));
   const bool duration_satisfied = measured_us >= o.min_ms * 1000.0;
-  std::vector<double> times, starts, finishes;
+  std::vector<double> times, starts, finishes, scheduled_starts, producer_lags,
+      submit_calls, submission_rates;
   Counts counts{};
   for (const auto& s : samples) {
     times.push_back(s.elapsed_us);
+    if (s.submission_window_us > 0)
+      submission_rates.push_back(work.n * 1e6 / s.submission_window_us);
     starts.insert(starts.end(), s.starts.begin(), s.starts.end());
     finishes.insert(finishes.end(), s.finishes.begin(), s.finishes.end());
+    scheduled_starts.insert(scheduled_starts.end(), s.scheduled_starts.begin(),
+                            s.scheduled_starts.end());
+    producer_lags.insert(producer_lags.end(), s.producer_lags.begin(),
+                         s.producer_lags.end());
+    submit_calls.insert(submit_calls.end(), s.submit_calls.begin(),
+                        s.submit_calls.end());
     for (std::size_t i = 0; i < counts.size(); ++i) counts[i] += s.counts[i];
   }
   const auto median = percentile(times, .5);
@@ -807,6 +879,11 @@ void run(const Options& o, uint32_t workers, std::string_view name,
         << ",\"fanout\":" << o.fanout << ",\"high_every\":" << o.high_every
         << ",\"idle_us\":" << o.idle_us
         << ",\"sample_stride\":" << o.sample_stride
+        << ",\"arrival_rate\":" << o.arrival_rate
+        << ",\"submission_rate_p50\":" << percentile(submission_rates, .5)
+        << ",\"scheduled_start_p99_us\":" << percentile(scheduled_starts, .99)
+        << ",\"producer_lag_p99_us\":" << percentile(producer_lags, .99)
+        << ",\"submit_call_p99_us\":" << percentile(submit_calls, .99)
         << ",\"latency\":" << (o.latency ? "true" : "false")
         << ",\"measured_us\":" << measured_us
         << ",\"requested_min_ms\":" << o.min_ms
@@ -848,6 +925,7 @@ void run(const Options& o, uint32_t workers, std::string_view name,
                 << ",\"first_start_us\":" << s.first_start_us
                 << ",\"last_finish_us\":" << s.last_finish_us
                 << ",\"drain_tail_us\":" << s.drain_tail_us
+                << ",\"submission_window_us\":" << s.submission_window_us
                 << ",\"start_latency_us\":[";
       for (std::size_t j = 0; j < s.starts.size(); ++j) {
         if (j) std::cout << ',';
@@ -858,7 +936,19 @@ void run(const Options& o, uint32_t workers, std::string_view name,
         if (j) std::cout << ',';
         std::cout << s.finishes[j];
       }
-      std::cout << "],\"counts\":{";
+      std::cout << ']';
+      auto array = [](std::string_view key, const std::vector<double>& values) {
+        std::cout << ',' << std::quoted(std::string(key)) << ":[";
+        for (std::size_t j = 0; j < values.size(); ++j) {
+          if (j) std::cout << ',';
+          std::cout << values[j];
+        }
+        std::cout << ']';
+      };
+      array("scheduled_start_latency_us", s.scheduled_starts);
+      array("producer_lag_us", s.producer_lags);
+      array("submit_call_us", s.submit_calls);
+      std::cout << ",\"counts\":{";
       for (std::size_t j = 0; j < s.counts.size(); ++j) {
         if (j) std::cout << ',';
         std::cout << std::quoted(

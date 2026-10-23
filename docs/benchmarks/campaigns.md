@@ -101,6 +101,20 @@ All fields emitted by the executable, including per-run diagnostics and latency
 samples, remain in `runs.jsonl`; timing comparisons should use uninstrumented builds.
 Graph fresh/reuse semantics belong to the cases (`--fresh-graph`), not the runner.
 
+The current runtime suite also provides `range_static`, `range_ws`,
+`range_static_uneven` and `range_ws_uneven`. They exercise `Pool::for_each` and
+`Pool::for_each_ws` over the same indexed payload. Uneven cases give every 16th
+element 32 times the payload iterations. `--grain N` (positive, default 16384)
+sets the work-stealing algorithm's minimum grain hint; JSON records `grain_hint`,
+`effective_grain` and the build's `range_chunk`. Use ranges larger than the grain
+to measure splitting. Range latency is measured from operation start to each
+sampled element's start (`run_to_start`), and index preparation is outside timing.
+The legacy adapter skips these cases.
+
+Specify `--central-batch 1024` explicitly when measuring the current Pool default:
+the suite retains its historical CLI default of 32. Submission batching is a
+separate setting (`--submit-batch`); zero submits individual tasks.
+
 ## Compare profiles, allocators or revisions
 
 ```sh

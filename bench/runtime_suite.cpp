@@ -35,13 +35,18 @@ constexpr std::string_view scenarios[] = {"local_saturated",
                                           "graph_reuse",
                                           "dag_build_run",
                                           "graph_tokens_serial",
-                                          "graph_tokens_parallel"};
+                                          "graph_tokens_parallel",
+                                          "range_static",
+                                          "range_ws",
+                                          "range_static_uneven",
+                                          "range_ws_uneven"};
 
 struct Options {
   unsigned shards = 0;
   unsigned submit_batch = 0, central_batch = 32;
   unsigned workers = 4, repeats = 15, warmup = 3, sample_stride = 16;
   std::size_t tasks = 4096;
+  std::size_t grain = 16384;
   std::uint64_t iterations = 0, work_ns = 0, idle_us = 2000;
   bool fixed_iterations = false, latency = false, calibrate = false,
        fresh_graph = false, list = false;
@@ -81,7 +86,8 @@ Options parse(int argc, char** argv) {
                    "[--shards N] [--submit-batch 0..64] [--central-batch N] "
                    "[--tasks N] [--repeats N] [--warmup N] [--work-ns N] "
                    "[--iterations N] [--latency] [--sample-stride N] "
-                   "[--idle-us N] [--fresh-graph] [--list] [--calibrate]\n"
+                   "[--idle-us N] [--grain N] [--fresh-graph] [--list] "
+                   "[--calibrate]\n"
                    "Outputs JSONL. --iterations fixes work across builds; "
                    "--work-ns otherwise calibrates approximately.\n";
       std::exit(0);
@@ -94,6 +100,8 @@ Options parse(int argc, char** argv) {
     const auto n = number(argv[i]);
     if (key == "--tasks")
       o.tasks = n;
+    else if (key == "--grain")
+      o.grain = n;
     else if (key == "--iterations") {
       o.iterations = n;
       o.fixed_iterations = true;
@@ -116,7 +124,7 @@ Options parse(int argc, char** argv) {
     } else
       throw std::invalid_argument("unknown option: " + std::string(key));
   }
-  if (!o.workers || !o.tasks || !o.repeats || !o.sample_stride ||
+  if (!o.workers || !o.tasks || !o.repeats || !o.sample_stride || !o.grain ||
       !o.central_batch || o.submit_batch > 64 || o.tasks > UINT32_MAX - 2 ||
       o.iterations > UINT64_MAX / 32 || o.idle_us > 60'000'000 ||
       o.work_ns > 1'000'000'000 || o.warmup > UINT32_MAX - o.repeats)
@@ -284,6 +292,12 @@ void run_scenario(suite_backend::Pool& pool, const Options& o,
     return;
   }
 #ifdef DAGFLOW_SUITE_LEGACY
+  if (name.starts_with("range_")) {
+    std::cout << "{\"schema\":1,\"scenario\":\"" << name
+              << "\",\"status\":\"skipped\",\"reason\":"
+                 "\"range campaign requires the current API\"}\n";
+    return;
+  }
   if (name == "scope_recursive") {
     std::cout << "{\"schema\":1,\"scenario\":\"scope_recursive\","
                  "\"status\":\"skipped\",\"reason\":"
@@ -291,7 +305,10 @@ void run_scenario(suite_backend::Pool& pool, const Options& o,
     return;
   }
 #endif
-  Work w(o, name == "uneven");
+  const bool range_case = name.starts_with("range_");
+  Work w(o, name == "uneven" || name.ends_with("_uneven"));
+  std::vector<std::size_t> indices(range_case ? o.tasks : 0);
+  std::iota(indices.begin(), indices.end(), std::size_t{0});
   std::atomic<std::size_t> remaining{0};
   std::atomic<std::size_t> token_index{0};
   // This guard must retire every outstanding borrow before Work/counters die,
@@ -367,6 +384,14 @@ void run_scenario(suite_backend::Pool& pool, const Options& o,
         suite_backend::rethrow_graph(*graph, result);
       }
 #ifndef DAGFLOW_SUITE_LEGACY
+    } else if (range_case) {
+      w.graph_started = start;
+      auto apply = [&w](std::size_t i) { w.execute(i, w.graph_started); };
+      auto result = name.starts_with("range_ws")
+                        ? pool.for_each_ws(indices, apply, {}, o.grain)
+                        : pool.for_each(indices, apply);
+      pool.wait(result);
+      suite_backend::rethrow(result);
     } else if (name == "scope_recursive") {
       dagflow::TaskScope scope(pool);
       require(scope.spawn(
@@ -447,33 +472,41 @@ void run_scenario(suite_backend::Pool& pool, const Options& o,
   std::sort(latencies.begin(), latencies.end());
   const auto checksum =
       std::accumulate(w.results.begin(), w.results.end(), std::uint64_t{0});
-  std::cout << std::setprecision(12)
-            << "{\"schema\":1,\"status\":\"ok\",\"scenario\":\"" << name
-            << "\",\"backend\":\"" << suite_backend::name
-            << "\",\"allocator\":\"" << dagflow::detail::allocator_backend()
-            << "\",\"workers\":" << o.workers
-            << ",\"shards\":" << (o.shards ? o.shards : o.workers)
-            << ",\"submit_batch\":"
-            << ((name == "external_detached" || name == "idle_burst")
-                    ? o.submit_batch
-                    : 0)
-            << ",\"central_batch\":" << o.central_batch
-            << ",\"fresh_graph\":" << (o.fresh_graph ? "true" : "false")
-            << ",\"tasks\":" << o.tasks << ",\"repeats\":" << o.repeats
-            << ",\"warmup\":" << o.warmup << ",\"work_ns\":" << o.work_ns
-            << ",\"iterations\":" << o.iterations
-            << ",\"idle_us\":" << o.idle_us
-            << ",\"sample_stride\":" << o.sample_stride << ",\"mode\":\""
-            << (o.latency ? "latency" : "throughput")
-            << "\",\"payload_tasks_per_second\":"
-            << (o.tasks * double(o.repeats) * 1e6 / total_us)
-            << ",\"run_p50_us\":" << percentile(sorted, .50)
-            << ",\"run_p99_us\":" << percentile(sorted, .99)
-            << ",\"run_p999_us\":" << percentile(sorted, .999)
-            << ",\"latency_kind\":\""
-            << (graph_case ? "run_to_start" : "submit_to_start")
-            << "\",\"latency_samples\":" << latencies.size()
-            << ",\"latency_p50_us\":";
+  std::cout
+      << std::setprecision(12)
+      << "{\"schema\":1,\"status\":\"ok\",\"scenario\":\"" << name
+      << "\",\"backend\":\"" << suite_backend::name << "\",\"allocator\":\""
+      << dagflow::detail::allocator_backend() << "\",\"workers\":" << o.workers
+      << ",\"shards\":" << (o.shards ? o.shards : o.workers)
+      << ",\"submit_batch\":"
+      << ((name == "external_detached" || name == "idle_burst") ? o.submit_batch
+                                                                : 0)
+      << ",\"central_batch\":" << o.central_batch
+      << ",\"grain_hint\":" << (name.starts_with("range_ws") ? o.grain : 0)
+#ifndef DAGFLOW_SUITE_LEGACY
+      << ",\"range_chunk\":" << (range_case ? DAGFLOW_DEFAULT_RANGE_CHUNK : 0)
+      << ",\"effective_grain\":"
+      << (name.starts_with("range_ws")
+              ? std::clamp<std::size_t>(
+                    std::max<std::size_t>(o.tasks / (o.workers * 8u), o.grain),
+                    1, o.tasks)
+              : 0)
+#endif
+      << ",\"fresh_graph\":" << (o.fresh_graph ? "true" : "false")
+      << ",\"tasks\":" << o.tasks << ",\"repeats\":" << o.repeats
+      << ",\"warmup\":" << o.warmup << ",\"work_ns\":" << o.work_ns
+      << ",\"iterations\":" << o.iterations << ",\"idle_us\":" << o.idle_us
+      << ",\"sample_stride\":" << o.sample_stride << ",\"mode\":\""
+      << (o.latency ? "latency" : "throughput")
+      << "\",\"payload_tasks_per_second\":"
+      << (o.tasks * double(o.repeats) * 1e6 / total_us)
+      << ",\"run_p50_us\":" << percentile(sorted, .50)
+      << ",\"run_p99_us\":" << percentile(sorted, .99)
+      << ",\"run_p999_us\":" << percentile(sorted, .999)
+      << ",\"latency_kind\":\""
+      << (graph_case || range_case ? "run_to_start" : "submit_to_start")
+      << "\",\"latency_samples\":" << latencies.size()
+      << ",\"latency_p50_us\":";
   if (latencies.empty())
     std::cout << "null,\"latency_p99_us\":null,\"latency_p999_us\":null";
   else
