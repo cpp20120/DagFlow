@@ -1,5 +1,7 @@
+
 include("${CMAKE_CURRENT_LIST_DIR}/JsonChecks.cmake")
 set(BASE --json --tasks 37 --warmup 1 --warmup-ms 0 --repeats 2 --bursts 2 --idle-us 100 --verify exact)
+
 function(check_result row)
   check_field("${row}" ok status)
   check_field("${row}" ON duration_satisfied)
@@ -52,6 +54,7 @@ function(check_result row)
     message(FATAL_ERROR "Measured duration does not match samples")
   endif()
 endfunction()
+
 foreach(workers 1 4)
   run_json(rows ${BASE} --scenario all --workers ${workers} --producers 3 --latency --sample-stride 1)
   list(LENGTH rows count)
@@ -76,6 +79,7 @@ foreach(workers 1 4)
     check_checksum("stress_${scenario}" "${checksum}")
   endforeach()
 endforeach()
+
 foreach(batch 0 1 16 64)
   foreach(mode persistent fresh)
     run_json(row ${BASE} --scenario external-contention --workers 2 --producers 3
@@ -85,17 +89,21 @@ foreach(batch 0 1 16 64)
     check_checksum(stress_batch "${checksum}")
   endforeach()
 endforeach()
+
 run_json(row ${BASE} --scenario mixed-chaos --workers 2 --fanout 0 --submit-batch 32)
 check_result("${row}")
 check_field("${row}" 40 logical_tasks)
 check_field("${row}" 0 submit_batch)
+
 run_json(row ${BASE} --scenario idle-burst --workers 1 --idle-us 10000 --min-ms 1 --max-samples 1000)
 string(JSON measured GET "${row}" measured_us)
 if(measured LESS 1000)
   message(FATAL_ERROR "Active duration minimum was not reached")
 endif()
+
 run_json(row ${BASE} --scenario idle-burst --workers 1 --min-ms 60000 --max-samples 2)
 check_field("${row}" OFF duration_satisfied)
+
 run_json(row ${BASE} --scenario local-overflow --workers 1 --tasks 65536 --warmup 0 --repeats 1)
 check_result("${row}")
 string(JSON diagnostics GET "${row}" diagnostics)
@@ -106,6 +114,7 @@ if(diagnostics)
   check_field("${row}" 1024 counts local_push)
   check_field("${row}" 1 counts cross_thread_free)
 endif()
+
 foreach(rate 10000 1000000)
   foreach(mode persistent fresh)
     foreach(placement none spread)
@@ -116,7 +125,7 @@ foreach(rate 10000 1000000)
       check_field("${row}" ${rate} arrival_rate)
       string(JSON checksum GET "${row}" checksum)
       check_checksum(paced_ingress "${checksum}")
-      foreach(i 0 1)
+      foreach(i RANGE 0 1)
         string(JSON sample GET "${row}" samples ${i})
         string(JSON count LENGTH "${sample}" scheduled_start_latency_us)
         if(NOT count EQUAL 37)
@@ -139,10 +148,18 @@ foreach(rate 10000 1000000)
     endforeach()
   endforeach()
 endforeach()
+
 check_invalid(--arrival-rate 1 --tasks 61 --scenario external-contention)
 check_invalid(--arrival-rate 10000 --tasks 37 --scenario mixed-chaos)
 check_invalid(--arrival-rate 10000 --tasks 37 --scenario external-contention --submit-batch 16)
-check_invalid(--arrival-rate 10000 --scenario external-contention)
+
+# Verify that paced ingress rejects a missing --tasks argument.
+# Do not inherit --tasks 37 from BASE.
+block(SCOPE_FOR VARIABLES)
+  unset(BASE)
+  check_invalid(--arrival-rate 10000 --scenario external-contention)
+endblock()
+
 check_invalid(--workers 0)
 check_invalid(--producers 0)
 check_invalid(--tasks -1)
@@ -150,4 +167,5 @@ check_invalid(--submit-batch 65)
 check_invalid(--verify yes)
 check_invalid(--perf-control-fd 1)
 check_invalid(--worker-cpus 0,0)
+
 message(STATUS "Stress accounting, timestamps, duration and CLI checks passed")
