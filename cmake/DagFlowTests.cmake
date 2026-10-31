@@ -163,22 +163,22 @@ if(DAGFLOW_TARGET)
   # Explicit opt-in mutation campaign: compiles disposable copies of one
   # queue header and executes the bounded history oracle against each mutant.
   # Not part of ordinary CTest/coverage builds and never changes production.
-  find_package(Python3 COMPONENTS Interpreter QUIET)
-  if(Python3_Interpreter_FOUND)
+  if(DAGFLOW_TOOLS_EXECUTABLE AND EXISTS "${DAGFLOW_TOOLS_EXECUTABLE}" AND UNIX AND
+      CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     add_custom_target(dagflow_queue_mutation_campaign
-      COMMAND ${Python3_EXECUTABLE}
-        "${CMAKE_CURRENT_SOURCE_DIR}/scripts/mutation_campaign.py"
+      COMMAND "${DAGFLOW_TOOLS_EXECUTABLE}" dagflow mutation run
+        --suite queue --source-dir "${CMAKE_CURRENT_SOURCE_DIR}"
         --cxx "${CMAKE_CXX_COMPILER}"
       WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
       COMMENT "Run isolated mutation campaign against the MPMC history checker"
       USES_TERMINAL)
   endif()
 
-  if(Python3_Interpreter_FOUND AND UNIX AND
+  if(DAGFLOW_TOOLS_EXECUTABLE AND EXISTS "${DAGFLOW_TOOLS_EXECUTABLE}" AND UNIX AND
       CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     add_custom_target(dagflow_protocol_mutation_campaign
-      COMMAND ${Python3_EXECUTABLE}
-        "${CMAKE_CURRENT_SOURCE_DIR}/scripts/protocol_mutation_campaign.py"
+      COMMAND "${DAGFLOW_TOOLS_EXECUTABLE}" dagflow mutation run
+        --suite all --source-dir "${CMAKE_CURRENT_SOURCE_DIR}"
         --cxx "${CMAKE_CXX_COMPILER}"
       WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
       COMMENT "Mutation-check protocols against reference models and schedule exploration"
@@ -192,8 +192,8 @@ if(DAGFLOW_TARGET)
       if(NOT EXISTS "${DAGFLOW_RELACY_INCLUDE_DIR}/relacy/relacy.hpp")
         message(FATAL_ERROR "DAGFLOW_RELACY_INCLUDE_DIR lacks relacy/relacy.hpp")
       endif()
-      set(_dagflow_weak_memory_command ${Python3_EXECUTABLE}
-        "${CMAKE_CURRENT_SOURCE_DIR}/scripts/weak_memory_campaign.py"
+      set(_dagflow_weak_memory_command "${DAGFLOW_TOOLS_EXECUTABLE}"
+        dagflow weak-memory run --source-dir "${CMAKE_CURRENT_SOURCE_DIR}"
         --cxx "${CMAKE_CXX_COMPILER}"
         --relacy "${DAGFLOW_RELACY_INCLUDE_DIR}")
       add_custom_target(dagflow_weak_memory_campaign

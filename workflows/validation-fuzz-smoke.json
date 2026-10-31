@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 2,
+  "contexts": {
+    "fuzz": {
+      "buildDirectory": "../out/build/fuzz",
+      "sourceDirectory": "..",
+      "configuration": "Debug",
+      "configurePreset": "fuzz",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    }
+  },
+  "nodes": [
+    { "id": "configure", "kind": "configure", "context": "fuzz" },
+    {
+      "id": "build-queues",
+      "kind": "build",
+      "context": "fuzz",
+      "target": "dagflow_fuzz_queues",
+      "dependsOn": ["configure"]
+    },
+    {
+      "id": "queue-seeds",
+      "kind": "ctest",
+      "context": "fuzz",
+      "testRegex": "^dagflow_fuzz_queues$",
+      "dependsOn": ["build-queues"],
+      "exclusive": true,
+      "timeoutSeconds": 60
+    }
+  ]
+}

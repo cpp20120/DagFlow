@@ -158,9 +158,19 @@ cmake --build --preset bench-pgo-use --parallel 4
 `perf stat`; the toolkit retains raw counter files. These counters cover the
 whole process and should be collected separately from primary timing runs.
 
-The specialized `profile_main.py`, `profile_main_stacks.py`, `perf_flamegraph.py`
-and `render_main_profile.py` remain optional Python tools in `tools/profiling/`. They use the current
-CMake options and are not imported or discovered by ordinary workflows.
+The CMakeWorkflow CLI runs the `main-o3-lto` timing and profiling campaign
+against two explicitly configured build trees:
+`CMakeWorkflow dagflow profile run --campaign main-o3-lto --o3-build-dir DIR
+--lto-build-dir DIR --target dagflow_stress_bench --repeats 3 --results-dir DIR`.
+It resolves executables through CMake File API, repeats uninstrumented timing,
+collects Linux `perf stat` counters separately from the native profile trace,
+and writes a comparison. `CMakeWorkflow dagflow profile analyze RUN_DIR`
+recreates the analysis from a completed run.
+On Windows, the analyzer exports ETL with `tracerpt` and reports target-process
+CPU samples, context switches, ready events and observed scheduling intervals
+by thread. Raw ETL and the event
+dump are retained for further work in WPA.
+The older Python profiling scripts remain for reproducing historical reports.
 
 ## Replacements for the old Python commands
 

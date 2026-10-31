@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "contexts": {
+    "bench": {
+      "buildDirectory": "../out/build/runtime-campaign",
+      "sourceDirectory": "..",
+      "configuration": "Release",
+      "configurePreset": "runtime-campaign",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    }
+  },
+  "nodes": [
+    { "id": "configure", "kind": "configure", "context": "bench" },
+    {
+      "id": "api-workloads",
+      "kind": "invoke",
+      "context": "bench",
+      "target": "run_dagflow_api_campaign",
+      "dependsOn": ["configure"],
+      "exclusive": true,
+      "timeoutSeconds": 3600
+    },
+    {
+      "id": "scheduler-workloads",
+      "kind": "invoke",
+      "context": "bench",
+      "target": "run_dagflow_runtime_campaign",
+      "dependsOn": ["api-workloads"],
+      "exclusive": true,
+      "timeoutSeconds": 10800
+    }
+  ]
+}

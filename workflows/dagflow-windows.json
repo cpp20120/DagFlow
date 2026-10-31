@@ -1,0 +1,226 @@
+{
+  "schemaVersion": 2,
+  "contexts": {
+    "ci": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/build/ci-debug",
+      "configurePreset": "ci-debug",
+      "configuration": "Debug",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    },
+    "tiny": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/build/adversarial-tiny",
+      "configurePreset": "adversarial-tiny",
+      "configuration": "Debug",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    },
+    "runtime": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/build/runtime-check",
+      "configurePreset": "runtime-check",
+      "configuration": "Release",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    },
+    "campaign": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/build/runtime-campaign",
+      "configurePreset": "runtime-campaign",
+      "configuration": "Release",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    }
+  },
+  "nodes": [
+    {
+      "id": "ci.configure",
+      "kind": "configure",
+      "context": "ci",
+      "timeoutSeconds": 1800
+    },
+    {
+      "id": "ci.build",
+      "kind": "invoke",
+      "context": "ci",
+      "target": "dagflow_tests",
+      "dependsOn": [
+        "ci.configure"
+      ],
+      "timeoutSeconds": 7200
+    },
+    {
+      "id": "ci.test",
+      "kind": "ctest",
+      "context": "ci",
+      "dependsOn": [
+        "ci.build"
+      ],
+      "timeoutSeconds": 5400
+    },
+    {
+      "id": "tiny.configure",
+      "kind": "configure",
+      "context": "tiny",
+      "timeoutSeconds": 1800
+    },
+    {
+      "id": "tiny.build",
+      "kind": "invoke",
+      "context": "tiny",
+      "target": "dagflow_tests",
+      "dependsOn": [
+        "tiny.configure"
+      ],
+      "timeoutSeconds": 7200
+    },
+    {
+      "id": "tiny.test",
+      "kind": "ctest",
+      "context": "tiny",
+      "dependsOn": [
+        "tiny.build"
+      ],
+      "timeoutSeconds": 5400
+    },
+    {
+      "id": "runtime.configure",
+      "kind": "configure",
+      "context": "runtime",
+      "timeoutSeconds": 1800
+    },
+    {
+      "id": "runtime.build",
+      "kind": "invoke",
+      "context": "runtime",
+      "target": "dagflow_tests",
+      "dependsOn": [
+        "runtime.configure"
+      ],
+      "timeoutSeconds": 7200
+    },
+    {
+      "id": "runtime.test",
+      "kind": "ctest",
+      "context": "runtime",
+      "dependsOn": [
+        "runtime.build"
+      ],
+      "timeoutSeconds": 5400,
+      "labelRegex": "benchmark|harness|schema"
+    },
+    {
+      "id": "runtime.suite.build",
+      "kind": "build",
+      "context": "runtime",
+      "target": "dagflow_runtime_suite",
+      "dependsOn": [
+        "runtime.build"
+      ],
+      "timeoutSeconds": 3600
+    },
+    {
+      "id": "runtime.suite.run",
+      "kind": "run",
+      "from": "runtime.suite.build",
+      "arguments": [
+        "--scenario",
+        "idle_burst",
+        "--workers",
+        "4",
+        "--tasks",
+        "512",
+        "--iterations",
+        "64",
+        "--repeats",
+        "3",
+        "--warmup",
+        "1"
+      ],
+      "timeoutSeconds": 1800
+    },
+    {
+      "id": "runtime.stress.build",
+      "kind": "build",
+      "context": "runtime",
+      "target": "dagflow_stress_bench",
+      "dependsOn": [
+        "runtime.build"
+      ],
+      "timeoutSeconds": 3600
+    },
+    {
+      "id": "runtime.stress.run",
+      "kind": "run",
+      "from": "runtime.stress.build",
+      "arguments": [
+        "--workers",
+        "4",
+        "--tasks",
+        "512",
+        "--repeats",
+        "3",
+        "--warmup",
+        "1",
+        "--warmup-ms",
+        "0",
+        "--bursts",
+        "2",
+        "--idle-us",
+        "100",
+        "--verify",
+        "exact"
+      ],
+      "timeoutSeconds": 1800
+    },
+    {
+      "id": "runtime.api.build",
+      "kind": "build",
+      "context": "runtime",
+      "target": "dagflow_public_api_bench",
+      "dependsOn": [
+        "runtime.build"
+      ],
+      "timeoutSeconds": 3600
+    },
+    {
+      "id": "runtime.api.run",
+      "kind": "run",
+      "from": "runtime.api.build",
+      "arguments": [
+        "--benchmark",
+        "chain",
+        "--workers",
+        "4",
+        "--runs",
+        "5",
+        "--warmup",
+        "1",
+        "--payload-rounds",
+        "8"
+      ],
+      "timeoutSeconds": 1800
+    },
+    {
+      "id": "campaign.configure",
+      "kind": "configure",
+      "context": "campaign",
+      "timeoutSeconds": 1800
+    },
+    {
+      "id": "campaign.run",
+      "kind": "invoke",
+      "context": "campaign",
+      "target": "run_dagflow_runtime_campaign",
+      "dependsOn": [
+        "campaign.configure"
+      ],
+      "timeoutSeconds": 10800,
+      "resources": [
+        "bench-campaign"
+      ]
+    }
+  ]
+}

@@ -147,9 +147,18 @@ project, target and profile helpers. The adjacent DagFlow modules describe the
 runtime's sources, allocator and workloads. Build settings and component options use `DAGFLOW_*`.
 
 Builds, tests, PGO, documentation and benchmark campaigns run without Python.
+The standalone [CMakeWorkflow](https://github.com/cpp20120/CMakeWorkflow) CLI
+also runs mutation, Relacy weak-memory, profiling and fuzz-seed campaigns in C#.
+Set `DAGFLOW_TOOLS_EXECUTABLE` to its published executable to expose the
+optional mutation and weak-memory CMake targets. CMake still owns compilation,
+native target dependencies and CTest.
+See [DagFlow campaigns with CMakeWorkflow](docs/cmake-workflow-campaigns.md)
+for the standalone C# campaign commands and profiling results.
+
 See [CMake campaigns and migration](docs/benchmarks/campaigns.md) for commands,
-allocator/profile matrices and result comparison. Only the optional specialized
-perf/flamegraph tools still use Python.
+allocator/profile matrices and result comparison. Historical Python experiment
+scripts remain as archived reproductions; current campaign entrypoints use
+CMakeWorkflow.
 
 After cloning, prepare the tools, build, run CTest and execute the basic example:
 

@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 2,
+  "contexts": {
+    "profile": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/build/bench-o3",
+      "configurePreset": "bench-o3",
+      "configuration": "Release",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    }
+  },
+  "nodes": [
+    {
+      "id": "profile.configure",
+      "kind": "configure",
+      "context": "profile",
+      "timeoutSeconds": 1800
+    },
+    {
+      "id": "profile.build",
+      "kind": "build",
+      "context": "profile",
+      "target": "dagflow_runtime_suite",
+      "dependsOn": [
+        "profile.configure"
+      ],
+      "timeoutSeconds": 7200
+    },
+    {
+      "id": "profile.cpu",
+      "kind": "profile",
+      "from": "profile.build",
+      "arguments": [
+        "--scenario",
+        "idle_burst",
+        "--workers",
+        "4",
+        "--tasks",
+        "512",
+        "--iterations",
+        "64",
+        "--repeats",
+        "3",
+        "--warmup",
+        "1"
+      ],
+      "options": {
+        "backend": "perf",
+        "mode": "cpu",
+        "captureTimeoutSeconds": "300"
+      },
+      "timeoutSeconds": 600,
+      "resources": [
+        "profiler"
+      ]
+    },
+    {
+      "id": "profile.scheduler",
+      "kind": "profile",
+      "from": "profile.build",
+      "arguments": [
+        "--scenario",
+        "idle_burst",
+        "--workers",
+        "4",
+        "--tasks",
+        "512",
+        "--iterations",
+        "64",
+        "--repeats",
+        "3",
+        "--warmup",
+        "1"
+      ],
+      "options": {
+        "backend": "perf",
+        "mode": "scheduler",
+        "captureTimeoutSeconds": "300"
+      },
+      "timeoutSeconds": 600,
+      "resources": [
+        "profiler"
+      ]
+    },
+    {
+      "id": "profile.counters",
+      "kind": "profile",
+      "from": "profile.build",
+      "arguments": [
+        "--scenario",
+        "idle_burst",
+        "--workers",
+        "4",
+        "--tasks",
+        "512",
+        "--iterations",
+        "64",
+        "--repeats",
+        "3",
+        "--warmup",
+        "1"
+      ],
+      "options": {
+        "backend": "perf",
+        "mode": "counters",
+        "captureTimeoutSeconds": "300"
+      },
+      "timeoutSeconds": 600,
+      "resources": [
+        "profiler"
+      ]
+    }
+  ]
+}

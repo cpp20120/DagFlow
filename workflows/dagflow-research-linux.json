@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 2,
+  "contexts": {
+    "research": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/build/core",
+      "configurePreset": "core",
+      "configuration": "Release",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    }
+  },
+  "nodes": [
+    {
+      "id": "research.configure",
+      "kind": "configure",
+      "context": "research",
+      "timeoutSeconds": 1800
+    },
+    {
+      "id": "research.queue-mutation",
+      "kind": "invoke",
+      "context": "research",
+      "target": "dagflow_queue_mutation_campaign",
+      "dependsOn": [
+        "research.configure"
+      ],
+      "timeoutSeconds": 10800,
+      "resources": [
+        "mutation"
+      ]
+    },
+    {
+      "id": "research.protocol-mutation",
+      "kind": "invoke",
+      "context": "research",
+      "target": "dagflow_protocol_mutation_campaign",
+      "dependsOn": [
+        "research.configure"
+      ],
+      "timeoutSeconds": 10800,
+      "resources": [
+        "mutation"
+      ]
+    },
+    {
+      "id": "research.weak-memory",
+      "kind": "invoke",
+      "context": "research",
+      "target": "dagflow_weak_memory_campaign",
+      "dependsOn": [
+        "research.configure"
+      ],
+      "timeoutSeconds": 10800,
+      "resources": [
+        "weak-memory"
+      ]
+    }
+  ]
+}

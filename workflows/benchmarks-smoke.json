@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 2,
+  "contexts": {
+    "bench": {
+      "buildDirectory": "../out/build/runtime-campaign",
+      "sourceDirectory": "..",
+      "configuration": "Release",
+      "configurePreset": "runtime-campaign",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    }
+  },
+  "nodes": [
+    { "id": "configure", "kind": "configure", "context": "bench" },
+    { "id": "build-api", "kind": "build", "context": "bench", "target": "dagflow_public_api_bench", "dependsOn": ["configure"] },
+    {
+      "id": "api-chain",
+      "kind": "run",
+      "from": "build-api",
+      "arguments": ["--benchmark", "chain", "--workers", "2", "--runs", "1", "--warmup", "0", "--payload-rounds", "1"]
+    },
+    {
+      "id": "api-parallel-for",
+      "kind": "run",
+      "from": "build-api",
+      "dependsOn": ["api-chain"],
+      "arguments": ["--benchmark", "parallel-for", "--workers", "2", "--runs", "1", "--warmup", "0", "--payload-rounds", "1"]
+    },
+    { "id": "build-runtime", "kind": "build", "context": "bench", "target": "dagflow_runtime_suite", "dependsOn": ["api-parallel-for"] },
+    {
+      "id": "dependency-dag",
+      "kind": "run",
+      "from": "build-runtime",
+      "arguments": ["--scenario", "deep_dag", "--workers", "2", "--tasks", "65", "--iterations", "3", "--repeats", "2", "--warmup", "0", "--fresh-graph"]
+    },
+    {
+      "id": "steal-contention",
+      "kind": "run",
+      "from": "build-runtime",
+      "dependsOn": ["dependency-dag"],
+      "arguments": ["--scenario", "steal_heavy", "--workers", "2", "--tasks", "65", "--iterations", "3", "--repeats", "2", "--warmup", "0"]
+    }
+  ]
+}

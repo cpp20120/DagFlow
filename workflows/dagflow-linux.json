@@ -1,0 +1,224 @@
+{
+  "schemaVersion": 2,
+  "contexts": {
+    "ci": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/build/ci-debug",
+      "configurePreset": "ci-debug",
+      "configuration": "Debug",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    },
+    "asan": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/build/check-asan",
+      "configurePreset": "check-asan",
+      "configuration": "Debug",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    },
+    "tsan": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/build/check-tsan",
+      "configurePreset": "check-tsan",
+      "configuration": "Debug",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    },
+    "tiny": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/build/adversarial-tiny",
+      "configurePreset": "adversarial-tiny",
+      "configuration": "Debug",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    },
+    "fuzz": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/build/fuzz",
+      "configurePreset": "fuzz",
+      "configuration": "Debug",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    },
+    "coverage": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/build/coverage",
+      "configurePreset": "coverage",
+      "configuration": "Debug",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    },
+    "campaign": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/build/runtime-campaign",
+      "configurePreset": "runtime-campaign",
+      "configuration": "Release",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    }
+  },
+  "nodes": [
+    {
+      "id": "ci.configure",
+      "kind": "configure",
+      "context": "ci",
+      "timeoutSeconds": 1800
+    },
+    {
+      "id": "ci.build",
+      "kind": "invoke",
+      "context": "ci",
+      "target": "dagflow_tests",
+      "dependsOn": [
+        "ci.configure"
+      ],
+      "timeoutSeconds": 7200
+    },
+    {
+      "id": "ci.test",
+      "kind": "ctest",
+      "context": "ci",
+      "dependsOn": [
+        "ci.build"
+      ],
+      "timeoutSeconds": 5400
+    },
+    {
+      "id": "asan.configure",
+      "kind": "configure",
+      "context": "asan",
+      "timeoutSeconds": 1800
+    },
+    {
+      "id": "asan.build",
+      "kind": "invoke",
+      "context": "asan",
+      "target": "dagflow_tests",
+      "dependsOn": [
+        "asan.configure"
+      ],
+      "timeoutSeconds": 7200
+    },
+    {
+      "id": "asan.test",
+      "kind": "ctest",
+      "context": "asan",
+      "dependsOn": [
+        "asan.build"
+      ],
+      "timeoutSeconds": 5400
+    },
+    {
+      "id": "tsan.configure",
+      "kind": "configure",
+      "context": "tsan",
+      "timeoutSeconds": 1800
+    },
+    {
+      "id": "tsan.build",
+      "kind": "invoke",
+      "context": "tsan",
+      "target": "dagflow_tests",
+      "dependsOn": [
+        "tsan.configure"
+      ],
+      "timeoutSeconds": 7200
+    },
+    {
+      "id": "tsan.test",
+      "kind": "ctest",
+      "context": "tsan",
+      "dependsOn": [
+        "tsan.build"
+      ],
+      "timeoutSeconds": 5400
+    },
+    {
+      "id": "tiny.configure",
+      "kind": "configure",
+      "context": "tiny",
+      "timeoutSeconds": 1800
+    },
+    {
+      "id": "tiny.build",
+      "kind": "invoke",
+      "context": "tiny",
+      "target": "dagflow_tests",
+      "dependsOn": [
+        "tiny.configure"
+      ],
+      "timeoutSeconds": 7200
+    },
+    {
+      "id": "tiny.test",
+      "kind": "ctest",
+      "context": "tiny",
+      "dependsOn": [
+        "tiny.build"
+      ],
+      "timeoutSeconds": 5400
+    },
+    {
+      "id": "fuzz.configure",
+      "kind": "configure",
+      "context": "fuzz",
+      "timeoutSeconds": 1800
+    },
+    {
+      "id": "fuzz.build",
+      "kind": "invoke",
+      "context": "fuzz",
+      "target": "dagflow_fuzzers",
+      "dependsOn": [
+        "fuzz.configure"
+      ],
+      "timeoutSeconds": 7200
+    },
+    {
+      "id": "fuzz.smoke",
+      "kind": "ctest",
+      "context": "fuzz",
+      "labelRegex": "fuzz",
+      "dependsOn": [
+        "fuzz.build"
+      ],
+      "timeoutSeconds": 1800
+    },
+    {
+      "id": "coverage.configure",
+      "kind": "configure",
+      "context": "coverage",
+      "timeoutSeconds": 1800
+    },
+    {
+      "id": "coverage.report",
+      "kind": "invoke",
+      "context": "coverage",
+      "target": "coverage-report",
+      "dependsOn": [
+        "coverage.configure"
+      ],
+      "timeoutSeconds": 10800
+    },
+    {
+      "id": "campaign.configure",
+      "kind": "configure",
+      "context": "campaign",
+      "timeoutSeconds": 1800
+    },
+    {
+      "id": "campaign.run",
+      "kind": "invoke",
+      "context": "campaign",
+      "target": "run_dagflow_runtime_campaign",
+      "dependsOn": [
+        "campaign.configure"
+      ],
+      "timeoutSeconds": 10800,
+      "resources": [
+        "bench-campaign"
+      ]
+    }
+  ]
+}

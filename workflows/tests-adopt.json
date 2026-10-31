@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 2,
+  "contexts": {
+    "core": {
+      "buildDirectory": "../out/build/core",
+      "sourceDirectory": "..",
+      "configuration": "Release",
+      "mode": "adopt",
+      "provenancePolicy": "allowUnverified"
+    }
+  },
+  "nodes": [
+    {
+      "id": "build-tests",
+      "kind": "invoke",
+      "context": "core",
+      "target": "dagflow_tests"
+    },
+    {
+      "id": "unit-tests",
+      "kind": "ctest",
+      "context": "core",
+      "labelRegex": "unit",
+      "dependsOn": ["build-tests"],
+      "exclusive": true,
+      "timeoutSeconds": 900
+    }
+  ]
+}

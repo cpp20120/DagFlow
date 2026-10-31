@@ -163,6 +163,10 @@ The CI matrix independently checks core and runtime with package discovery
 forbidden, and oneTBB/mimalloc/tbbmalloc with managed vcpkg on Linux/macOS/Windows.
 It verifies the package origin, runs CTest and tests the installed core consumer.
 
+For local orchestration across CMake targets and tests, see
+[DagFlow.Tools workflows](tools-workflows.md). DagFlow.Tools keeps CMake as the
+native build owner and records workflow execution separately.
+
 ## Public headers and library consumers
 
 Library and client code includes public headers using their exported path:
@@ -201,8 +205,9 @@ oneTBB comparison target. `DAGFLOW_PROFILE`,
 PGO uses explicit `dagflow_pgo_train` / `dagflow_pgo_merge` steps;
 profile generation and use are separate builds. Documentation uses
 `DAGFLOW_BUILD_DOCS=ON` and target `docs`, subject to Doxygen availability.
-The optional `tools/profiling/*.py` utilities perform specialized Linux
-`perf`/flamegraph analysis and are not dependencies of CMake/CTest.
+The CMakeWorkflow `dagflow profile run` command performs current Linux timing
+and `perf` campaigns. Older `tools/profiling/*.py` scripts remain for historical
+report reproduction and are not dependencies of CMake/CTest.
 
 ## Fuzzing
 

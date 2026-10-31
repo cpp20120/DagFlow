@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 2,
+  "contexts": {
+    "asan": {
+      "buildDirectory": "../out/workflow-builds/asan",
+      "sourceDirectory": "..",
+      "configuration": "Debug",
+      "configurePreset": "check-asan",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    }
+  },
+  "nodes": [
+    {
+      "id": "configure",
+      "kind": "configure",
+      "context": "asan"
+    },
+    {
+      "id": "build-tests",
+      "kind": "invoke",
+      "context": "asan",
+      "target": "dagflow_tests",
+      "dependsOn": [
+        "configure"
+      ]
+    },
+    {
+      "id": "unit-tests",
+      "kind": "ctest",
+      "context": "asan",
+      "labelRegex": "unit",
+      "environment": {
+        "ASAN_OPTIONS": "detect_leaks=0:halt_on_error=1",
+        "UBSAN_OPTIONS": "halt_on_error=1:print_stacktrace=1"
+      },
+      "dependsOn": [
+        "build-tests"
+      ],
+      "exclusive": true,
+      "timeoutSeconds": 1200
+    }
+  ]
+}

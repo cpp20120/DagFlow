@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 2,
+  "contexts": {
+    "tsan": {
+      "buildDirectory": "../out/workflow-builds/tsan",
+      "sourceDirectory": "..",
+      "configuration": "Debug",
+      "configurePreset": "check-tsan",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    }
+  },
+  "nodes": [
+    {
+      "id": "configure",
+      "kind": "configure",
+      "context": "tsan"
+    },
+    {
+      "id": "build-tests",
+      "kind": "invoke",
+      "context": "tsan",
+      "target": "dagflow_tests",
+      "dependsOn": [
+        "configure"
+      ]
+    },
+    {
+      "id": "unit-tests",
+      "kind": "ctest",
+      "context": "tsan",
+      "labelRegex": "unit",
+      "environment": {
+        "TSAN_OPTIONS": "halt_on_error=1"
+      },
+      "dependsOn": [
+        "build-tests"
+      ],
+      "exclusive": true,
+      "timeoutSeconds": 1200
+    }
+  ]
+}

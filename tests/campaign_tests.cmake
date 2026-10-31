@@ -8,6 +8,11 @@ if(NOT "${rc}" STREQUAL "0")
 endif()
 file(READ "${HARNESS_OUTPUT}/summary.json" summary)
 file(READ "${HARNESS_OUTPUT}/manifest.json" manifest)
+file(SHA256 "${HARNESS_OUTPUT}/manifest.json" manifest_sha256)
+string(JSON summary_manifest_sha256 GET "${summary}" manifest_sha256)
+if(NOT summary_manifest_sha256 STREQUAL manifest_sha256)
+  message(FATAL_ERROR "Campaign summary does not identify its manifest")
+endif()
 string(JSON status GET "${summary}" status)
 string(JSON count LENGTH "${summary}" cases)
 string(JSON marker GET "${manifest}" metadata migration_test)
@@ -24,10 +29,57 @@ endif()
 foreach(row IN LISTS runs)
   string(JSON warmup GET "${row}" warmup)
   string(JSON status GET "${row}" output status)
-  if(warmup OR NOT status STREQUAL "ok")
+  string(JSON run_manifest_sha256 GET "${row}" manifest_sha256)
+  if(warmup OR NOT status STREQUAL "ok" OR NOT run_manifest_sha256 STREQUAL manifest_sha256)
     message(FATAL_ERROR "Unexpected campaign run: ${row}")
   endif()
 endforeach()
+
+# JSON serializers may emit valid scientific notation for small benchmark
+# metrics. Exercise both exponent signs through the same CMake harness path.
+set(numeric_output "${HARNESS_OUTPUT}/scientific-metric")
+set(numeric_cases "${numeric_output}-cases.json")
+set(numeric_config "${numeric_output}.cmake")
+file(WRITE "${numeric_cases}" [==[
+{"cases":[
+  {"name":"negative-exponent","args":["-E","echo","{\"mean_s\":3.7663333333333336e-05}"]},
+  {"name":"positive-exponent","args":["-E","echo","{\"mean_s\":1.25e+01}"]}
+]}
+]==])
+file(WRITE "${numeric_config}"
+  "set(HARNESS_NAME scientific-metric)\n"
+  "set(HARNESS_BINARY [==[${CMAKE_COMMAND}]==])\n"
+  "set(HARNESS_OUTPUT [==[${numeric_output}]==])\n"
+  "set(HARNESS_CASES [==[${numeric_cases}]==])\n"
+  "set(HARNESS_ROUNDS 1)\n"
+  "set(HARNESS_WARMUP 0)\n"
+  "set(HARNESS_TIMEOUT 10)\n"
+  "set(HARNESS_PARSER json)\n"
+  "set(HARNESS_METRICS mean_s)\n"
+  "set(HARNESS_INVARIANTS )\n"
+  "set(HARNESS_PERF_EVENTS )\n"
+  "set(HARNESS_WORKING_DIRECTORY [==[${HARNESS_OUTPUT}]==])\n"
+  "set(HARNESS_AFFINITY none)\n"
+  "set(HARNESS_CPU_COUNT 0)\n"
+  "set(HARNESS_RANDOMIZE FALSE)\n"
+  "set(HARNESS_SEED 1)\n"
+  "set(HARNESS_EXECUTION_BLOCKED FALSE)\n"
+  "set(HARNESS_COMPILER regression)\n"
+  "set(HARNESS_GENERATOR regression)\n"
+  "set(HARNESS_PROJECT regression)\n")
+file(MAKE_DIRECTORY "${HARNESS_OUTPUT}")
+execute_process(COMMAND "${CMAKE_COMMAND}" "-DHARNESS_CONFIG=${numeric_config}"
+  -P "${SOURCE_DIR}/cmake/dagflow/benchmark/HarnessCMake.cmake"
+  RESULT_VARIABLE numeric_rc OUTPUT_VARIABLE numeric_out ERROR_VARIABLE numeric_err TIMEOUT 30)
+if(NOT "${numeric_rc}" STREQUAL "0")
+  message(FATAL_ERROR "Scientific metric harness failed: ${numeric_out}\n${numeric_err}")
+endif()
+file(READ "${numeric_output}/summary.json" numeric_summary)
+string(JSON negative_micro GET "${numeric_summary}" cases negative-exponent metrics mean_s median)
+string(JSON positive_micro GET "${numeric_summary}" cases positive-exponent metrics mean_s median)
+if(NOT negative_micro EQUAL 37 OR NOT positive_micro EQUAL 12500000)
+  message(FATAL_ERROR "Scientific metrics were scaled incorrectly: ${negative_micro};${positive_micro}")
+endif()
 
 set(base "${HARNESS_OUTPUT}/summary.json")
 function(compare candidate expected)

@@ -12,6 +12,7 @@
 /doxygen_output/
 /docs/doxygen_output/
 /scripts/out/
+/workflows/out/
 
 # Local patch exports; keep documented experiment patches under docs/.
 /DagFlow-*.patch
@@ -44,6 +45,10 @@
 
 # Optional adjacent checkout
 /cmake_boilerplate/
+
+# DagFlow.Tools managed and NativeAOT outputs.
+/tools/DagFlow.Tools/bin/
+/tools/DagFlow.Tools/obj/
 
 # Local cross-SDKs and generated distribution outputs.
 /external/

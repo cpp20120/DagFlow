@@ -311,6 +311,16 @@ function(dagflow_add_fuzzer target)
         COMMAND ${_emulator} "$<TARGET_FILE:${target}>" ${_run_args}
         DEPENDS ${target} USES_TERMINAL VERBATIM)
     endif()
+    # Export target metadata directly where the native target is registered.
+    if(DAGFLOW_TOOLS_EXECUTABLE)
+      dagflow_export_target(${target})
+    endif()
+    # PoC: reuse the canonical arguments; never duplicate the fuzz recipe in C#.
+    if(DAGFLOW_TOOLS_EXECUTABLE AND _runnable
+        AND target STREQUAL DAGFLOW_TOOLS_BRIDGE_FUZZER)
+      dagflow_add_target_bridge(tools_${_run_target}
+        TARGET ${target} ARGS ${_run_args})
+    endif()
     if(BUILD_TESTING)
       dagflow_register_check(${_smoke_name} ${target} ARGS ${_smoke_args}
         LABELS fuzz smoke libfuzzer ${DAGFLOW_FUZZ_SMOKE_LABEL} TIMEOUT 30)

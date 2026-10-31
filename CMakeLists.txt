@@ -63,6 +63,7 @@ if(PROJECT_IS_TOP_LEVEL)
   include(CTest)
 endif()
 include(cmake/dagflow/DagFlow.cmake)
+include(cmake/DagFlowTargetBridge.cmake)
 get_property(_dagflow_parent_project GLOBAL PROPERTY DAGFLOW_PROJECT_CONFIGURED)
 if(NOT _dagflow_parent_project)
   set(_dagflow_caps ${DAGFLOW_PROJECT_CAPABILITIES})
@@ -101,6 +102,16 @@ if(DAGFLOW_BUILD_FUZZERS)
 endif()
 if(DAGFLOW_BUILD_HARNESS)
   include(cmake/DagFlowHarness.cmake)
+endif()
+if(PROJECT_IS_TOP_LEVEL AND DAGFLOW_TOOLS_EXECUTABLE AND DAGFLOW_TOOLS_WORKFLOW_BUILD_DIR)
+  # IDE entry point orchestrates an independent, configured worker build tree.
+  # C# owns build -> run -> build -> run, with no recursive Ninja on this tree.
+  dagflow_add_external_sequence_workflow(tools_workflow_fuzz_queues_graph
+    WORKER_BUILD_DIR "${DAGFLOW_TOOLS_WORKFLOW_BUILD_DIR}"
+    FIRST_TARGET dagflow_fuzz_queues
+    SECOND_TARGET dagflow_fuzz_graph
+    FIRST_ARGS "-runs=1"
+    SECOND_ARGS "-runs=1")
 endif()
 # A developer opt-in source-tree overlay port uses the same package export as
 # install() and never makes normal consumers depend on a package manager.

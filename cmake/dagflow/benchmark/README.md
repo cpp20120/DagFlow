@@ -46,7 +46,7 @@ Build normally, then run explicitly:
 cmake --build out --target run_runtime_matrix
 ```
 
-The output directory contains `manifest.json`, `runs.jsonl`, `summary.json`, and per-process stdout/stderr logs. Metric summaries use fixed-point micro-units (`scale: 1000000`) so CMake can aggregate decimal values without a floating-point runtime. Linux counters can be requested with `PERF_EVENTS`; raw `perf stat` CSV is retained beside each run log.
+The output directory contains `manifest.json`, `runs.jsonl`, `summary.json`, and per-process stdout/stderr logs. Each run and the summary contain `manifest_sha256`, the SHA-256 of the exact saved `manifest.json` bytes. This links results to that manifest; it does not attest the entire build environment. Metric summaries use fixed-point micro-units (`scale: 1000000`) so CMake can aggregate decimal values without a floating-point runtime. Linux counters can be requested with `PERF_EVENTS`; raw `perf stat` CSV is retained beside each run log.
 
 ## What belongs here vs. in a project adapter
 

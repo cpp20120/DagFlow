@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 2,
+  "contexts": {
+    "bench": {
+      "buildDirectory": "../out/build/runtime-campaign",
+      "sourceDirectory": "..",
+      "configuration": "Release",
+      "mode": "adopt",
+      "provenancePolicy": "allowUnverified"
+    }
+  },
+  "nodes": [
+    { "id": "build-api", "kind": "build", "context": "bench", "target": "dagflow_public_api_bench" },
+    { "id": "timing_main_0", "kind": "run", "from": "build-api", "arguments": ["--benchmark", "chain", "--workers", "2", "--runs", "1", "--warmup", "0", "--payload-rounds", "1"] },
+    { "id": "timing_main_1", "kind": "run", "from": "build-api", "dependsOn": ["timing_main_0"], "arguments": ["--benchmark", "chain", "--workers", "2", "--runs", "1", "--warmup", "0", "--payload-rounds", "1"] },
+    { "id": "timing_main_2", "kind": "run", "from": "build-api", "dependsOn": ["timing_main_1"], "arguments": ["--benchmark", "chain", "--workers", "2", "--runs", "1", "--warmup", "0", "--payload-rounds", "1"] },
+    { "id": "timing_main_3", "kind": "run", "from": "build-api", "dependsOn": ["timing_main_2"], "arguments": ["--benchmark", "chain", "--workers", "2", "--runs", "1", "--warmup", "0", "--payload-rounds", "1"] },
+    { "id": "timing_main_4", "kind": "run", "from": "build-api", "dependsOn": ["timing_main_3"], "arguments": ["--benchmark", "chain", "--workers", "2", "--runs", "1", "--warmup", "0", "--payload-rounds", "1"] },
+    { "id": "timing_main_5", "kind": "run", "from": "build-api", "dependsOn": ["timing_main_4"], "arguments": ["--benchmark", "chain", "--workers", "2", "--runs", "1", "--warmup", "0", "--payload-rounds", "1"] },
+    { "id": "timing_main_6", "kind": "run", "from": "build-api", "dependsOn": ["timing_main_5"], "arguments": ["--benchmark", "chain", "--workers", "2", "--runs", "1", "--warmup", "0", "--payload-rounds", "1"] },
+    { "id": "timing_main_7", "kind": "run", "from": "build-api", "dependsOn": ["timing_main_6"], "arguments": ["--benchmark", "chain", "--workers", "2", "--runs", "1", "--warmup", "0", "--payload-rounds", "1"] },
+    { "id": "timing_main_8", "kind": "run", "from": "build-api", "dependsOn": ["timing_main_7"], "arguments": ["--benchmark", "chain", "--workers", "2", "--runs", "1", "--warmup", "0", "--payload-rounds", "1"] },
+    { "id": "timing_main_9", "kind": "run", "from": "build-api", "dependsOn": ["timing_main_8"], "arguments": ["--benchmark", "chain", "--workers", "2", "--runs", "1", "--warmup", "0", "--payload-rounds", "1"] }
+  ]
+}
