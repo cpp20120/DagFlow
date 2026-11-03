@@ -153,4 +153,3 @@ The four historical profiling drivers were replaced by
 The complete C# command path and archived numeric summaries were tested, but
 this host denies the required PMU capture. A real O3/LTO capture remains
 unverified; the old result files remain in `docs/benchmarks/main-o3-lto-data/`.
-The unrelated `scripts/repair-clion-runs.py` remains an IDE repair utility.

@@ -103,21 +103,8 @@ launch**: CMake performs that step itself, including running custom commands.
 This preserves exit codes and avoids running scenarios twice. Use **Run** for
 these commands; select the underlying executable when debugging C++ code.
 
-To repair existing local configurations from the enabled CLion profiles and
-their CMake File API models:
-
-```sh
-python3 scripts/repair-clion-runs.py          # preview
-python3 scripts/repair-clion-runs.py --apply  # back up and repair
-```
-
-The optional maintenance script updates only CMake run configurations in
-`.idea/workspace.xml`, resolves old profile references against enabled profiles,
-and saves the previous workspace under `out/clion-backups/`. It reports targets
-missing from every available model instead of inventing executables. Reload
-the project after applying; close CLion before applying if it overwrites external
-workspace edits. Normal CMake builds and CLI run targets do not use this script
-or require Python.
+Existing local CLion run configurations can be edited through the IDE. Normal
+CMake builds and CLI run targets do not require Python.
 
 ## Dependency and toolchain controls
 
