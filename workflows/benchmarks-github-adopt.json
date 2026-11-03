@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 2,
+  "contexts": {
+    "github": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/build/bench-github",
+      "configuration": "Release",
+      "mode": "adopt",
+      "provenancePolicy": "allowUnverified"
+    }
+  },
+  "nodes": [
+    { "id": "github.build", "kind": "build", "context": "github",
+      "target": "dagflow_github_suite", "timeoutSeconds": 7200 },
+    { "id": "github.smoke", "kind": "run", "from": "github.build",
+      "arguments": ["--scenario", "external_handles", "--workers", "2",
+        "--tasks", "65", "--iterations", "3", "--repeats", "2", "--warmup", "0"],
+      "timeoutSeconds": 300, "resources": ["benchmark-host"] }
+  ]
+}

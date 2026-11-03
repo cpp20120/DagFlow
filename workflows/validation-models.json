@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 2,
+  "contexts": {
+    "models": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/build/core",
+      "configurePreset": "core",
+      "configuration": "Release",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    }
+  },
+  "nodes": [
+    { "id": "models.configure", "kind": "configure", "context": "models", "timeoutSeconds": 1800 },
+    { "id": "models.build", "kind": "invoke", "context": "models",
+      "target": "dagflow_model_property_tests", "dependsOn": ["models.configure"],
+      "timeoutSeconds": 7200 },
+    { "id": "models.property", "kind": "ctest", "context": "models",
+      "labelRegex": "property|pbt", "dependsOn": ["models.build"],
+      "timeoutSeconds": 3600, "resources": ["model-tests"] },
+    { "id": "models.fault-injection", "kind": "ctest", "context": "models",
+      "labelRegex": "fault-injection", "dependsOn": ["models.build"],
+      "timeoutSeconds": 3600, "resources": ["model-tests"] }
+  ]
+}

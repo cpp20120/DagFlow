@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 2,
+  "contexts": {
+    "docs": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/build/docs",
+      "configuration": "Release",
+      "mode": "adopt",
+      "provenancePolicy": "allowUnverified"
+    }
+  },
+  "nodes": [
+    { "id": "docs.generate", "kind": "invoke", "context": "docs",
+      "target": "docs", "timeoutSeconds": 1800 }
+  ]
+}

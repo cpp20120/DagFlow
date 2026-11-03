@@ -24,10 +24,17 @@ CMakeWorkflow dagflow weak-memory run --protocol parking \
 ```
 
 Mutation compiles disposable C++ variants and runs the property models.
-Weak-memory campaigns compile versioned Relacy adapters and verify source
-hashes before running. Changed DagFlow sources require an updated adapter
-catalog. Mutation and weak-memory compilation currently uses GNU/Clang flags
-on Unix hosts.
+Weak-memory campaigns regenerate Relacy adapters from the current DagFlow
+C++ sources in the DagFlow-specific C# campaign module. The old Python
+source-derived adapter, case and campaign drivers have been retired. The
+C# test suite retains a frozen historical catalog as a regression fixture,
+and compares source-derived headers and suite expectations against it on the
+pinned source revision. Changes to C++ source anchors fail explicitly; they
+must be reviewed rather than silently falling back to stale adapters.
+Mutation and weak-memory compilation currently uses GNU/Clang flags
+on Unix hosts. The optional CMake targets can be orchestrated through
+[the research workflow](../workflows/README.md) after explicitly configuring
+`DAGFLOW_TOOLS_EXECUTABLE` and, for Relacy, `DAGFLOW_RELACY_INCLUDE_DIR`.
 
 ## Fuzz corpus
 
@@ -40,6 +47,8 @@ CMakeWorkflow dagflow fuzz merge --run-dir out/fuzz-runs/<run-directory>
 ```
 
 Seed generation writes named seeds and refuses to overwrite different bytes.
+The C# seed catalog matches the removed Python generator across all seven
+layers by filename and byte content.
 `fuzz run` builds the selected CMake File API target, copies checked-in seeds
 and accumulated inputs to a separate writable corpus, replays inputs, then
 starts the selected libFuzzer, AFL++ or honggfuzz backend. It retains build
@@ -100,3 +109,32 @@ CMakeWorkflow executes the resolved benchmark itself for profiling. It does not
 launch a CMake `run_*` target during capture, which would create a second
 process controller. DagFlow's standalone CMake benchmark harness remains
 usable without the CLI.
+
+## Historical Linux O3 / LTO experiment (migration)
+
+The source-specific C# implementation provides the replacement commands:
+
+```sh
+CMakeWorkflow dagflow profile run-historical --source-dir . \
+  --output out/profiles/historical-new --trials 5 --stat-trials 3 --jobs 4
+CMakeWorkflow dagflow profile render-historical out/profiles/historical-new
+CMakeWorkflow dagflow profile flamegraph \
+  out/profiles/historical-new/profiles/o3-1-idle-burst/perf.data \
+  out/profiles/historical-new/profiles/o3-1-idle-burst/flamegraph-redecoded.json
+```
+
+This is a DagFlow-specific capture protocol, not the general `workflow run`
+recovery engine. Historical capture records an admission entry before each
+command and refuses to replay a command whose prior completion is unknown.
+`--resume` is intentionally conservative and does not imply the generic Host's
+durable recovery guarantees. An exclusive output-directory lease prevents
+concurrent historical captures. Source and measured binary hashes are checked.
+
+The capture's historical perf mode (`cycles:u`, dwarf call-graph, frame-pointer
+diagnostics) requires Linux perf permissions. The C# parsers, numeric summaries,
+seeded shuffle, and SVG renderer have tests. The four Python drivers were
+removed; their historical measurements and manifest remain in
+`docs/benchmarks/main-o3-lto-data/`. A **complete real capture** under the
+required PMU permissions has not run on this host. Synthetic command execution
+and numeric parity with saved measurements do not establish experimental
+equivalence.

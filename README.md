@@ -153,7 +153,8 @@ Set `DAGFLOW_TOOLS_EXECUTABLE` to its published executable to expose the
 optional mutation and weak-memory CMake targets. CMake still owns compilation,
 native target dependencies and CTest.
 See [DagFlow campaigns with CMakeWorkflow](docs/cmake-workflow-campaigns.md)
-for the standalone C# campaign commands and profiling results.
+for the standalone C# campaign commands and profiling results, and
+[DagFlow workflows](workflows/README.md) for the managed/adopted manifests.
 
 See [CMake campaigns and migration](docs/benchmarks/campaigns.md) for commands,
 allocator/profile matrices and result comparison. Historical Python experiment

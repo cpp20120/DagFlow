@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 2,
+  "contexts": {
+    "fuzz": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/build/fuzz",
+      "configurePreset": "fuzz",
+      "configuration": "Debug",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    }
+  },
+  "nodes": [
+    { "id": "configure", "kind": "configure", "context": "fuzz" },
+    {
+      "id": "queues-campaign",
+      "kind": "invoke",
+      "context": "fuzz",
+      "target": "fuzz_dagflow_fuzz_queues",
+      "dependsOn": ["configure"],
+      "exclusive": true,
+      "timeoutSeconds": 180
+    }
+  ]
+}

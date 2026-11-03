@@ -8,13 +8,13 @@ completion propagation must finish **before** its accounting retirement.
 
 ## Source mapping and preconditions
 
-[`weak_memory_adapters.py`](../scripts/weak_memory_adapters.py) copies the class
+The versioned CMakeWorkflow adapter catalog contains the class
 declaration, including inline `publish_worker`, `publish` and `retire`, plus
 `Total`, `publication_exhausted`, `publish_external`, `idle_locked`, `worker_idle`
 and `wait` from the current sources. The atomic operations, counter collections,
 branches, fences and CV notification remain intact. Atomic/mutex/CV operations
-use their Relacy counterparts. Unique source anchors fail closed on incompatible
-source changes. Generated adapters and source/harness hashes are retained with
+use their Relacy counterparts. Source hash drift fails closed until the
+catalog is updated. Generated adapters and source/harness hashes are retained with
 the checker histories.
 
 The [fixture](weak_memory/idle_accounting_fixture.hpp) provides fixed storage
@@ -171,8 +171,8 @@ Compiler: Clang 23.1.1; Relacy revision:
 `2c87447b56b90cbccb5129c93a4e82eda5e7868e`.
 
 ```sh
-python3 scripts/weak_memory_campaign.py --relacy out/weak-memory/relacy \
-  --cxx clang++ --protocol idle_accounting \
+CMakeWorkflow dagflow weak-memory run --source-dir . \
+  --relacy out/weak-memory/relacy --cxx clang++ --protocol idle_accounting \
   --report out/weak-memory/idle-accounting/report.json
 ctest --test-dir out/build/weak-memory \
   -R '^dagflow_idle_accounting_weak_memory_tests$' \

@@ -145,10 +145,10 @@ enumerated here; retirement and registration have their own fixtures.
 
 ## Source mapping and limits
 
-[`weak_memory_adapters.py`](../scripts/weak_memory_adapters.py) extracts balanced
-definitions with unique source anchors. Source changes that invalidate an
-anchor fail the campaign. Reports include hashes of native sources, harnesses,
-adapter scripts, the compiler version and the Relacy revision.
+The versioned CMakeWorkflow catalog stores the extracted definitions. Native
+source hash drift fails the campaign until the adapters are regenerated.
+Reports include hashes of native sources and harnesses, the compiler version
+and the Relacy revision.
 
 Parking copies `Waiter`, `Domain`, prepare/cancel/wait/signal, wake_one,
 wake_worker and word/domain wake helpers. Its storage is fixed at one worker
@@ -192,10 +192,13 @@ publisher-fence case reports an assertion; all five completion cases report a
 data race. These statuses are expected negative controls, not failing baselines.
 
 ```sh
-python3 scripts/weak_memory_campaign.py --relacy out/weak-memory/relacy \
-  --cxx clang++ --protocol parking --protocol completion
-python3 scripts/weak_memory_campaign.py --relacy out/weak-memory/relacy \
-  --cxx clang++ --protocol completion --mutant completion-ready-relaxed
+CMakeWorkflow dagflow weak-memory run --source-dir . \
+  --relacy out/weak-memory/relacy --cxx clang++ --protocol parking
+CMakeWorkflow dagflow weak-memory run --source-dir . \
+  --relacy out/weak-memory/relacy --cxx clang++ --protocol completion
+CMakeWorkflow dagflow weak-memory run --source-dir . \
+  --relacy out/weak-memory/relacy --cxx clang++ --protocol completion \
+  --mutant completion-ready-relaxed
 ```
 
 Without `--protocol`, the campaign also checks deque,

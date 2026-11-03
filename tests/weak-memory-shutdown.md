@@ -137,9 +137,12 @@ choices remain part of these executions. Fairness, arbitrary delays and
 unbounded progress are outside the claim.
 
 ```sh
-python3 scripts/weak_memory_campaign.py --relacy out/weak-memory/relacy \
-  --cxx clang++ --protocol idle_accounting --protocol shutdown \
-  --report out/weak-memory/idle-shutdown/report.json
+CMakeWorkflow dagflow weak-memory run --source-dir . \
+  --relacy out/weak-memory/relacy --cxx clang++ --protocol idle_accounting \
+  --report out/weak-memory/idle-accounting/report.json
+CMakeWorkflow dagflow weak-memory run --source-dir . \
+  --relacy out/weak-memory/relacy --cxx clang++ --protocol shutdown \
+  --report out/weak-memory/shutdown/report.json
 ctest --test-dir out/build/weak-memory -L weak-memory \
   --output-on-failure --no-tests=error
 ```

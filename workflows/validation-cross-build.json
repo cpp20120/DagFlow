@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 2,
+  "contexts": {
+    "linux-arm64": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/build/linux-arm64",
+      "configurePreset": "linux-arm64",
+      "configuration": "Release",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    },
+    "windows-x64": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/build/windows-x64-from-linux",
+      "configurePreset": "windows-x64-from-linux",
+      "configuration": "Release",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    },
+    "android-arm64": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/build/android-arm64",
+      "configurePreset": "android-arm64",
+      "configuration": "Release",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    },
+    "wasm32": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/build/wasm32-emscripten",
+      "configurePreset": "wasm32-emscripten",
+      "configuration": "Release",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    }
+  },
+  "nodes": [
+    { "id": "linux-arm64.configure", "kind": "configure", "context": "linux-arm64",
+      "timeoutSeconds": 1800 },
+    { "id": "linux-arm64.build", "kind": "build", "context": "linux-arm64",
+      "target": "DagFlow_static", "dependsOn": ["linux-arm64.configure"],
+      "timeoutSeconds": 7200 },
+    { "id": "windows-x64.configure", "kind": "configure", "context": "windows-x64",
+      "timeoutSeconds": 1800 },
+    { "id": "windows-x64.build", "kind": "build", "context": "windows-x64",
+      "target": "DagFlow_static", "dependsOn": ["windows-x64.configure"],
+      "timeoutSeconds": 7200 },
+    { "id": "android-arm64.configure", "kind": "configure", "context": "android-arm64",
+      "timeoutSeconds": 1800 },
+    { "id": "android-arm64.build", "kind": "build", "context": "android-arm64",
+      "target": "DagFlow_static", "dependsOn": ["android-arm64.configure"],
+      "timeoutSeconds": 7200 },
+    { "id": "wasm32.configure", "kind": "configure", "context": "wasm32",
+      "timeoutSeconds": 1800 },
+    { "id": "wasm32.build", "kind": "build", "context": "wasm32",
+      "target": "DagFlow_static", "dependsOn": ["wasm32.configure"],
+      "timeoutSeconds": 7200 }
+  ]
+}

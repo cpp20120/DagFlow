@@ -60,8 +60,9 @@ weakening other stores or fences.
 
 ## Executable check and source correspondence
 
-[`weak_memory_campaign.py`](../scripts/weak_memory_campaign.py) generates an
-adapter from the **current production header**. It preserves method bodies,
+The CMakeWorkflow weak-memory catalog contains an adapter generated from the
+recorded production header and rejects source hash drift before execution. The
+adapter preserves method bodies,
 branches, early-empty probes, slot indexing, CAS operations and memory orders.
 The only baseline substitutions are:
 
@@ -111,8 +112,8 @@ by CMake or by the runner. The validated revision is
 ```sh
 git clone https://github.com/dvyukov/relacy.git out/weak-memory/relacy
 git -C out/weak-memory/relacy checkout 2c87447b56b90cbccb5129c93a4e82eda5e7868e
-python3 scripts/weak_memory_campaign.py \
-  --relacy out/weak-memory/relacy --cxx clang++
+CMakeWorkflow dagflow weak-memory run --source-dir . \
+  --relacy out/weak-memory/relacy --cxx clang++ --protocol all
 ```
 
 Optional CMake/CTest integration on UNIX with GCC/Clang accepts the directory containing
@@ -120,6 +121,7 @@ Optional CMake/CTest integration on UNIX with GCC/Clang accepts the directory co
 
 ```sh
 cmake --preset core -B out/build/weak-memory \
+  -DDAGFLOW_TOOLS_EXECUTABLE="$(command -v CMakeWorkflow)" \
   -DDAGFLOW_RELACY_INCLUDE_DIR="$PWD/out/weak-memory/relacy"
 cmake --build out/build/weak-memory --target dagflow_weak_memory_campaign
 ctest --test-dir out/build/weak-memory -L weak-memory \

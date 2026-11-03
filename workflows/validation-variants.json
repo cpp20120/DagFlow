@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 2,
+  "contexts": {
+    "thinlto": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/build/bench-lto",
+      "configurePreset": "bench-lto",
+      "configuration": "Release",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    },
+    "fulllto": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/build/bench-full-lto",
+      "configurePreset": "bench-full-lto",
+      "configuration": "Release",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    },
+    "mimalloc": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/build/mimalloc",
+      "configurePreset": "mimalloc",
+      "configuration": "Release",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    },
+    "tbbmalloc": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/build/tbbmalloc",
+      "configurePreset": "tbbmalloc",
+      "configuration": "Release",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    }
+  },
+  "nodes": [
+    { "id": "thinlto.configure", "kind": "configure", "context": "thinlto" },
+    { "id": "thinlto.build", "kind": "build", "context": "thinlto",
+      "target": "dagflow_runtime_suite", "dependsOn": ["thinlto.configure"] },
+    { "id": "thinlto.smoke", "kind": "run", "from": "thinlto.build",
+      "arguments": ["--scenario", "deep_dag", "--workers", "2", "--tasks", "65",
+        "--iterations", "3", "--repeats", "2", "--warmup", "0", "--fresh-graph"],
+      "resources": ["benchmark-host"], "timeoutSeconds": 300 },
+    { "id": "fulllto.configure", "kind": "configure", "context": "fulllto" },
+    { "id": "fulllto.build", "kind": "build", "context": "fulllto",
+      "target": "dagflow_runtime_suite", "dependsOn": ["fulllto.configure"] },
+    { "id": "fulllto.smoke", "kind": "run", "from": "fulllto.build",
+      "arguments": ["--scenario", "deep_dag", "--workers", "2", "--tasks", "65",
+        "--iterations", "3", "--repeats", "2", "--warmup", "0", "--fresh-graph"],
+      "resources": ["benchmark-host"], "timeoutSeconds": 300 },
+    { "id": "mimalloc.configure", "kind": "configure", "context": "mimalloc" },
+    { "id": "mimalloc.build", "kind": "invoke", "context": "mimalloc",
+      "target": "dagflow_tests", "dependsOn": ["mimalloc.configure"] },
+    { "id": "mimalloc.test", "kind": "ctest", "context": "mimalloc",
+      "labelRegex": "unit", "dependsOn": ["mimalloc.build"],
+      "timeoutSeconds": 3600 },
+    { "id": "tbbmalloc.configure", "kind": "configure", "context": "tbbmalloc" },
+    { "id": "tbbmalloc.build", "kind": "invoke", "context": "tbbmalloc",
+      "target": "dagflow_tests", "dependsOn": ["tbbmalloc.configure"] },
+    { "id": "tbbmalloc.test", "kind": "ctest", "context": "tbbmalloc",
+      "labelRegex": "unit", "dependsOn": ["tbbmalloc.build"],
+      "timeoutSeconds": 3600 }
+  ]
+}

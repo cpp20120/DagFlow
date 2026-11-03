@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 2,
+  "contexts": {
+    "generate": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/build/bench-pgo-generate",
+      "configurePreset": "bench-pgo-generate",
+      "configuration": "Release",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    },
+    "use": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/build/bench-pgo-use",
+      "configurePreset": "bench-pgo-use",
+      "configuration": "Release",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    },
+    "lto-generate": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/build/bench-lto-pgo-generate",
+      "configurePreset": "bench-lto-pgo-generate",
+      "configuration": "Release",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    },
+    "lto-use": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/build/bench-lto-pgo-use",
+      "configurePreset": "bench-lto-pgo-use",
+      "configuration": "Release",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    }
+  },
+  "nodes": [
+    { "id": "pgo.generate.configure", "kind": "configure", "context": "generate",
+      "timeoutSeconds": 1800 },
+    { "id": "pgo.generate.merge", "kind": "invoke", "context": "generate",
+      "target": "dagflow_pgo_merge", "dependsOn": ["pgo.generate.configure"],
+      "outputs": [{ "name": "profile", "path": "../out/pgo/bench-pgo/dagflow.profdata" }],
+      "timeoutSeconds": 10800 },
+    { "id": "pgo.use.configure", "kind": "configure", "context": "use",
+      "inputs": [{ "from": "pgo.generate.merge", "artifact": "profile" }],
+      "timeoutSeconds": 1800 },
+    { "id": "pgo.use.build", "kind": "build", "context": "use",
+      "target": "dagflow_runtime_suite", "dependsOn": ["pgo.use.configure"],
+      "timeoutSeconds": 7200 },
+    { "id": "pgo.use.smoke", "kind": "run", "from": "pgo.use.build",
+      "arguments": ["--scenario", "deep_dag", "--workers", "2", "--tasks", "65",
+        "--iterations", "3", "--repeats", "2", "--warmup", "0", "--fresh-graph"],
+      "resources": ["benchmark-host"], "timeoutSeconds": 300 },
+    { "id": "lto-pgo.generate.configure", "kind": "configure", "context": "lto-generate",
+      "timeoutSeconds": 1800 },
+    { "id": "lto-pgo.generate.merge", "kind": "invoke", "context": "lto-generate",
+      "target": "dagflow_pgo_merge", "dependsOn": ["lto-pgo.generate.configure"],
+      "outputs": [{ "name": "profile", "path": "../out/pgo/bench-lto-pgo/dagflow.profdata" }],
+      "timeoutSeconds": 10800 },
+    { "id": "lto-pgo.use.configure", "kind": "configure", "context": "lto-use",
+      "inputs": [{ "from": "lto-pgo.generate.merge", "artifact": "profile" }],
+      "timeoutSeconds": 1800 },
+    { "id": "lto-pgo.use.build", "kind": "build", "context": "lto-use",
+      "target": "dagflow_runtime_suite", "dependsOn": ["lto-pgo.use.configure"],
+      "timeoutSeconds": 7200 },
+    { "id": "lto-pgo.use.smoke", "kind": "run", "from": "lto-pgo.use.build",
+      "arguments": ["--scenario", "deep_dag", "--workers", "2", "--tasks", "65",
+        "--iterations", "3", "--repeats", "2", "--warmup", "0", "--fresh-graph"],
+      "resources": ["benchmark-host"], "timeoutSeconds": 300 }
+  ]
+}

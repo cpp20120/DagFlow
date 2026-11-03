@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 2,
+  "contexts": {
+    "tiny": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/build/adversarial-tiny",
+      "configurePreset": "adversarial-tiny",
+      "configuration": "Debug",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    }
+  },
+  "nodes": [
+    { "id": "tiny.configure", "kind": "configure", "context": "tiny", "timeoutSeconds": 1800 },
+    { "id": "schedule.build", "kind": "invoke", "context": "tiny",
+      "target": "dagflow_schedule_exploration_tests", "dependsOn": ["tiny.configure"],
+      "timeoutSeconds": 7200 },
+    { "id": "schedule.test", "kind": "ctest", "context": "tiny",
+      "labelRegex": "schedule-exploration", "dependsOn": ["schedule.build"],
+      "timeoutSeconds": 3600, "resources": ["concurrency-tests"] },
+    { "id": "adversarial.build", "kind": "invoke", "context": "tiny",
+      "target": "dagflow_adversarial_tests", "dependsOn": ["tiny.configure"],
+      "timeoutSeconds": 7200 },
+    { "id": "adversarial.test", "kind": "ctest", "context": "tiny",
+      "labelRegex": "adversarial", "dependsOn": ["adversarial.build"],
+      "timeoutSeconds": 3600, "resources": ["concurrency-tests"] }
+  ]
+}

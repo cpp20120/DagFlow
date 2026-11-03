@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 2,
+  "contexts": {
+    "o3": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/build/bench-o3",
+      "configurePreset": "bench-o3",
+      "configuration": "Release",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    },
+    "lto": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/build/bench-o3-lto",
+      "configurePreset": "bench-o3-lto",
+      "configuration": "Release",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    }
+  },
+  "nodes": [
+    { "id": "o3.configure", "kind": "configure", "context": "o3" },
+    { "id": "lto.configure", "kind": "configure", "context": "lto" },
+    { "id": "o3.build", "kind": "build", "context": "o3",
+      "target": "dagflow_stress_bench", "dependsOn": ["o3.configure"] },
+    { "id": "lto.build", "kind": "build", "context": "lto",
+      "target": "dagflow_stress_bench", "dependsOn": ["lto.configure"] },
+    { "id": "o3.timing", "kind": "run", "from": "o3.build",
+      "dependsOn": ["lto.build"],
+      "arguments": ["--workers", "1", "--scenario", "idle-burst"],
+      "resources": ["measurement-host"], "timeoutSeconds": 300 },
+    { "id": "lto.timing", "kind": "run", "from": "lto.build",
+      "dependsOn": ["o3.timing"],
+      "arguments": ["--workers", "1", "--scenario", "idle-burst"],
+      "resources": ["measurement-host"], "timeoutSeconds": 300 },
+    { "id": "o3.capture", "kind": "profile", "from": "o3.build",
+      "dependsOn": ["lto.timing"],
+      "arguments": ["--workers", "1", "--scenario", "idle-burst"],
+      "options": {"backend": "perf", "mode": "cpu", "captureTimeoutSeconds": "300"},
+      "constraints": {"profiler": {"backend": "perf", "mode": "cpu"}},
+      "exclusive": true, "timeoutSeconds": 480 },
+    { "id": "lto.capture", "kind": "profile", "from": "lto.build",
+      "dependsOn": ["o3.capture"],
+      "arguments": ["--workers", "1", "--scenario", "idle-burst"],
+      "options": {"backend": "perf", "mode": "cpu", "captureTimeoutSeconds": "300"},
+      "constraints": {"profiler": {"backend": "perf", "mode": "cpu"}},
+      "exclusive": true, "timeoutSeconds": 480 }
+  ]
+}

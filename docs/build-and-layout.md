@@ -13,7 +13,6 @@ bench/                   stress harness, runtime cases and benchmarks
 tests/                   runtime unit, schema, regression and packaging tests
 cmake/DagFlow*.cmake     DagFlow project glue and benchmark campaigns
 cmake/dagflow/       DagFlow build, test and benchmark infrastructure
-tools/profiling/         optional Python Linux-perf analysis only
 docs/                    design notes and historical measurements
 ```
 
@@ -206,8 +205,9 @@ PGO uses explicit `dagflow_pgo_train` / `dagflow_pgo_merge` steps;
 profile generation and use are separate builds. Documentation uses
 `DAGFLOW_BUILD_DOCS=ON` and target `docs`, subject to Doxygen availability.
 The CMakeWorkflow `dagflow profile run` command performs current Linux timing
-and `perf` campaigns. Older `tools/profiling/*.py` scripts remain for historical
-report reproduction and are not dependencies of CMake/CTest.
+and `perf` campaigns. Its separate `dagflow profile run-historical` command
+contains the former O3/LTO protocol. It requires PMU permissions; archived
+measurements remain in `docs/benchmarks/main-o3-lto-data/`.
 
 ## Fuzzing
 

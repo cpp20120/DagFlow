@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 2,
+  "contexts": {
+    "stress": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/build/runtime-campaign",
+      "configurePreset": "runtime-campaign",
+      "configuration": "Release",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    },
+    "tbb": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/build/campaigns",
+      "configurePreset": "campaigns",
+      "configuration": "Release",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    }
+  },
+  "nodes": [
+    { "id": "stress.configure", "kind": "configure", "context": "stress",
+      "timeoutSeconds": 1800 },
+    { "id": "stress.build", "kind": "build", "context": "stress",
+      "target": "dagflow_stress_bench", "dependsOn": ["stress.configure"],
+      "timeoutSeconds": 7200 },
+    { "id": "stress.smoke", "kind": "run", "from": "stress.build",
+      "arguments": ["--workers", "2", "--tasks", "128", "--warmup", "0",
+        "--warmup-ms", "0", "--repeats", "1", "--bursts", "2",
+        "--idle-us", "100", "--verify", "exact"],
+      "timeoutSeconds": 300, "resources": ["benchmark-host"] },
+    { "id": "stress.campaign", "kind": "invoke", "context": "stress",
+      "target": "run_dagflow_stress_campaign", "dependsOn": ["stress.configure"],
+      "timeoutSeconds": 10800, "resources": ["benchmark-host"] },
+    { "id": "tbb.configure", "kind": "configure", "context": "tbb",
+      "timeoutSeconds": 1800 },
+    { "id": "tbb.build", "kind": "build", "context": "tbb",
+      "target": "dagflow_tbb_bench", "dependsOn": ["tbb.configure"],
+      "timeoutSeconds": 7200 },
+    { "id": "tbb.smoke", "kind": "run", "from": "tbb.build",
+      "arguments": ["--benchmark", "chain", "--workers", "2", "--runs", "1",
+        "--warmup", "0", "--payload-rounds", "1"],
+      "timeoutSeconds": 300, "resources": ["benchmark-host"] },
+    { "id": "tbb.campaign", "kind": "invoke", "context": "tbb",
+      "target": "run_dagflow_tbb_campaign", "dependsOn": ["tbb.configure"],
+      "timeoutSeconds": 10800, "resources": ["benchmark-host"] }
+  ]
+}

@@ -163,18 +163,27 @@ CPU flamegraph вообще не показывает время, когда п�
 [Sampling coverage Release](../../out/profiles/main-o3-lto/sampling-summary.json) и
 [FP](../../out/profiles/main-o3-lto/sampling-summary-fp.json) содержат число samples и отсутствующих callchains.
 
-## Повторить
+## Новый запуск через CMakeWorkflow
 
 ```sh
-python3 tools/profiling/profile_main.py --output out/profiles/main-o3-lto-repeat
-python3 tools/profiling/profile_main_stacks.py out/profiles/main-o3-lto-repeat
-python3 tools/profiling/render_main_profile.py out/profiles/main-o3-lto-repeat
+CMakeWorkflow workflow plan workflows/profile-main-o3-lto-linux.json
+CMakeWorkflow workflow run workflows/profile-main-o3-lto-linux.json \
+  --results-dir out/profiles
+CMakeWorkflow dagflow profile analyze out/profiles/<run-directory>
 ```
 
-Нужны Linux perf с Python/DWARF support и доступом к userspace PMU,
-Clang/lld, CMake/Ninja и mimalloc. Используется affinity вызывающего процесса.
-Выходной каталог должен быть новым; `--resume` продолжает основной сбор по
-сохранённым успешным командам после проверки snapshot/binary hashes.
+Нужны Linux perf с доступом к userspace PMU, CMake/Ninja и компилятор для
+существующих presets. Это **новый** workflow для одного bounded сценария, а
+не точное повторение исторического замера ниже. Исторические Python-скрипты
+сохраняются как эталон до сквозной проверки нового DagFlow-specific C#
+протокола. Команда `CMakeWorkflow dagflow profile run-historical` с параметрами
+`--source-dir . --output out/profiles/historical-new` воспроизводит этапы source
+snapshot, affinity, O3/LTO builds, perf stat/record, FP diagnostics и SVG.
+`render-historical` перестраивает отчёт из сохранённых данных. Перенос парсеров
+и метрик проверен отдельно, но полный запуск с требуемыми правами perf ещё не
+подтверждён. Общий workflow не объявляется эквивалентным историческому
+эксперименту. Для новой серии вариантов и timing rounds также доступен
+`CMakeWorkflow dagflow profile run --campaign main-o3-lto`.
 
 [Команды основных измерений](../../out/profiles/main-o3-lto/commands.json),
 [команды FP](../../out/profiles/main-o3-lto/fp-commands.json),

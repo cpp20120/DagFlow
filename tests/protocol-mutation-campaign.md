@@ -7,14 +7,16 @@ tree and ordinary libraries are never patched. This opt-in target uses the
 system allocator, GCC/Clang, C++23 and `DAGFLOW_FUZZ_HOOKS` on UNIX.
 
 ```sh
-cmake --preset core
-cmake --build --preset core --target dagflow_protocol_mutation_campaign
-python3 scripts/protocol_mutation_campaign.py --cxx clang++ \
+CMakeWorkflow dagflow mutation run --suite all --source-dir . --cxx clang++ \
   --report out/protocol-mutations/report.json
-python3 scripts/protocol_mutation_campaign.py --list
-python3 scripts/protocol_mutation_campaign.py \
-  --mutant pool-ready-before-packet-destroy
+CMakeWorkflow dagflow mutation run \
+  --suite pool-ready-before-packet-destroy --source-dir . --cxx clang++
 ```
+
+For the optional CMake target and its workflow, configure with
+`DAGFLOW_TOOLS_EXECUTABLE` as shown in [workflows](../workflows/README.md).
+Then run `CMakeWorkflow workflow run workflows/dagflow-research-linux.json
+--only research.protocol-mutation --results-dir out/workflow-runs`.
 
 Every selected oracle must pass its baseline first. A source mutant replaces
 one baseline object. Header mutants recompile **all** runtime units and their

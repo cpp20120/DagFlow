@@ -95,11 +95,12 @@ ctest --preset core -L pbt --output-on-failure
 ctest --test-dir out/build/core -V \
   -R 'dagflow_(reference_graph_model|pool_reference|concurrent_history)_property_tests'
 
-# Direct, independent mutation campaign (requires Python3 and a C++23 compiler):
-python3 scripts/mutation_campaign.py --cases 32 --steps 36
+# Direct, independent mutation campaign (requires CMakeWorkflow and a C++23 compiler):
+CMakeWorkflow dagflow mutation run --suite queue --source-dir . --cases 32 --steps 36
 
-# Or the optional CMake target, not added to normal test runs:
-cmake --build --preset core --target dagflow_queue_mutation_campaign
+# Or the optional CMake target after configuring DAGFLOW_TOOLS_EXECUTABLE:
+CMakeWorkflow workflow run workflows/dagflow-research-linux.json \
+  --only research.queue-mutation --results-dir out/workflow-runs
 ```
 
 ## Limitations and next verification work
