@@ -1,0 +1,21 @@
+[
+  {
+    "name": "paced-ingress",
+    "args": [
+      "--scenario", "external-contention", "--json", "--verify", "exact",
+      "--workers", "4", "--producers", "4", "--shards", "1",
+      "--arrival-rate", "250000", "--high-every", "8", "--tasks", "8192",
+      "--iterations", "16", "--repeats", "8", "--warmup", "1", "--warmup-ms", "0",
+      "--latency", "--sample-stride", "31"
+    ]
+  },
+  {
+    "name": "idle-burst",
+    "args": [
+      "--scenario", "idle-burst", "--json", "--verify", "exact",
+      "--workers", "4", "--tasks", "64", "--submit-batch", "16",
+      "--iterations", "0", "--bursts", "96", "--idle-us", "2000",
+      "--warmup", "1", "--warmup-ms", "0"
+    ]
+  }
+]

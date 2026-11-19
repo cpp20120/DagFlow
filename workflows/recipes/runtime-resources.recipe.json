@@ -1,0 +1,25 @@
+{
+  "kind": "benchmark-matrix",
+  "schemaVersion": 1,
+  "variants": [
+    { "name": "revision", "buildDirectory": "../../out/workflow-builds/regression-evidence", "configuration": "Release" }
+  ],
+  "target": "dagflow_runtime_suite",
+  "repeats": 6,
+  "timeoutSeconds": 120,
+  "fixedArguments": [
+    "--workers", "4", "--tasks", "32768", "--iterations", "0",
+    "--central-batch", "1024", "--repeats", "64", "--warmup", "4"
+  ],
+  "axes": [
+    { "name": "scenario", "flag": "--scenario", "values": ["graph_reuse", "dag_build_run", "external_detached"] }
+  ],
+  "executionOrder": "round-robin",
+  "metrics": {
+    "source": "stdout",
+    "format": "json",
+    "fields": [
+      { "path": "run_p50_us", "name": "resource_run_p50", "unit": "us", "direction": "lower-is-better" }
+    ]
+  }
+}

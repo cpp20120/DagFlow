@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 2,
+  "contexts": {
+    "evidence": {
+      "sourceDirectory": "../out/worktrees/regression-evidence",
+      "buildDirectory": "../out/workflow-builds/regression-evidence",
+      "configuration": "Release",
+      "mode": "adopt",
+      "provenancePolicy": "allowUnverified"
+    }
+  },
+  "nodes": [
+    {
+      "id": "runtime.campaign", "kind": "invoke", "context": "evidence",
+      "target": "run_dagflow_runtime_campaign", "exclusive": true, "timeoutSeconds": 1200,
+      "inputs": [{ "path": "cases/regression-runtime.json", "snapshot": true }]
+    },
+    {
+      "id": "stress.campaign", "kind": "invoke", "context": "evidence",
+      "target": "run_dagflow_stress_campaign", "dependsOn": ["runtime.campaign"],
+      "exclusive": true, "timeoutSeconds": 1200,
+      "inputs": [{ "path": "cases/regression-stress.json", "snapshot": true }]
+    }
+  ]
+}

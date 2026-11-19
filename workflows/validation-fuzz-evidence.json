@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 2,
+  "contexts": {
+    "fuzz": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/workflow-builds/fuzz-evidence",
+      "configurePreset": "fuzz",
+      "configuration": "Debug",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    }
+  },
+  "nodes": [
+    { "id": "configure", "kind": "configure", "context": "fuzz", "timeoutSeconds": 1800 },
+    { "id": "graph.build", "kind": "build", "context": "fuzz",
+      "target": "dagflow_fuzz_graph", "dependsOn": ["configure"], "timeoutSeconds": 7200 },
+    { "id": "ranges.build", "kind": "build", "context": "fuzz",
+      "target": "dagflow_fuzz_ranges", "dependsOn": ["configure"], "timeoutSeconds": 7200 },
+    { "id": "wake-protocol.build", "kind": "build", "context": "fuzz",
+      "target": "dagflow_fuzz_wake_protocol", "dependsOn": ["configure"], "timeoutSeconds": 7200 },
+    { "id": "seeds", "kind": "ctest", "context": "fuzz",
+      "dependsOn": ["graph.build", "ranges.build", "wake-protocol.build"],
+      "testRegex": "^dagflow_fuzz_(graph|ranges|wake_protocol)$", "timeoutSeconds": 300 }
+  ]
+}

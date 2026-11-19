@@ -94,7 +94,7 @@ CMakeWorkflow workflow run workflows/validation-fuzz-layers.json --only graph-ca
 
 The `fuzz` preset uses Ninja and requires GNU-style Clang, libFuzzer and its
 sanitizer runtimes. On Windows use WSL or a native toolchain that meets those
-requirements. For a separate corpus report that History can index, use the
+requirements. To retain a campaign report and corpus for triage, use the
 [fuzz CLI](../fuzz/README.md).
 
 ## Compare baseline and candidate on Linux or Windows
@@ -223,6 +223,83 @@ capture requires an elevated session with Windows Performance Toolkit
 (`wpr`, `tracerpt`) and the requested sources in `wpr -pmcsources`.
 Use the benchmark matrix for uninstrumented timings and compare counters
 within the same backend and host.
+
+## Detect performance regressions and replay a case
+
+[runtime-regression-evidence.json](runtime-regression-evidence.json) runs
+three [fixed workloads](cases/) through the native DagFlow harness:
+`serial-tokens`, `paced-ingress` and `idle-burst`. It snapshots the case
+files and retains the harness reports and replay binaries in each workflow
+run. Run it twice on the same quiet host with the same toolchain. Use a
+scratch worktree so both revisions use the same manifest and build path.
+
+From the DagFlow root, replace `BASELINE_COMMIT` and `CANDIDATE_COMMIT`
+with revision names. Both revisions need the `runtime-campaign` preset and
+support for the selected workloads.
+
+```sh
+git worktree add --detach out/worktrees/regression-evidence BASELINE_COMMIT
+cmake -E make_directory out/workflow-builds/regression-evidence/.cmake/api/v1/query
+cmake -E touch out/workflow-builds/regression-evidence/.cmake/api/v1/query/codemodel-v2
+cmake --preset runtime-campaign -S out/worktrees/regression-evidence -B out/workflow-builds/regression-evidence "-DDAGFLOW_RUNTIME_CASES=$PWD/workflows/cases/regression-runtime.json" "-DDAGFLOW_STRESS_CASES=$PWD/workflows/cases/regression-stress.json" -DDAGFLOW_CAMPAIGN_GROUP= -DDAGFLOW_CAMPAIGN_ROUNDS=12 -DDAGFLOW_CAMPAIGN_AFFINITY=inherit
+CMakeWorkflow workflow generate benchmark-matrix --recipe workflows/recipes/runtime-resources.recipe.json --output out/regression-evidence/resources.json
+CMakeWorkflow workflow run workflows/runtime-regression-evidence.json --history-db out/regression-evidence/history.sqlite --results-dir out/regression-evidence/baseline
+CMakeWorkflow workflow run out/regression-evidence/resources.json --history-db out/regression-evidence/history.sqlite --results-dir out/regression-evidence/resources-baseline
+git -C out/worktrees/regression-evidence switch --detach CANDIDATE_COMMIT
+CMakeWorkflow workflow run workflows/runtime-regression-evidence.json --history-db out/regression-evidence/history.sqlite --results-dir out/regression-evidence/candidate
+CMakeWorkflow workflow run out/regression-evidence/resources.json --history-db out/regression-evidence/history.sqlite --results-dir out/regression-evidence/resources-candidate
+CMakeWorkflow history runs --db out/regression-evidence/history.sqlite
+```
+
+The 12 rounds are separate process measurements for each case. Pass the
+baseline and candidate History IDs to `history detect`. The example sets
+a 5% minimum effect and treats increases in median run time as worse.
+Read the result status from the report. To profile one case, pass the
+original workflow run directories to `profile replay` and keep the scratch
+build directory available as the original working directory. Use
+`runtime.campaign` for `serial-tokens` and `stress.campaign` for the other
+two cases. Replay needs permission for its profiling passes, including
+scheduler tracing. If a later capture fails, `profile analyze REPLAY_RUN_DIR`
+can analyze the captures already saved in the replay directory.
+
+```sh
+CMakeWorkflow history detect BASELINE_ID CANDIDATE_ID --metric run_p50_us --direction higher-worse --min-percent 5 --alpha 0.05 --db out/regression-evidence/history.sqlite --json
+CMakeWorkflow profile replay BASELINE_RUN_DIR CANDIDATE_RUN_DIR --node stress.campaign --case paced-ingress --backend auto --results-dir out/regression-evidence/replay --history-db out/regression-evidence/history.sqlite
+```
+
+### Compare CPU and memory use
+
+The [resource recipe](recipes/runtime-resources.recipe.json) above records
+six processes each for graph reuse, graph construction plus execution, and
+external submission. History exposes sampled `peak_rss_bytes` and
+`cpu_time` where the runner can collect them, plus `resource_run_p50`.
+Use the IDs of the two `resources.json` runs for descriptive comparisons.
+
+```sh
+CMakeWorkflow history compare RESOURCE_BASELINE_ID RESOURCE_CANDIDATE_ID --db out/regression-evidence/history.sqlite --json
+CMakeWorkflow history query --run RESOURCE_RUN_ID --metric peak_rss_bytes --db out/regression-evidence/history.sqlite --json
+CMakeWorkflow history query --run RESOURCE_RUN_ID --metric cpu_time --db out/regression-evidence/history.sqlite --json
+```
+
+### Retain fuzz evidence
+
+[validation-fuzz-evidence.json](validation-fuzz-evidence.json) prepares an
+isolated libFuzzer build and replays seeds for graph, ranges and
+wake_protocol. Use `--only configure` when you only need the build tree
+for a different layer. CMakeWorkflow's fuzz commands handle campaigns,
+triage and corpus merge.
+
+```sh
+CMakeWorkflow workflow run workflows/validation-fuzz-evidence.json --results-dir out/workflow-runs/fuzz-evidence
+CMakeWorkflow dagflow fuzz run --build-dir out/workflow-builds/fuzz-evidence --layer graph --duration 60 --results-dir out/fuzz-evidence
+CMakeWorkflow dagflow fuzz triage --run-dir FUZZ_RUN_DIR
+CMakeWorkflow dagflow fuzz merge --coverage --run-dir FUZZ_RUN_DIR
+```
+
+Use the actual directory printed by `dagflow fuzz run` for `FUZZ_RUN_DIR`.
+Keep that directory with its report, corpus and crash artifacts. Merge
+successful campaigns back into the build-tree corpus. See
+[fuzzing by layer](../fuzz/README.md) for the corpus and sanitizer settings.
 
 ## Additional test and build coverage
 

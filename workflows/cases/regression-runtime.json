@@ -1,0 +1,9 @@
+[
+  {
+    "name": "serial-tokens",
+    "args": [
+      "--scenario", "graph_tokens_serial", "--workers", "1", "--tasks", "32768",
+      "--iterations", "0", "--repeats", "64", "--warmup", "8", "--central-batch", "1024"
+    ]
+  }
+]
