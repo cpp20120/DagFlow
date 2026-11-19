@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 2,
+  "contexts": {
+    "bench": {
+      "buildDirectory": "../out/build/runtime-campaign",
+      "sourceDirectory": "..",
+      "configuration": "Release",
+      "configurePreset": "runtime-campaign",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    }
+  },
+  "nodes": [
+    { "id": "configure", "kind": "configure", "context": "bench", "timeoutSeconds": 300 },
+    { "id": "runtime.build", "kind": "build", "context": "bench", "target": "dagflow_runtime_suite",
+      "dependsOn": ["configure"], "timeoutSeconds": 600 },
+    { "id": "runtime.all", "kind": "run", "from": "runtime.build", "timeoutSeconds": 120,
+      "arguments": [
+        "--scenario", "all", "--workers", "2", "--tasks", "1024", "--grain", "64",
+        "--iterations", "16", "--warmup", "1", "--repeats", "2"
+      ]
+    },
+    { "id": "stress.build", "kind": "build", "context": "bench", "target": "dagflow_stress_bench",
+      "dependsOn": ["configure"], "timeoutSeconds": 600 },
+    { "id": "stress.all", "kind": "run", "from": "stress.build", "timeoutSeconds": 120,
+      "arguments": [
+        "--scenario", "all", "--workers", "4", "--producers", "4", "--shards", "1",
+        "--tasks", "2048", "--repeats", "2", "--bursts", "3", "--idle-us", "2000",
+        "--warmup", "1", "--warmup-ms", "0", "--json", "--verify", "exact"
+      ]
+    },
+    { "id": "stress.paced-priority", "kind": "run", "from": "stress.build", "timeoutSeconds": 120,
+      "arguments": [
+        "--scenario", "external-contention", "--workers", "4", "--producers", "4", "--shards", "1",
+        "--arrival-rate", "250000", "--tasks", "1024", "--iterations", "16", "--repeats", "3",
+        "--high-every", "8", "--priority-latency", "--sample-stride", "8",
+        "--warmup", "1", "--warmup-ms", "0", "--json", "--verify", "exact"
+      ],
+      "metrics": {
+        "source": "stdout", "format": "json",
+        "fields": [
+          { "path": "priority_latency.high.start_p99_us", "name": "priority_high_start_p99", "unit": "us", "direction": "lower-is-better" },
+          { "path": "priority_latency.normal.start_p99_us", "name": "priority_normal_start_p99", "unit": "us", "direction": "lower-is-better" }
+        ]
+      }
+    }
+  ]
+}

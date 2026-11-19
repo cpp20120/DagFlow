@@ -1,0 +1,101 @@
+name: DagFlow runtime regressions (CMakeWorkflow)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dagflow-runtime-regression-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CMAKE_BUILD_PARALLEL_LEVEL: 2
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  runtime-regression:
+    name: CMakeWorkflow / ${{ matrix.suite }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest]
+        suite: [benchmarks, contention]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Check out CMakeWorkflow
+        uses: actions/checkout@v4
+        with:
+          repository: cpp20120/CMakeWorkflow
+          ref: 517f7ef3b6ef56cf3686adba194da15b46f1cd00
+          path: out/ci-tools/CMakeWorkflow
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Publish CMakeWorkflow CLI
+        run: >-
+          dotnet publish out/ci-tools/CMakeWorkflow/CMakeWorkflow.csproj
+          -c Release -p:PublishAot=false -p:UseAppHost=false
+          -p:TreatWarningsAsErrors=true
+          -o "$env:RUNNER_TEMP/cmakeworkflow-cli"
+
+      - name: Run benchmark smoke
+        if: matrix.suite == 'benchmarks'
+        run: >-
+          dotnet "$env:RUNNER_TEMP/cmakeworkflow-cli/CMakeWorkflow.dll"
+          workflow run workflows/benchmarks-smoke.json
+          --history-db out/ci-regression/history.sqlite
+          --results-dir out/ci-regression/benchmark-smoke
+
+      - name: Run bounded runtime workloads
+        if: matrix.suite == 'benchmarks'
+        run: >-
+          dotnet "$env:RUNNER_TEMP/cmakeworkflow-cli/CMakeWorkflow.dll"
+          workflow run workflows/validation-runtime-load.json
+          --history-db out/ci-regression/history.sqlite
+          --results-dir out/ci-regression/runtime-load
+
+      - name: Verify benchmark metrics reached History
+        if: matrix.suite == 'benchmarks'
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $true
+          $cli = "$env:RUNNER_TEMP/cmakeworkflow-cli/CMakeWorkflow.dll"
+          foreach ($metric in 'paced_scheduled_start_p99', 'burst_start_p99', 'priority_high_start_p99', 'priority_normal_start_p99') {
+            $json = dotnet $cli history query --metric $metric --db out/ci-regression/history.sqlite --json
+            $sample = @($json | ConvertFrom-Json)
+            if ($sample.Count -ne 1 -or $sample[0].unit -ne 'us' -or $sample[0].direction -ne 'lower-is-better') {
+              throw "Expected one imported sample for $metric"
+            }
+          }
+
+      - name: Run contention and shutdown regressions
+        if: matrix.suite == 'contention'
+        run: >-
+          dotnet "$env:RUNNER_TEMP/cmakeworkflow-cli/CMakeWorkflow.dll"
+          workflow run workflows/validation-contention.json --no-history
+          --results-dir out/ci-regression/contention
+
+      - name: Preserve workflow reports and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cmakeworkflow-${{ matrix.suite }}-${{ matrix.os }}-${{ github.run_attempt }}
+          path: out/ci-regression/
+          if-no-files-found: ignore
+          retention-days: 7

@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 2,
+  "contexts": {
+    "baseline": {
+      "sourceDirectory": "../out/worktrees/baseline",
+      "buildDirectory": "../out/workflow-builds/runtime-pair-baseline",
+      "configurePreset": "bench-release",
+      "configuration": "Release",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    },
+    "candidate": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/workflow-builds/runtime-pair-candidate",
+      "configurePreset": "bench-release",
+      "configuration": "Release",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    }
+  },
+  "nodes": [
+    { "id": "baseline.configure", "kind": "configure", "context": "baseline", "timeoutSeconds": 1800 },
+    { "id": "candidate.configure", "kind": "configure", "context": "candidate", "timeoutSeconds": 1800 }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "kind": "benchmark-matrix",
+  "schemaVersion": 1,
+  "variants": [
+    {
+      "name": "baseline",
+      "buildDirectory": "../../out/workflow-builds/runtime-pair-baseline",
+      "configuration": "Release"
+    },
+    {
+      "name": "candidate",
+      "buildDirectory": "../../out/workflow-builds/runtime-pair-candidate",
+      "configuration": "Release"
+    }
+  ],
+  "target": "dagflow_stress_bench",
+  "repeats": 3,
+  "timeoutSeconds": 120,
+  "fixedArguments": [
+    "--json", "--verify", "exact", "--warmup", "1", "--warmup-ms", "0",
+    "--scenario", "hot-shard-skew", "--tasks", "16384", "--repeats", "12",
+    "--latency", "--sample-stride", "31"
+  ],
+  "axes": [
+    {
+      "name": "workers",
+      "flag": "--workers",
+      "values": ["2", "4"]
+    },
+    {
+      "name": "shards",
+      "flag": "--shards",
+      "values": ["1", "4"]
+    }
+  ],
+  "executionOrder": "round-robin",
+  "metrics": {
+    "source": "stdout",
+    "format": "json",
+    "fields": [
+      {
+        "path": "run_p50_us",
+        "name": "hot_shard_run_p50",
+        "unit": "us",
+        "direction": "lower-is-better"
+      },
+      {
+        "path": "start_p99_us",
+        "name": "hot_shard_start_p99",
+        "unit": "us",
+        "direction": "lower-is-better"
+      },
+      {
+        "path": "finish_p99_us",
+        "name": "hot_shard_finish_p99",
+        "unit": "us",
+        "direction": "lower-is-better"
+      }
+    ]
+  }
+}

@@ -59,7 +59,7 @@ struct Options {
   uint32_t arrival_rate = 0;
   std::size_t tasks = 0;
   std::optional<uint32_t> iterations;
-  bool json = false, latency = false;
+  bool json = false, latency = false, priority_latency = false;
   int control_fd = -1, ack_fd = -1;
 };
 uint64_t number(std::string_view value) {
@@ -82,6 +82,11 @@ Options parse(int argc, char** argv) {
       o.latency = true;
       continue;
     }
+    if (key == "--priority-latency") {
+      o.latency = true;
+      o.priority_latency = true;
+      continue;
+    }
     if (key == "--help" || key == "--list") {
       std::cout
           << "dagflow-example [--scenario NAME|all] [--workers N] [--producers "
@@ -95,6 +100,8 @@ Options parse(int argc, char** argv) {
              "  --producer-mode persistent|fresh --placement spread|hot|none\n"
              "  --verify checksum|exact|off --latency --sample-stride N "
              "--json\n"
+             "  --priority-latency (sample High and Normal separately; "
+             "external-contention or external-batch)\n"
              "  --arrival-rate N (aggregate tasks/s; 0 is unlimited; scalar "
              "external-contention only)\n"
              "  --cpus LIST --worker-cpus LIST --producer-cpus LIST (Linux CPU "
@@ -194,6 +201,12 @@ Options parse(int argc, char** argv) {
     throw std::invalid_argument(
         "paced ingress requires scalar external-contention and explicit tasks "
         "covering at most 60 seconds");
+  if (o.priority_latency && ((o.scenario != "external-contention" &&
+                              o.scenario != "external-batch") ||
+                             o.high_every < 2 || o.tasks == 1))
+    throw std::invalid_argument(
+        "priority latency requires external-contention or external-batch, "
+        "at least two tasks and --high-every >= 2");
   return o;
 }
 
@@ -487,8 +500,18 @@ class Workload {
     return name == "external-batch" && !o.batch ? 16u : o.batch;
   }
   bool sampled(std::size_t i) const {
+    if (o.priority_latency) {
+      // Apply stride to each class's ordinal. A global stride divisible by
+      // high_every would otherwise never sample the Normal work.
+      const auto high_before = i / o.high_every;
+      const auto ordinal = is_high(i) ? high_before : i - high_before - 1;
+      return ordinal % o.sample_stride == 0;
+    }
     return (o.latency || name == "idle-burst") &&
            (name == "idle-burst" || i % o.sample_stride == 0);
+  }
+  bool is_high(std::size_t i) const {
+    return multi_producer() && o.high_every && i % o.high_every == 0;
   }
   dagflow::SubmitOptions options_for(std::size_t i) const {
     dagflow::SubmitOptions opt;
@@ -496,8 +519,7 @@ class Workload {
       opt.affinity = 0;
     else if (o.placement == "spread")
       opt.affinity = static_cast<uint32_t>(i % workers);
-    if (multi_producer() && o.high_every && i % o.high_every == 0)
-      opt.priority = dagflow::Priority::High;
+    if (is_high(i)) opt.priority = dagflow::Priority::High;
     return opt;
   }
   void stamp(std::size_t i) {
@@ -713,6 +735,9 @@ struct Sample {
   std::vector<double> starts, finishes;
   std::vector<double> scheduled_starts, producer_lags, submit_calls;
 };
+struct PriorityLatency {
+  std::vector<double> starts, finishes;
+};
 
 void run(const Options& o, uint32_t workers, std::string_view name,
          const std::vector<int>& permitted) {
@@ -754,6 +779,7 @@ void run(const Options& o, uint32_t workers, std::string_view name,
   const auto minimum_samples = name == "idle-burst" ? o.bursts : o.repeats;
   std::vector<Sample> samples;
   samples.reserve(minimum_samples);
+  PriorityLatency high_latency, normal_latency;
   uint64_t checksum = 0;
   double measured_us = 0;
   do {
@@ -803,6 +829,11 @@ void run(const Options& o, uint32_t workers, std::string_view name,
         const auto& slot = work.slots[i];
         sample.starts.push_back(us(slot.started - slot.submitted));
         sample.finishes.push_back(us(slot.finished - slot.submitted));
+        if (o.priority_latency) {
+          auto& latency = work.is_high(i) ? high_latency : normal_latency;
+          latency.starts.push_back(sample.starts.back());
+          latency.finishes.push_back(sample.finishes.back());
+        }
         if (o.arrival_rate) {
           sample.scheduled_starts.push_back(us(slot.started - slot.scheduled));
           sample.producer_lags.push_back(us(slot.submitted - slot.scheduled));
@@ -902,8 +933,21 @@ void run(const Options& o, uint32_t workers, std::string_view name,
         << ",\"run_p99_us\":" << percentile(times, .99)
         << ",\"start_p50_us\":" << percentile(starts, .5)
         << ",\"start_p99_us\":" << percentile(starts, .99)
-        << ",\"finish_p99_us\":" << percentile(finishes, .99)
-        << ",\"counts\":{ ";
+        << ",\"finish_p99_us\":" << percentile(finishes, .99);
+    if (o.priority_latency) {
+      const auto write_latency = [](const PriorityLatency& latency) {
+        std::cout << "{\"sample_count\":" << latency.starts.size()
+                  << ",\"start_p99_us\":" << percentile(latency.starts, .99)
+                  << ",\"finish_p99_us\":" << percentile(latency.finishes, .99)
+                  << '}';
+      };
+      std::cout << ",\"priority_latency\":{\"high\":";
+      write_latency(high_latency);
+      std::cout << ",\"normal\":";
+      write_latency(normal_latency);
+      std::cout << '}';
+    }
+    std::cout << ",\"counts\":{ ";
     for (std::size_t i = 0; i < counts.size(); ++i) {
       if (i) std::cout << ',';
       std::cout << std::quoted(

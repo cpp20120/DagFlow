@@ -1,0 +1,28 @@
+{
+  "kind": "benchmark-matrix",
+  "schemaVersion": 1,
+  "variants": [
+    { "name": "baseline", "buildDirectory": "../../out/workflow-builds/runtime-pair-baseline", "configuration": "Release" },
+    { "name": "candidate", "buildDirectory": "../../out/workflow-builds/runtime-pair-candidate", "configuration": "Release" }
+  ],
+  "target": "dagflow_runtime_suite",
+  "repeats": 5,
+  "timeoutSeconds": 120,
+  "fixedArguments": [
+    "--tasks", "16384", "--iterations", "16", "--repeats", "24",
+    "--warmup", "4", "--central-batch", "1024"
+  ],
+  "axes": [
+    { "name": "scenario", "flag": "--scenario", "values": ["steal_heavy", "local_saturated", "uneven"] },
+    { "name": "workers", "flag": "--workers", "values": ["2", "4"] }
+  ],
+  "executionOrder": "round-robin",
+  "metrics": {
+    "source": "stdout",
+    "format": "json",
+    "fields": [
+      { "path": "run_p50_us", "name": "scheduler_run_p50", "unit": "us", "direction": "lower-is-better" },
+      { "path": "payload_tasks_per_second", "name": "scheduler_throughput", "unit": "tasks/s", "direction": "higher-is-better" }
+    ]
+  }
+}

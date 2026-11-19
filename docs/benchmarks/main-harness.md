@@ -67,6 +67,7 @@ children inline; their throughput is not the current queued-overflow throughput.
 | `--idle-us N` | Delay before each measured idle burst (default 10000); does not guarantee workers actually slept |
 | `--verify checksum\|exact\|off` | Payload validation mode, described below |
 | `--latency --sample-stride N` | Sample submit/start/finish, default stride=64; idle-burst samples every task |
+| `--priority-latency` | Enable latency sampling separately for High and Normal external submissions; requires at least two tasks and `--high-every >= 2` |
 | `--cpus LIST` | Restrict all threads to a subset of the inherited allowed mask |
 | `--worker-cpus LIST`, `--producer-cpus LIST` | Separate worker and controller/producer masks; comma/range syntax |
 | `--json` | One JSON object per scenario/worker configuration, including raw samples |
@@ -123,6 +124,10 @@ high-water mark, not a per-sample delta. It also retains per-sample diagnostic
 counts and sampled submit-to-start/submit-to-finish vectors. Latency entries are
 ordered by logical slot, including roots and children. Parent finish includes
 its spawning/waiting body; it precedes callable destruction/completion epilogue.
+`--json --priority-latency` adds `priority_latency.high` and
+`priority_latency.normal`, each with `sample_count`, `start_p99_us` and
+`finish_p99_us`. The same stride is applied independently within each class.
+This mode supports `external-contention` and `external-batch`.
 `first_start_us` and `last_finish_us` describe the sampled subset. Consequently
 `drain_tail_us` with stride>1 also includes any unsampled work after the last
 sampled finish; it is not an exact scheduler teardown duration.

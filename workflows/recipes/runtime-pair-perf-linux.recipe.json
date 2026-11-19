@@ -1,0 +1,20 @@
+{
+  "kind": "profile",
+  "schemaVersion": 1,
+  "variants": [
+    { "name": "baseline", "buildDirectory": "../../out/workflow-builds/runtime-pair-baseline" },
+    { "name": "candidate", "buildDirectory": "../../out/workflow-builds/runtime-pair-candidate" }
+  ],
+  "target": "dagflow_runtime_suite",
+  "configuration": "Release",
+  "repeats": 3,
+  "timeoutSeconds": 300,
+  "arguments": [
+    "--scenario", "graph_tokens_serial", "--workers", "1", "--tasks", "65536",
+    "--iterations", "0", "--repeats", "240", "--warmup", "24",
+    "--central-batch", "1024"
+  ],
+  "backend": "perf",
+  "mode": "counters",
+  "platform": "linux"
+}

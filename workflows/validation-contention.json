@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 2,
+  "contexts": {
+    "tiny": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/build/adversarial-tiny",
+      "configurePreset": "adversarial-tiny",
+      "configuration": "Debug",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    },
+    "stress": {
+      "sourceDirectory": "..",
+      "buildDirectory": "../out/build/runtime-check",
+      "configurePreset": "runtime-check",
+      "configuration": "Release",
+      "mode": "managed",
+      "provenancePolicy": "strict"
+    }
+  },
+  "nodes": [
+    { "id": "configure", "kind": "configure", "context": "tiny", "timeoutSeconds": 1800 },
+    { "id": "protocol.build", "kind": "invoke", "context": "tiny",
+      "target": "dagflow_adversarial_tests", "dependsOn": ["configure"], "timeoutSeconds": 7200 },
+    { "id": "protocol.test", "kind": "ctest", "context": "tiny", "dependsOn": ["protocol.build"],
+      "testRegex": "^dagflow_(scheduler_contention_protocol|scheduler_targeted_paths|deque_last_slot_race|parking_epoch_reuse)_test$",
+      "resources": ["concurrency-tests"], "timeoutSeconds": 900 },
+    { "id": "pressure.pool", "kind": "build", "context": "stress",
+      "target": "dagflow_pool_lifecycle_tests", "dependsOn": ["stress.configure"], "timeoutSeconds": 7200 },
+    { "id": "pressure.batch", "kind": "build", "context": "stress",
+      "target": "dagflow_batch_submit_tests", "dependsOn": ["stress.configure"], "timeoutSeconds": 7200 },
+    { "id": "pressure.test", "kind": "ctest", "context": "stress", "dependsOn": ["pressure.pool", "pressure.batch"],
+      "testRegex": "^dagflow_(pool_lifecycle|batch_submit)_tests$",
+      "resources": ["concurrency-tests"], "timeoutSeconds": 900 },
+    { "id": "stress.configure", "kind": "configure", "context": "stress", "timeoutSeconds": 1800 },
+    { "id": "stress.build", "kind": "build", "context": "stress",
+      "target": "dagflow_stress_bench", "dependsOn": ["stress.configure"], "timeoutSeconds": 7200 },
+    { "id": "stress.test", "kind": "ctest", "context": "stress", "dependsOn": ["stress.build"],
+      "testRegex": "^dagflow_main_harness_tests$", "timeoutSeconds": 180 },
+    { "id": "runtime.build", "kind": "build", "context": "stress",
+      "target": "dagflow_runtime_suite", "dependsOn": ["stress.configure"], "timeoutSeconds": 7200 },
+    { "id": "runtime.test", "kind": "ctest", "context": "stress", "dependsOn": ["runtime.build"],
+      "testRegex": "^dagflow_benchmark_suite_tests$", "timeoutSeconds": 180 }
+  ]
+}

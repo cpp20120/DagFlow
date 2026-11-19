@@ -10,6 +10,24 @@ CMakeWorkflow workflow run workflows/tests-managed.json --results-dir out/workfl
 CMakeWorkflow workflow report out/workflow-runs/<run-directory>
 ```
 
+## GitHub Actions runtime regressions
+
+[DagFlow runtime regressions](../.github/workflows/dagflow-runtime-regression.yml)
+runs alongside the existing CI. Linux and Windows each have a benchmark job
+and a contention job. The benchmark job runs `benchmarks-smoke.json` and
+`validation-runtime-load.json`, which exercise the runtime and stress workload
+families with bounded parameters. It checks that the paced, idle-burst and
+priority metrics reach History. The contention job runs
+`validation-contention.json` for scheduler, shutdown, backpressure and harness
+schema tests.
+
+The jobs build CMakeWorkflow from a pinned upstream commit and publish a
+framework-dependent CLI for the runner's .NET SDK. They check workload
+completion, task results, test assertions and metric ingestion. Timing data is
+retained for inspection. Performance comparisons belong to the baseline/candidate
+recipes on a controlled host. Every job uploads its CMakeWorkflow reports and
+logs, including the History database for the benchmark job.
+
 ## Research campaigns
 
 `dagflow-research-linux.json` adopts an existing `core` tree. Its mutation and
@@ -59,11 +77,158 @@ frame-pointer analysis; the new workflow does not claim to reproduce those
 measurements. Current profiling also supports
 `CMakeWorkflow dagflow profile run`.
 
+### Select fuzz campaigns by layer
+
+`validation-fuzz-layers.json` exposes one `<layer>-campaign` node for each of
+the 18 layers covered in addition to `queues`. It configures its own fuzz build
+tree and invokes the existing native campaign targets. Select the layers with
+`--only`. Budget about 18 minutes plus build time for the full manifest at
+60 seconds per layer. The existing `validation-fuzz-campaign.json` runs
+the queue campaign. The native targets write generated inputs and crash
+artifacts under the build tree.
+
+```sh
+CMakeWorkflow workflow plan workflows/validation-fuzz-layers.json --only graph-campaign --only wake_protocol-campaign
+CMakeWorkflow workflow run workflows/validation-fuzz-layers.json --only graph-campaign --only wake_protocol-campaign --results-dir out/workflow-runs/fuzz-layers
+```
+
+The `fuzz` preset uses Ninja and requires GNU-style Clang, libFuzzer and its
+sanitizer runtimes. On Windows use WSL or a native toolchain that meets those
+requirements. For a separate corpus report that History can index, use the
+[fuzz CLI](../fuzz/README.md).
+
+## Compare baseline and candidate on Linux or Windows
+
+Create a detached worktree at `out/worktrees/baseline` and use the current
+worktree as the candidate. Replace `BASELINE_COMMIT` with the desired revision.
+If that worktree already exists, check its revision with
+`git -C out/worktrees/baseline rev-parse HEAD` and reuse it for that baseline.
+Both revisions need the `bench-release` preset and the runtime suite
+target. Run the preparation from the same compiler environment on each host.
+The manifest configures two separate Release build trees with the same preset.
+The generated recipes adopt those trees and build both benchmark executables
+before measurements.
+
+```sh
+git worktree add --detach out/worktrees/baseline BASELINE_COMMIT
+CMakeWorkflow workflow run workflows/benchmarks-prepare-pair.json --no-history --results-dir out/workflow-runs/pair-prepare
+CMakeWorkflow workflow generate benchmark-matrix --recipe workflows/recipes/runtime-pair.recipe.json --output out/runtime-pair.json
+CMakeWorkflow workflow plan out/runtime-pair.json
+CMakeWorkflow workflow run out/runtime-pair.json --history-db out/runtime-pair.sqlite --results-dir out/workflow-runs/runtime-pair
+CMakeWorkflow history query --db out/runtime-pair.sqlite --metric runtime_p50 --json
+```
+
+Use a CMakeWorkflow build that supports benchmark recipe `metrics`. The matrix
+alternates both variants across seven process repetitions for eight scenarios
+and one or four workers. It stores `runtime_p50` (µs) and
+`runtime_throughput` (tasks/s) from each benchmark's JSON output. Query by
+`--variant baseline` or `--variant candidate` and, for example,
+`--scenario "graph_tokens_serial [0001]"` for one worker. The two series
+belong to one History run. `history compare` takes two separate History run
+IDs. To rebuild this catalog from retained reports, run
+`CMakeWorkflow history import out/workflow-runs/runtime-pair --recursive --db out/runtime-pair.sqlite`.
+Reuse the generated manifest for another run with the same recipe. Generation
+requires a new output filename when the recipe changes.
+
+### Check queue and scheduler contention
+
+Prepare the baseline/candidate trees as above. The two contention recipes
+alternate variants and check the results of each workload.
+
+| Recipe | Cases | History metrics |
+| --- | --- | --- |
+| [Ingress contention](recipes/runtime-contention-ingress.recipe.json) | Scalar and batched external submissions, plus mixed work. Four workers, one or four producers, and one or four shards. | `ingress_run_p50`, `ingress_submission_rate`, `ingress_start_p99`, `ingress_finish_p99` |
+| [Scheduler contention](recipes/runtime-contention-scheduler.recipe.json) | Forced stealing, a local queue under submission pressure, and uneven payloads with two or four workers. | `scheduler_run_p50`, `scheduler_throughput` |
+
+Ingress p99 values measure submission-to-start and submission-to-finish
+for sampled tasks. The ingress recipe enables latency sampling, which adds
+measurement overhead. The scheduler recipe measures throughput without task
+latency sampling. History keeps each combination in its own numbered series.
+
+```sh
+CMakeWorkflow workflow generate benchmark-matrix --recipe workflows/recipes/runtime-contention-ingress.recipe.json --output out/contention-ingress.json
+CMakeWorkflow workflow run out/contention-ingress.json --history-db out/contention.sqlite --results-dir out/workflow-runs/contention-ingress
+CMakeWorkflow workflow generate benchmark-matrix --recipe workflows/recipes/runtime-contention-scheduler.recipe.json --output out/contention-scheduler.json
+CMakeWorkflow workflow run out/contention-scheduler.json --history-db out/contention.sqlite --results-dir out/workflow-runs/contention-scheduler
+CMakeWorkflow history query --db out/contention.sqlite --metric ingress_start_p99 --json
+```
+
+Run [validation-contention.json](validation-contention.json) to check
+scheduler contention, the targeted queue paths, the deque's last-slot race,
+and parking epoch reuse with the `adversarial-tiny` preset. Select
+`--only pressure.test` for pool close/shutdown and batch backpressure checks
+with standard queue capacity. Select `--only stress.test` and
+`--only runtime.test` for the benchmark CLI and result schema checks.
+
+```sh
+CMakeWorkflow workflow run workflows/validation-contention.json --results-dir out/workflow-runs/contention-protocol
+```
+
+### Sweep arrival rate, idle gaps, shard load and payload cost
+
+These recipes use the shared benchmark build trees. Each validates the
+executed work and saves its measurements to History.
+The existing `benchmarks-smoke.json` also runs short paced-ingress and
+batched idle-burst checks.
+
+| Recipe | Sweep | History metrics |
+| --- | --- | --- |
+| [Paced ingress](recipes/runtime-paced-ingress.recipe.json) | 50k, 250k, 1M, 4M and 12M incoming tasks/s, one or four producers/shards, and Normal-only or mixed priority submissions | `paced_scheduled_start_p99`, `paced_producer_lag_p99`, `paced_submit_call_p99`, `paced_submission_rate` |
+| [Idle burst](recipes/runtime-idle-burst.recipe.json) | Idle gaps of 100 µs, 2 ms and 10 ms, bursts of 1, 64 and 512 tasks, 1/2/4 workers and scalar or batch-16 submission | `burst_run_p50`, `burst_start_p99`, `burst_finish_p99` |
+| [Hot shard](recipes/runtime-hot-shard.recipe.json) | One producer concentrates uneven payloads on shard 0 with two or four workers and one or four shards | `hot_shard_run_p50`, `hot_shard_start_p99`, `hot_shard_finish_p99` |
+| [Payload cost](recipes/runtime-payload-sweep.recipe.json) | All 18 runtime-suite workloads with 0, 16 and 256 payload iterations at two and four workers | `payload_run_p50`, `payload_throughput` |
+| [Priority latency](recipes/runtime-priority-latency.recipe.json) | One High for every eight submissions, with unlimited and paced scalar ingress | Separate submission-to-start and submission-to-finish p99 for High and Normal |
+
+To bracket saturation on a different host, estimate the unrestricted
+completion rate by dividing `logical_tasks` by `ingress_run_p50` in seconds
+for the matching `external-contention` workload. Use
+`ingress_submission_rate` to see how fast producers submit. The
+scheduled-start p99 includes producer lag. The harness applies pacing to
+scalar external submissions. The idle delay is outside the timed region.
+Use the single-task burst to isolate first-task latency.
+
+Priority latency uses the candidate build by default so it works with older
+baselines. Add a baseline variant when that revision also supports
+`--priority-latency`. The paired paced recipe already compares Normal-only
+and mixed-priority ingress using metrics supported by both revisions.
+
+```sh
+CMakeWorkflow workflow generate benchmark-matrix --recipe workflows/recipes/runtime-paced-ingress.recipe.json --output out/paced-ingress.json
+CMakeWorkflow workflow run out/paced-ingress.json --history-db out/contention.sqlite --results-dir out/workflow-runs/paced-ingress
+CMakeWorkflow history query --db out/contention.sqlite --metric paced_scheduled_start_p99 --json
+```
+
+### Capture counters for the same pair
+
+Both profile recipes use the same serial-token workload and preserve timing
+and profiler results in the run directory.
+
+| Host | Recipe | Backend |
+| --- | --- | --- |
+| Linux | [runtime-pair-perf-linux.recipe.json](recipes/runtime-pair-perf-linux.recipe.json) | `perf stat` user-space counters |
+| Windows | [runtime-pair-etw-windows.recipe.json](recipes/runtime-pair-etw-windows.recipe.json) | ETW/WPR PMC sampling for `TotalCycles` and `InstructionRetired` |
+
+```sh
+CMakeWorkflow workflow generate profile --recipe workflows/recipes/runtime-pair-perf-linux.recipe.json --output out/runtime-pair-perf.json
+CMakeWorkflow workflow run out/runtime-pair-perf.json --results-dir out/workflow-runs/runtime-pair-perf --history-db out/runtime-pair.sqlite
+```
+
+```powershell
+CMakeWorkflow workflow generate profile --recipe workflows/recipes/runtime-pair-etw-windows.recipe.json --output out/runtime-pair-etw.json
+CMakeWorkflow workflow run out/runtime-pair-etw.json --results-dir out/workflow-runs/runtime-pair-etw --history-db out/runtime-pair.sqlite
+```
+
+The Linux capture requires access to PMU events via `perf`. The Windows
+capture requires an elevated session with Windows Performance Toolkit
+(`wpr`, `tracerpt`) and the requested sources in `wpr -pmcsources`.
+Use the benchmark matrix for uninstrumented timings and compare counters
+within the same backend and host.
+
+## Additional test and build coverage
+
 ASan and TSan have separate workflows (`validation-asan.json` and
 `validation-tsan.json`) and separate CMake build trees. Benchmark smoke and
 full campaigns likewise remain separate opt-in workflows.
-
-## Additional test and build coverage
 
 These schema v2 workflows use existing presets, CTest labels, and CMake
 targets. Run one branch with `--only`; a full run includes every independent

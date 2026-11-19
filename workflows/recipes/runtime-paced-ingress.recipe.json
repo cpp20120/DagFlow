@@ -1,0 +1,77 @@
+{
+  "kind": "benchmark-matrix",
+  "schemaVersion": 1,
+  "variants": [
+    {
+      "name": "baseline",
+      "buildDirectory": "../../out/workflow-builds/runtime-pair-baseline",
+      "configuration": "Release"
+    },
+    {
+      "name": "candidate",
+      "buildDirectory": "../../out/workflow-builds/runtime-pair-candidate",
+      "configuration": "Release"
+    }
+  ],
+  "target": "dagflow_stress_bench",
+  "repeats": 3,
+  "timeoutSeconds": 120,
+  "fixedArguments": [
+    "--json", "--verify", "exact", "--warmup", "1", "--warmup-ms", "0",
+    "--scenario", "external-contention", "--workers", "4", "--tasks", "8192",
+    "--iterations", "16", "--repeats", "5", "--latency", "--sample-stride", "31"
+  ],
+  "axes": [
+    {
+      "name": "rate",
+      "flag": "--arrival-rate",
+      "values": ["50000", "250000", "1000000", "4000000", "12000000"]
+    },
+    {
+      "name": "producers",
+      "flag": "--producers",
+      "values": ["1", "4"]
+    },
+    {
+      "name": "shards",
+      "flag": "--shards",
+      "values": ["1", "4"]
+    },
+    {
+      "name": "priority_mix",
+      "flag": "--high-every",
+      "values": ["0", "8"]
+    }
+  ],
+  "executionOrder": "round-robin",
+  "metrics": {
+    "source": "stdout",
+    "format": "json",
+    "fields": [
+      {
+        "path": "scheduled_start_p99_us",
+        "name": "paced_scheduled_start_p99",
+        "unit": "us",
+        "direction": "lower-is-better"
+      },
+      {
+        "path": "producer_lag_p99_us",
+        "name": "paced_producer_lag_p99",
+        "unit": "us",
+        "direction": "lower-is-better"
+      },
+      {
+        "path": "submit_call_p99_us",
+        "name": "paced_submit_call_p99",
+        "unit": "us",
+        "direction": "lower-is-better"
+      },
+      {
+        "path": "submission_rate_p50",
+        "name": "paced_submission_rate",
+        "unit": "tasks/s",
+        "direction": "higher-is-better"
+      }
+    ]
+  }
+}

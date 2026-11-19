@@ -182,20 +182,22 @@ void close_races_producers() {
 
 void shutdown_during_backpressure() {
   for (bool batch : {false, true}) {
-    dagflow::Pool pool(config());
     std::atomic<bool> entered{false}, release{false}, publishing{false};
-    std::atomic<unsigned> calls{0};
+    std::atomic<unsigned> root_calls{0}, child_calls{0}, racing_calls{0};
+    std::vector<std::atomic<unsigned>> queued(DAGFLOW_CENTRAL_QUEUE_CAPACITY);
+    dagflow::Pool pool(config());
     pool.submit_detached([&] {
+      ++root_calls;
       signal(entered);
       release.wait(false, std::memory_order_acquire);
       // Descendants must remain legal while a publisher is blocked on capacity.
-      pool.submit_detached([&] { ++calls; });
+      pool.submit_detached([&] { ++child_calls; });
     });
     entered.wait(false, std::memory_order_acquire);
     for (unsigned i = 0; i < DAGFLOW_CENTRAL_QUEUE_CAPACITY; ++i)
-      pool.submit_detached([&] { ++calls; });
+      pool.submit_detached([&, i] { ++queued[i]; });
     auto producer = std::async(std::launch::async, [&] {
-      std::array jobs{[&] { ++calls; }};
+      std::array jobs{[&] { ++racing_calls; }};
       signal(publishing);
       try {
         if (batch)
@@ -214,7 +216,8 @@ void shutdown_during_backpressure() {
     signal(release);
     const auto accepted = producer.get();
     shutdown.get();
-    CHECK(calls == DAGFLOW_CENTRAL_QUEUE_CAPACITY + 1 + accepted);
+    CHECK(root_calls == 1 && child_calls == 1 && racing_calls == accepted);
+    for (auto& calls : queued) CHECK(calls == 1);
   }
 }
 

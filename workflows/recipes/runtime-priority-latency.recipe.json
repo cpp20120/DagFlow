@@ -1,0 +1,63 @@
+{
+  "kind": "benchmark-matrix",
+  "schemaVersion": 1,
+  "variants": [
+    {
+      "name": "candidate",
+      "buildDirectory": "../../out/workflow-builds/runtime-pair-candidate",
+      "configuration": "Release"
+    }
+  ],
+  "target": "dagflow_stress_bench",
+  "repeats": 5,
+  "timeoutSeconds": 120,
+  "fixedArguments": [
+    "--json", "--verify", "exact", "--warmup", "1", "--warmup-ms", "0",
+    "--scenario", "external-contention", "--workers", "4", "--shards", "1",
+    "--tasks", "8192", "--iterations", "16", "--repeats", "8",
+    "--priority-latency", "--sample-stride", "31", "--high-every", "8"
+  ],
+  "axes": [
+    {
+      "name": "rate",
+      "flag": "--arrival-rate",
+      "values": ["0", "250000", "1000000"]
+    },
+    {
+      "name": "producers",
+      "flag": "--producers",
+      "values": ["1", "4"]
+    }
+  ],
+  "executionOrder": "round-robin",
+  "metrics": {
+    "source": "stdout",
+    "format": "json",
+    "fields": [
+      {
+        "path": "priority_latency.high.start_p99_us",
+        "name": "priority_high_start_p99",
+        "unit": "us",
+        "direction": "lower-is-better"
+      },
+      {
+        "path": "priority_latency.high.finish_p99_us",
+        "name": "priority_high_finish_p99",
+        "unit": "us",
+        "direction": "lower-is-better"
+      },
+      {
+        "path": "priority_latency.normal.start_p99_us",
+        "name": "priority_normal_start_p99",
+        "unit": "us",
+        "direction": "lower-is-better"
+      },
+      {
+        "path": "priority_latency.normal.finish_p99_us",
+        "name": "priority_normal_finish_p99",
+        "unit": "us",
+        "direction": "lower-is-better"
+      }
+    ]
+  }
+}

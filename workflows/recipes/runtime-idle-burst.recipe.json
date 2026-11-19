@@ -1,0 +1,70 @@
+{
+  "kind": "benchmark-matrix",
+  "schemaVersion": 1,
+  "variants": [
+    {
+      "name": "baseline",
+      "buildDirectory": "../../out/workflow-builds/runtime-pair-baseline",
+      "configuration": "Release"
+    },
+    {
+      "name": "candidate",
+      "buildDirectory": "../../out/workflow-builds/runtime-pair-candidate",
+      "configuration": "Release"
+    }
+  ],
+  "target": "dagflow_stress_bench",
+  "repeats": 3,
+  "timeoutSeconds": 120,
+  "fixedArguments": [
+    "--json", "--verify", "exact", "--warmup", "1", "--warmup-ms", "0",
+    "--scenario", "idle-burst", "--iterations", "0", "--bursts", "32"
+  ],
+  "axes": [
+    {
+      "name": "idle_us",
+      "flag": "--idle-us",
+      "values": ["100", "2000", "10000"]
+    },
+    {
+      "name": "burst_tasks",
+      "flag": "--tasks",
+      "values": ["1", "64", "512"]
+    },
+    {
+      "name": "workers",
+      "flag": "--workers",
+      "values": ["1", "2", "4"]
+    },
+    {
+      "name": "submit_batch",
+      "flag": "--submit-batch",
+      "values": ["0", "16"]
+    }
+  ],
+  "executionOrder": "round-robin",
+  "metrics": {
+    "source": "stdout",
+    "format": "json",
+    "fields": [
+      {
+        "path": "run_p50_us",
+        "name": "burst_run_p50",
+        "unit": "us",
+        "direction": "lower-is-better"
+      },
+      {
+        "path": "start_p99_us",
+        "name": "burst_start_p99",
+        "unit": "us",
+        "direction": "lower-is-better"
+      },
+      {
+        "path": "finish_p99_us",
+        "name": "burst_finish_p99",
+        "unit": "us",
+        "direction": "lower-is-better"
+      }
+    ]
+  }
+}

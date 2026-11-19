@@ -153,6 +153,33 @@ check_invalid(--arrival-rate 1 --tasks 61 --scenario external-contention)
 check_invalid(--arrival-rate 10000 --tasks 37 --scenario mixed-chaos)
 check_invalid(--arrival-rate 10000 --tasks 37 --scenario external-contention --submit-batch 16)
 
+foreach(scenario external-contention external-batch)
+  run_json(row ${BASE} --scenario ${scenario} --workers 2 --producers 3
+    --priority-latency --high-every 8 --sample-stride 8)
+  check_result("${row}")
+  # Per run: five High tasks sample once and 32 Normal tasks sample four times.
+  check_field("${row}" 2 priority_latency high sample_count)
+  check_field("${row}" 8 priority_latency normal sample_count)
+  check_field("${row}" 10 latency_sample_count)
+  foreach(priority high normal)
+    string(JSON start GET "${row}" priority_latency ${priority} start_p99_us)
+    string(JSON finish GET "${row}" priority_latency ${priority} finish_p99_us)
+    if(start LESS 0 OR finish LESS start)
+      message(FATAL_ERROR "Invalid ${priority} latency percentiles")
+    endif()
+  endforeach()
+endforeach()
+
+run_json(row ${BASE} --scenario external-contention --workers 2 --producers 3
+  --arrival-rate 10000 --priority-latency --high-every 8 --sample-stride 8)
+check_result("${row}")
+check_field("${row}" 2 priority_latency high sample_count)
+check_field("${row}" 8 priority_latency normal sample_count)
+check_invalid(--priority-latency --scenario mixed-chaos)
+check_invalid(--priority-latency --scenario external-contention --high-every 0)
+check_invalid(--priority-latency --scenario external-contention --high-every 1)
+check_invalid(--priority-latency --scenario external-contention --tasks 1)
+
 # Verify that paced ingress rejects a missing --tasks argument.
 # Do not inherit --tasks 37 from BASE.
 block(SCOPE_FOR VARIABLES)
