@@ -294,6 +294,34 @@ void TaskGraph::publish_initial(RunState& state, index_type i,
   // completed the packet before enqueue_prepared returned.
 }
 
+bool TaskGraph::execute_serial_tokens(RunState& state, index_type i,
+                                      detail::CompletionCredit& credit,
+                                      unsigned& budget) {
+  const auto& node = state.nodes[i];
+  auto& cursor = state.runtime[i].next;
+  const auto start = cursor.load(std::memory_order_relaxed);
+  const auto end = start + std::min(node.tokens - start, std::size_t{budget});
+  auto token = start;
+  for (; token < end && !state.cancel.load(std::memory_order_acquire);
+       ++token) {
+    try {
+      node.work(token);
+    } catch (...) {
+      record_error(state, credit, std::current_exception());
+    }
+  }
+  budget -= static_cast<unsigned>(token - start);
+  if (budget != 0 || token == node.tokens ||
+      state.cancel.load(std::memory_order_acquire))
+    return false;
+  // Queue handoff publishes the cursor and callable writes to the next
+  // driver. This driver stops using the lane before publishing.
+  cursor.store(token, std::memory_order_relaxed);
+  detail::runtime_count(detail::RuntimeEvent::graph_continuations);
+  publish(state, i, credit);
+  return true;
+}
+
 void TaskGraph::execute(RunState& state, index_type i,
                         detail::CompletionCredit& credit) {
   unsigned budget = execution_budget;
@@ -301,8 +329,7 @@ void TaskGraph::execute(RunState& state, index_type i,
     const auto& node = state.nodes[i];
     auto& runtime = state.runtime[i];
     // An ordinary DAG node has one admitted invocation and therefore one lane.
-    // It cannot need a cursor or token continuation. Select this path once per
-    // node, keeping tokenized nodes on their original bounded CAS claim loop.
+    // It cannot need a cursor or token continuation.
     if (node.tokens == 1) {
       if (!state.cancel.load(std::memory_order_acquire)) {
         try {
@@ -312,6 +339,9 @@ void TaskGraph::execute(RunState& state, index_type i,
         }
         --budget;
       }
+    } else if (node.lanes == 1) {
+      if (node.tokens > 1 && execute_serial_tokens(state, i, credit, budget))
+        return;
     } else {
       while (!state.cancel.load(std::memory_order_acquire)) {
         auto token = runtime.next.load(std::memory_order_relaxed);

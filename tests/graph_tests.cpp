@@ -510,18 +510,26 @@ void graph_budget_allows_priority_progress() {
   cfg.threads = 1;
   cfg.pin_threads = false;
   dagflow::Pool pool(cfg);
-  // A token loop and a chain of zero-token nodes must both yield. Empty nodes
-  // consume transition budget even though they invoke no callable.
-  for (bool empty_chain : {false, true}) {
+  // Token loops and chains of zero-token nodes must yield. A token loop
+  // reached by bypass inherits the budget already spent on its predecessor.
+  enum class Scenario { root_tokens, empty_chain, successor_tokens };
+  for (const auto scenario : {Scenario::root_tokens, Scenario::empty_chain,
+                              Scenario::successor_tokens}) {
     dagflow::TaskGraph graph(pool);
     bool urgent_ran = false;
-    int calls = 0;
+    int calls = 0, calls_before_urgent = 0;
     auto previous = graph.emplace([&] {
       if (++calls == 1)
-        pool.submit_detached([&] { urgent_ran = true; },
-                             {.priority = dagflow::Priority::High});
+        pool.submit_detached(
+            [&] {
+              calls_before_urgent = calls;
+              urgent_ran = true;
+            },
+            {.priority = dagflow::Priority::High});
     });
-    if (empty_chain) {
+    if (scenario == Scenario::root_tokens) {
+      graph.set_tokens(previous, 129);
+    } else if (scenario == Scenario::empty_chain) {
       dagflow::TaskGraph::NodeOptions opt;
       opt.capacity = 0;
       opt.overflow = dagflow::TaskGraph::Overflow::Drop;
@@ -531,12 +539,18 @@ void graph_budget_allows_priority_progress() {
         previous = next;
       }
     } else {
-      graph.set_tokens(previous, 129);
+      const auto child = graph.emplace([&] { ++calls; });
+      graph.set_tokens(child, 128);
+      graph.add_edge(previous, child);
+      previous = child;
     }
     auto join = graph.emplace([&] { CHECK(urgent_ran); });
     graph.add_edge(previous, join);
     pool.wait(graph.run());
-    CHECK(!graph.last_error() && calls == (empty_chain ? 1 : 129));
+    CHECK(!graph.last_error() &&
+          calls == (scenario == Scenario::empty_chain ? 1 : 129));
+    if (scenario == Scenario::successor_tokens)
+      CHECK(calls_before_urgent == 63);
   }
 }
 

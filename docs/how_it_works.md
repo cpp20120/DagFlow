@@ -79,8 +79,10 @@ contract, not a streaming producer/consumer pipeline.
 
 An ordinary node with one admitted invocation executes directly, without a token
 cursor or token continuation; its compiled lane count is necessarily one.
-Tokenized nodes retain bounded CAS claims so a `SIZE_MAX` token limit cannot wrap
-the cursor. The final lane releases outgoing relationships once; only
+For a single-lane node with multiple invocations, the driver keeps the cursor
+local and saves it only before publishing a continuation. Concurrent lanes
+claim tokens with a bounded CAS. Both paths support `SIZE_MAX` tokens without
+wrapping the cursor. The final lane releases outgoing relationships once; only
 multi-lane nodes need an acquire/release lane join. Likewise, a single incoming
 edge has one releaser, while multiple incoming edges (including duplicate edges)
 retain an acquire/release arrival counter to gather all predecessor writes.

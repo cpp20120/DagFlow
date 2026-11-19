@@ -198,6 +198,10 @@ class TaskGraph {
   /// Prepare the lanes, publishing all except one reserved for the caller.
   static void activate(RunState& state, index_type i,
                        detail::CompletionCredit& credit);
+  /// Return true if continuation publication took responsibility for the lane.
+  static bool execute_serial_tokens(RunState& state, index_type i,
+                                    detail::CompletionCredit& credit,
+                                    unsigned& budget);
   static void execute(RunState& state, index_type i,
                       detail::CompletionCredit& credit);
   void ensure_not_running() const;
